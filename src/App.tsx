@@ -639,6 +639,7 @@ function App() {
   const [isLoadingInfraModels, setIsLoadingInfraModels] = useState(false)
   const [infraModelsError, setInfraModelsError] = useState<string | null>(null)
   const [showInfraLayoutVideo, setShowInfraLayoutVideo] = useState(false)
+  const [sectionHistory, setSectionHistory] = useState<Array<SectionKey | null>>([])
   const [designProvince, setDesignProvince] = useState('Punjab')
   const [designCity, setDesignCity] = useState('Lahore')
   const [designSoilType, setDesignSoilType] = useState<'Rocky' | 'Sandy' | 'Clayey' | 'Silty' | 'Saline'>('Clayey')
@@ -655,7 +656,30 @@ function App() {
   const t = translations[language]
   const isUrdu = language === 'ur'
   const isHomeView = !activeSection
+  const hasPreviousSection = sectionHistory.length > 0
   const infraLayoutVideoSrc = `${import.meta.env.BASE_URL}videos/layout.mp4`
+
+  const navigateToSection = useCallback(
+    (nextSection: SectionKey | null) => {
+      if (nextSection === activeSection) return
+      setSectionHistory((previous) => [...previous, activeSection])
+      setActiveSection(nextSection)
+    },
+    [activeSection],
+  )
+
+  const navigateBack = useCallback(() => {
+    setSectionHistory((previous) => {
+      if (previous.length === 0) {
+        setActiveSection(null)
+        return previous
+      }
+
+      const target = previous[previous.length - 1]
+      setActiveSection(target)
+      return previous.slice(0, -1)
+    })
+  }, [])
   const districtRiskLookup = useMemo(() => districtRiskLookupByName(), [])
   const availableMapDistricts = useMemo(() => listDistrictsByProvince(selectedProvince), [selectedProvince])
   const selectedDistrictProfile = useMemo<DistrictRiskProfile | null>(
@@ -2030,7 +2054,7 @@ function App() {
                 <button
                   onClick={() => {
                     setApplyHazard(bestPracticeHazard)
-                    setActiveSection('applyRegion')
+                    navigateToSection('applyRegion')
                   }}
                 >
                   📍 Apply in My Area
@@ -2195,7 +2219,7 @@ function App() {
                       setApplyCity(selectedDistrict)
                     }
                     setApplyHazard(mapLayer === 'infraRisk' ? 'flood' : mapLayer)
-                    setActiveSection('applyRegion')
+                    navigateToSection('applyRegion')
                   }}
                 >
                   🏗️ Open Local Construction Guide
@@ -2364,7 +2388,7 @@ function App() {
                 </ul>
                 <button
                   onClick={() => {
-                    setActiveSection('designToolkit')
+                    navigateToSection('designToolkit')
                   }}
                 >
                   🔗 Open Design Guide Links
@@ -3230,7 +3254,7 @@ function App() {
               ))}
             </select>
           </label>
-          <button onClick={() => setActiveSection(null)}>{isHomeView ? '🏠 Pakistan Home' : `🏠 ${t.home}`}</button>
+          <button onClick={() => navigateToSection(null)}>{isHomeView ? '🏠 Pakistan Home' : `🏠 ${t.home}`}</button>
         </div>
       </header>
 
@@ -3239,7 +3263,7 @@ function App() {
           <>
             <section className="home-card-grid">
               {homeSectionKeys.map((key) => (
-                <button key={key} className={`home-card ${homeCardMeta[key].tone}`} onClick={() => setActiveSection(key)}>
+                <button key={key} className={`home-card ${homeCardMeta[key].tone}`} onClick={() => navigateToSection(key)}>
                   <span className="home-card-icon">{homeCardMeta[key].icon}</span>
                   <span className="home-card-copy">
                     <strong>{homeCardMeta[key].title}</strong>
@@ -3253,14 +3277,14 @@ function App() {
               <p>
                 Building a <strong>Resilient Pakistan</strong> – Safer Infrastructure, Stronger Communities
               </p>
-              <button onClick={() => setActiveSection('settings')}>⚙️ {t.sections.settings}</button>
+              <button onClick={() => navigateToSection('settings')}>⚙️ {t.sections.settings}</button>
             </section>
           </>
         )}
         {!isHomeView && (
           <div className="section-back-row">
-            <button className="section-back-btn" onClick={() => setActiveSection(null)}>
-              ⬅ Back to All Sections
+            <button className="section-back-btn" onClick={navigateBack}>
+              {hasPreviousSection ? '⬅ Back' : '⬅ Back to Home'}
             </button>
           </div>
         )}
