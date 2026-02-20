@@ -434,6 +434,18 @@ const globalPracticeLibrary: Record<
   ],
 }
 
+const bestPracticeImageModules = import.meta.glob('./assets/best-practices/*.{jpg,png}', {
+  eager: true,
+  import: 'default',
+}) as Record<string, string>
+
+const toBestPracticeSlug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+const getBestPracticeImage = (title: string) =>
+  bestPracticeImageModules[`./assets/best-practices/${toBestPracticeSlug(title)}.jpg`] ??
+  bestPracticeImageModules[`./assets/best-practices/${toBestPracticeSlug(title)}.png`] ??
+  ''
+
 const provinceCenters: Record<string, { lat: number; lng: number }> = {
   Punjab: { lat: 31.17, lng: 72.71 },
   Sindh: { lat: 26.87, lng: 68.37 },
@@ -1836,31 +1848,43 @@ function App() {
             </label>
           </div>
 
-          {visibleGlobalPractices.map((practice) => (
-            <details key={`${practice.title}-${practice.region}`} open>
-              <summary>{practice.title}</summary>
-              <p>
-                <strong>Global Reference:</strong> {practice.region}
-              </p>
-              <p>{practice.summary}</p>
-              <ol>
-                {practice.steps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
-              <p>
-                <strong>Benefit-Cost Ratio:</strong> {practice.bcr}
-              </p>
-              <button
-                onClick={() => {
-                  setApplyHazard(bestPracticeHazard)
-                  setActiveSection('applyRegion')
-                }}
-              >
-                📍 Apply in My Area
-              </button>
-            </details>
-          ))}
+          {visibleGlobalPractices.map((practice) => {
+            const practiceImage = getBestPracticeImage(practice.title)
+
+            return (
+              <details key={`${practice.title}-${practice.region}`}>
+                <summary>{practice.title}</summary>
+                {practiceImage && (
+                  <img
+                    className="practice-image"
+                    src={practiceImage}
+                    alt={`${practice.title} AI illustration`}
+                    loading="lazy"
+                  />
+                )}
+                <p>
+                  <strong>Global Reference:</strong> {practice.region}
+                </p>
+                <p>{practice.summary}</p>
+                <ol>
+                  {practice.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+                <p>
+                  <strong>Benefit-Cost Ratio:</strong> {practice.bcr}
+                </p>
+                <button
+                  onClick={() => {
+                    setApplyHazard(bestPracticeHazard)
+                    setActiveSection('applyRegion')
+                  }}
+                >
+                  📍 Apply in My Area
+                </button>
+              </details>
+            )
+          })}
 
           {bestPracticeVisibleCount < globalPracticeLibrary[bestPracticeHazard].length && (
             <button onClick={() => setBestPracticeVisibleCount((value) => value + 2)}>➕ Load More Global Practices</button>

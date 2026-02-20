@@ -564,6 +564,16 @@ summary {
   box-shadow: inset 0 0 0 1px rgba(99, 150, 189, 0.1);
 }
 
+.practice-image {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d3e4f3;
+  background: #edf5fe;
+  margin: 10px 0;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
 .leaflet-map {
   height: 380px;
   width: 100%;
