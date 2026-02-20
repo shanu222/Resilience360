@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { jsPDF } from 'jspdf'
 import RiskMap from './components/RiskMap'
 import ResponsiveQa from './components/ResponsiveQa'
+import UserLocationMiniMap from './components/UserLocationMiniMap'
 import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
 import { analyzeBuildingWithVision, type VisionAnalysisResult } from './services/vision'
 import { getMlRetrofitEstimate, type MlRetrofitEstimate } from './services/mlRetrofit'
@@ -823,6 +824,7 @@ function App() {
   const [locationAccessMsg, setLocationAccessMsg] = useState<string | null>(null)
   const [isDetectingLocation, setIsDetectingLocation] = useState(false)
   const [detectedUserLocation, setDetectedUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [hasTriedApplyAutoLocation, setHasTriedApplyAutoLocation] = useState(false)
   const [riskActionProgress, setRiskActionProgress] = useState(0)
   const [advisoryQuestion, setAdvisoryQuestion] = useState('')
   const [advisoryMessages, setAdvisoryMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([])
@@ -2267,6 +2269,7 @@ function App() {
         const nearestProvince = getProvinceForDistrict(nearestDistrict) || findNearestCenterName({ lat: rawLat, lng: rawLng }, provinceCenters)
         const nearestDistrictsInProvince = nearestProvince ? listDistrictsByProvince(nearestProvince) : []
         const hasDistrictInDropdown = nearestDistrictsInProvince.includes(nearestDistrict)
+        const nearestProvinceCities = nearestProvince ? (pakistanCitiesByProvince[nearestProvince] ?? []) : []
 
         setStructureReviewGps(gpsText)
         setCommunityLocationSuggestion(`GPS: ${gpsText}`)
@@ -2282,6 +2285,26 @@ function App() {
           setApplyCity(nearestDistrict)
         } else {
           setSelectedDistrict(null)
+          if (nearestProvinceCities.length > 0) {
+            setApplyCity(nearestProvinceCities[0])
+          }
+        }
+
+        const districtProfileForHazard = nearestProvince
+          ? findDistrictRiskProfile(nearestProvince, hasDistrictInDropdown ? nearestDistrict : null)
+          : null
+        const provinceProfileForHazard = nearestProvince ? provinceRisk[nearestProvince] : null
+        const districtFlood = districtProfileForHazard?.flood === 'Very High' || districtProfileForHazard?.flood === 'High'
+        const districtEarthquake =
+          districtProfileForHazard?.earthquake === 'Very High' || districtProfileForHazard?.earthquake === 'High'
+        const provinceFlood = provinceProfileForHazard?.flood === 'Very High' || provinceProfileForHazard?.flood === 'High'
+        const provinceEarthquake =
+          provinceProfileForHazard?.earthquake === 'Very High' || provinceProfileForHazard?.earthquake === 'High'
+
+        if ((districtFlood && !districtEarthquake) || (provinceFlood && !provinceEarthquake)) {
+          setApplyHazard('flood')
+        } else if ((districtEarthquake && !districtFlood) || (provinceEarthquake && !provinceFlood)) {
+          setApplyHazard('earthquake')
         }
 
         try {
@@ -2331,6 +2354,20 @@ function App() {
       },
     )
   }
+
+  useEffect(() => {
+    if (activeSection !== 'applyRegion') {
+      setHasTriedApplyAutoLocation(false)
+      return
+    }
+
+    if (hasTriedApplyAutoLocation) return
+    setHasTriedApplyAutoLocation(true)
+
+    if (!detectedUserLocation) {
+      requestCurrentUserLocation()
+    }
+  }, [activeSection, detectedUserLocation, hasTriedApplyAutoLocation])
 
   const downloadDrawingSheet = (drawing: EngineeringDrawing) => {
     const doc = new jsPDF()
@@ -3431,6 +3468,24 @@ function App() {
                 <option value="earthquake">Earthquake</option>
               </select>
             </label>
+          </div>
+
+          <div className="retrofit-model-output">
+            <h3>📍 Live Location for Auto-Fill</h3>
+            <div className="inline-controls">
+              <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
+                {isDetectingLocation ? '📡 Detecting Live Location...' : '📡 Refresh Live Location'}
+              </button>
+            </div>
+            {locationAccessMsg && <p>{locationAccessMsg}</p>}
+            {detectedUserLocation && (
+              <>
+                <p>
+                  Auto-filled from live location: <strong>{applyCity}, {applyProvince}</strong> | Hazard Focus: <strong>{applyHazard}</strong>
+                </p>
+                <UserLocationMiniMap location={detectedUserLocation} />
+              </>
+            )}
           </div>
 
           <button onClick={generateApplyAreaGuidance} disabled={isGeneratingGuidance}>

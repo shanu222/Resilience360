@@ -603,6 +603,14 @@ summary {
   margin: var(--space-3) 0;
 }
 
+.apply-location-map {
+  height: 230px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 8px 0 0;
+}
+
 .map-toolbar {
   display: flex;
   gap: 10px;
