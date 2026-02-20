@@ -594,6 +594,8 @@ function App() {
   const [alertFilterWindow, setAlertFilterWindow] = useState<AlertFilterWindow>('24h')
   const [colorblindFriendlyMap, setColorblindFriendlyMap] = useState(false)
   const [districtProfileSavedMsg, setDistrictProfileSavedMsg] = useState<string | null>(null)
+  const [locationAccessMsg, setLocationAccessMsg] = useState<string | null>(null)
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false)
   const [riskActionProgress, setRiskActionProgress] = useState(0)
   const [advisoryQuestion, setAdvisoryQuestion] = useState('')
   const [advisoryMessages, setAdvisoryMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([])
@@ -1920,6 +1922,67 @@ function App() {
     window.setTimeout(() => setDistrictProfileSavedMsg(null), 2500)
   }
 
+  const requestCurrentUserLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationAccessMsg('Geolocation is not supported on this device/browser.')
+      window.setTimeout(() => setLocationAccessMsg(null), 3000)
+      return
+    }
+
+    setIsDetectingLocation(true)
+    setLocationAccessMsg('Requesting location permission...')
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude.toFixed(6)
+        const lng = position.coords.longitude.toFixed(6)
+        const gpsText = `${lat}, ${lng}`
+
+        setStructureReviewGps(gpsText)
+        setCommunityLocationSuggestion(`GPS: ${gpsText}`)
+
+        try {
+          const reverseUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+          const reverseResponse = await fetch(reverseUrl, {
+            headers: { 'Accept-Language': 'en' },
+          })
+
+          if (reverseResponse.ok) {
+            const reverseData = await reverseResponse.json() as { display_name?: string }
+            if (reverseData.display_name) {
+              setLocationText(`${reverseData.display_name} (${gpsText})`)
+            } else {
+              setLocationText(`Exact GPS: ${gpsText}`)
+            }
+          } else {
+            setLocationText(`Exact GPS: ${gpsText}`)
+          }
+        } catch {
+          setLocationText(`Exact GPS: ${gpsText}`)
+        }
+
+        setLocationAccessMsg('Exact location captured successfully.')
+        setIsDetectingLocation(false)
+        window.setTimeout(() => setLocationAccessMsg(null), 3000)
+      },
+      (error) => {
+        let message = 'Unable to access your location.'
+        if (error.code === error.PERMISSION_DENIED) message = 'Location permission denied. Please allow location access and try again.'
+        if (error.code === error.POSITION_UNAVAILABLE) message = 'Location unavailable. Please check GPS/network and try again.'
+        if (error.code === error.TIMEOUT) message = 'Location request timed out. Please try again.'
+
+        setLocationAccessMsg(message)
+        setIsDetectingLocation(false)
+        window.setTimeout(() => setLocationAccessMsg(null), 3500)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      },
+    )
+  }
+
   const downloadDrawingSheet = (drawing: EngineeringDrawing) => {
     const doc = new jsPDF()
     doc.setFontSize(16)
@@ -2128,7 +2191,9 @@ function App() {
             </label>
           </div>
           <div className="inline-controls">
-            <button onClick={() => setLocationText('Auto-detected location enabled')}>📡 Use My Location</button>
+            <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
+              {isDetectingLocation ? '📡 Detecting Location...' : '📡 Use My Location'}
+            </button>
             <button onClick={downloadDistrictRiskReport}>📄 Download Risk & Resilience Report</button>
             <button onClick={saveDistrictProfileLocally}>💾 Save District Profile</button>
             <label>
@@ -2158,6 +2223,7 @@ function App() {
               Urdu
             </label>
           </div>
+          {locationAccessMsg && <p>{locationAccessMsg}</p>}
           {districtProfileSavedMsg && <p>{districtProfileSavedMsg}</p>}
           <div className="alerts">
             <p>
