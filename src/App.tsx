@@ -474,6 +474,52 @@ const districtCenters: Record<string, { lat: number; lng: number }> = {
   Skardu: { lat: 35.3, lng: 75.63 },
 }
 
+const districtProvinceLookup = Object.entries(pakistanCitiesByProvince).reduce<Record<string, string>>((acc, [province, cities]) => {
+  for (const city of cities) {
+    acc[city] = province
+  }
+  return acc
+}, {})
+
+const toRadians = (value: number) => (value * Math.PI) / 180
+
+const haversineDistanceKm = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
+  const earthRadiusKm = 6371
+  const deltaLat = toRadians(to.lat - from.lat)
+  const deltaLng = toRadians(to.lng - from.lng)
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2)
+
+  return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+const findNearestCenterName = (
+  source: { lat: number; lng: number },
+  centers: Record<string, { lat: number; lng: number }>,
+) => {
+  let nearestName = ''
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (const [name, point] of Object.entries(centers)) {
+    const distance = haversineDistanceKm(source, point)
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestName = name
+    }
+  }
+
+  return nearestName
+}
+
+const getProvinceForDistrict = (district: string) => {
+  const directProvince = districtProvinceLookup[district]
+  if (directProvince) return directProvince
+  const districtPoint = districtCenters[district]
+  if (!districtPoint) return ''
+  return findNearestCenterName(districtPoint, provinceCenters)
+}
+
 const engineeringDrawingLibrary: Record<'earthquake' | 'flood' | 'infraRisk', EngineeringDrawing[]> = {
   earthquake: [
     {
@@ -1934,12 +1980,31 @@ function App() {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const lat = position.coords.latitude.toFixed(6)
-        const lng = position.coords.longitude.toFixed(6)
+        const rawLat = position.coords.latitude
+        const rawLng = position.coords.longitude
+        const lat = rawLat.toFixed(6)
+        const lng = rawLng.toFixed(6)
         const gpsText = `${lat}, ${lng}`
+        const nearestDistrict = findNearestCenterName({ lat: rawLat, lng: rawLng }, districtCenters)
+        const nearestProvince = getProvinceForDistrict(nearestDistrict) || findNearestCenterName({ lat: rawLat, lng: rawLng }, provinceCenters)
+        const nearestDistrictsInProvince = nearestProvince ? listDistrictsByProvince(nearestProvince) : []
+        const hasDistrictInDropdown = nearestDistrictsInProvince.includes(nearestDistrict)
 
         setStructureReviewGps(gpsText)
         setCommunityLocationSuggestion(`GPS: ${gpsText}`)
+
+        if (nearestProvince) {
+          setSelectedProvince(nearestProvince)
+          setApplyProvince(nearestProvince)
+          setDesignProvince(nearestProvince)
+        }
+
+        if (nearestDistrict && hasDistrictInDropdown) {
+          setSelectedDistrict(nearestDistrict)
+          setApplyCity(nearestDistrict)
+        } else {
+          setSelectedDistrict(null)
+        }
 
         try {
           const reverseUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
@@ -1961,7 +2026,13 @@ function App() {
           setLocationText(`Exact GPS: ${gpsText}`)
         }
 
-        setLocationAccessMsg('Exact location captured successfully.')
+        if (nearestProvince && nearestDistrict && hasDistrictInDropdown) {
+          setLocationAccessMsg(`Exact location captured and mapped to ${nearestDistrict}, ${nearestProvince}.`)
+        } else if (nearestProvince) {
+          setLocationAccessMsg(`Exact location captured and mapped to nearest province: ${nearestProvince}.`)
+        } else {
+          setLocationAccessMsg('Exact location captured successfully.')
+        }
         setIsDetectingLocation(false)
         window.setTimeout(() => setLocationAccessMsg(null), 3000)
       },
