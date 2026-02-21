@@ -591,7 +591,7 @@ const buildStepSvg = ({ province, city, hazard, structureType, step, index }) =>
   <circle cx="612" cy="618" r="10" fill="${palette.accentSoft}"/>
   ${hazardGraphic}
 
-  <text x="884" y="244" font-family="Inter, Segoe UI, Arial" font-size="25" font-weight="700" fill="${palette.text}">Location-Aware ML Checks</text>
+  <text x="884" y="244" font-family="Inter, Segoe UI, Arial" font-size="25" font-weight="700" fill="${palette.text}">Location-Aware Checks</text>
   <circle cx="892" cy="286" r="7" fill="${palette.accent}"/>
   <text x="912" y="294" font-family="Inter, Segoe UI, Arial" font-size="18" fill="${palette.text}">${escapeXml(checkLines[0])}</text>
   <circle cx="892" cy="338" r="7" fill="${palette.accent}"/>
