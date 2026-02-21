@@ -861,6 +861,7 @@ function App() {
   const [applyProvince, setApplyProvince] = useState('Punjab')
   const [applyCity, setApplyCity] = useState('Lahore')
   const [applyHazard, setApplyHazard] = useState<'flood' | 'earthquake'>('flood')
+  const [applyBestPracticeTitle, setApplyBestPracticeTitle] = useState(globalPracticeLibrary.flood[0]?.title ?? '')
   const [constructionGuidance, setConstructionGuidance] = useState<ConstructionGuidanceResult | null>(null)
   const [guidanceStepImages, setGuidanceStepImages] = useState<GuidanceStepImage[]>([])
   const [isGeneratingGuidance, setIsGeneratingGuidance] = useState(false)
@@ -1027,6 +1028,7 @@ function App() {
   }, [alertFilterWindow, hazardAlertOverlay])
   const availableRetrofitCities = useMemo(() => pakistanCitiesByProvince[selectedProvince] ?? [], [selectedProvince])
   const availableApplyCities = useMemo(() => pakistanCitiesByProvince[applyProvince] ?? [], [applyProvince])
+  const availableApplyBestPractices = useMemo(() => globalPracticeLibrary[applyHazard], [applyHazard])
   const availableDesignCities = useMemo(() => pakistanCitiesByProvince[designProvince] ?? [], [designProvince])
   const visibleGlobalPractices = useMemo(
     () => globalPracticeLibrary[bestPracticeHazard].slice(0, bestPracticeVisibleCount),
@@ -1044,6 +1046,12 @@ function App() {
       setApplyCity(availableApplyCities[0] ?? '')
     }
   }, [availableApplyCities, applyCity])
+
+  useEffect(() => {
+    if (!availableApplyBestPractices.some((item) => item.title === applyBestPracticeTitle)) {
+      setApplyBestPracticeTitle(availableApplyBestPractices[0]?.title ?? '')
+    }
+  }, [availableApplyBestPractices, applyBestPracticeTitle])
 
   useEffect(() => {
     if (!availableDesignCities.includes(designCity)) {
@@ -1080,6 +1088,7 @@ function App() {
         city: applyCity,
         hazard: applyHazard,
         structureType,
+        bestPracticeName: applyBestPracticeTitle,
       })
 
       setConstructionGuidance(guidance)
@@ -1091,6 +1100,7 @@ function App() {
           city: applyCity,
           hazard: applyHazard,
           structureType,
+          bestPracticeName: applyBestPracticeTitle,
           steps: guidance.steps,
         })
         setGuidanceStepImages(imageResult.images)
@@ -1136,7 +1146,7 @@ function App() {
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(60, 84, 107)
       doc.setFontSize(9)
-      doc.text(`${applyCity}, ${applyProvince} · Hazard: ${applyHazard}`, margin + 3, 24)
+      doc.text(`${applyCity}, ${applyProvince} · Hazard: ${applyHazard} · Best Practice: ${applyBestPracticeTitle}`, margin + 3, 24)
       cursorY = 34
     }
 
@@ -1239,6 +1249,7 @@ function App() {
       `Province: ${applyProvince}`,
       `City: ${applyCity}`,
       `Hazard Focus: ${applyHazard}`,
+      `Best Practice: ${applyBestPracticeTitle}`,
       `Structure Type: ${structureType}`,
     ])
 
@@ -3437,6 +3448,9 @@ function App() {
       return (
         <div className="panel section-panel section-apply-region">
           <h2>{t.sections.applyRegion}</h2>
+          <p>
+            <strong>Best Practice (Apply in My Region):</strong> {applyBestPracticeTitle}
+          </p>
           <div className="inline-controls">
             <label>
               Province
@@ -3466,6 +3480,14 @@ function App() {
               <select value={applyHazard} onChange={(event) => setApplyHazard(event.target.value as 'flood' | 'earthquake')}>
                 <option value="flood">Flood</option>
                 <option value="earthquake">Earthquake</option>
+              </select>
+            </label>
+            <label>
+              Best Practice
+              <select value={applyBestPracticeTitle} onChange={(event) => setApplyBestPracticeTitle(event.target.value)}>
+                {availableApplyBestPractices.map((item) => (
+                  <option key={item.title} value={item.title}>{item.title}</option>
+                ))}
               </select>
             </label>
           </div>
@@ -3498,7 +3520,7 @@ function App() {
             <div className="retrofit-model-output">
               <h3>Location-Tailored Construction Guidance</h3>
               <p>
-                <strong>Area:</strong> {applyCity}, {applyProvince} | <strong>Hazard:</strong> {applyHazard}
+                <strong>Area:</strong> {applyCity}, {applyProvince} | <strong>Hazard:</strong> {applyHazard} | <strong>Best Practice:</strong> {applyBestPracticeTitle}
               </p>
               <p>{constructionGuidance.summary}</p>
 

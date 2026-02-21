@@ -156,6 +156,7 @@ app.post('/api/guidance/construction', async (req, res) => {
     const city = String(req.body.city ?? 'Lahore')
     const hazard = String(req.body.hazard ?? 'flood')
     const structureType = String(req.body.structureType ?? 'Masonry House')
+    const bestPracticeName = String(req.body.bestPracticeName ?? 'General Resilient Construction Practice')
 
     const completion = await openai.chat.completions.create({
       model,
@@ -169,7 +170,7 @@ app.post('/api/guidance/construction', async (req, res) => {
         {
           role: 'user',
           content:
-            `Create location-aware construction guidance for structureType=${structureType} in city=${city}, province=${province}, Pakistan for hazard=${hazard}. Return strict JSON schema:\n{\n  "summary": string,\n  "materials": string[],\n  "safety": string[],\n  "steps": [\n    {\n      "title": string,\n      "description": string,\n      "keyChecks": string[]\n    }\n  ]\n}. Constraints: 5 steps exactly, each step must be different, practical, and not generic. Every description must include why this step matters for the local city/province hazard context in Pakistan.`,
+            `Create location-aware construction guidance for structureType=${structureType} in city=${city}, province=${province}, Pakistan for hazard=${hazard}. Best practice to apply: ${bestPracticeName}. Return strict JSON schema:\n{\n  "summary": string,\n  "materials": string[],\n  "safety": string[],\n  "steps": [\n    {\n      "title": string,\n      "description": string,\n      "keyChecks": string[]\n    }\n  ]\n}. Constraints: 5 steps exactly, each step must be different, practical, and not generic. Every description must include why this step matters for the local city/province hazard context in Pakistan and how it aligns with the named best practice.`,
         },
       ],
     })
@@ -208,13 +209,14 @@ app.post('/api/guidance/step-images', async (req, res) => {
     const city = String(req.body.city ?? 'Lahore')
     const hazard = String(req.body.hazard ?? 'flood')
     const structureType = String(req.body.structureType ?? 'Masonry House')
+    const bestPracticeName = String(req.body.bestPracticeName ?? 'General Resilient Construction Practice')
     const steps = safeArray(req.body.steps).slice(0, 4)
 
     const generatedImages = await Promise.allSettled(
       steps.map(async (step) => {
         const stepTitle = String(step?.title ?? 'Construction Step')
         const stepDescription = String(step?.description ?? '')
-        const prompt = `Photorealistic construction scene in ${city}, ${province}, Pakistan for ${structureType}. Hazard: ${hazard}. Step: ${stepTitle}. Include realistic workers, tools, materials, weather context, and site details. ${stepDescription}`
+        const prompt = `Photorealistic construction scene in ${city}, ${province}, Pakistan for ${structureType}. Hazard: ${hazard}. Best practice: ${bestPracticeName}. Step: ${stepTitle}. Include realistic workers, tools, materials, weather context, and site details. ${stepDescription}`
 
         const generated = await openai.images.generate({
           model: 'gpt-image-1',

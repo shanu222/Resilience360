@@ -63,6 +63,7 @@ export const generateConstructionGuidance = async (payload: {
   city: string
   hazard: 'flood' | 'earthquake'
   structureType: string
+  bestPracticeName?: string
 }): Promise<ConstructionGuidanceResult> => {
   const response = await postJsonWithFallback('/api/guidance/construction', payload)
 
@@ -74,6 +75,7 @@ export const generateGuidanceStepImages = async (payload: {
   city: string
   hazard: 'flood' | 'earthquake'
   structureType: string
+  bestPracticeName?: string
   steps: GuidanceStep[]
 }): Promise<{ images: GuidanceStepImage[] }> => {
   const response = await postJsonWithFallback('/api/guidance/step-images', payload)
