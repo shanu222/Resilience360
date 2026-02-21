@@ -1132,7 +1132,7 @@ function App() {
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(24, 66, 105)
       doc.setFontSize(12)
-      doc.text(continued ? 'Resilience360 ML Construction Guidance (Continued)' : 'Resilience360 ML Construction Guidance Report', margin + 3, 19)
+      doc.text(continued ? 'Resilience360 Construction Guidance (Continued)' : 'Resilience360 Construction Guidance Report', margin + 3, 19)
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(60, 84, 107)
       doc.setFontSize(9)
@@ -3489,7 +3489,7 @@ function App() {
           </div>
 
           <button onClick={generateApplyAreaGuidance} disabled={isGeneratingGuidance}>
-            {isGeneratingGuidance ? '🧠 Running Local ML Guidance + Images...' : '🛠️ Construction Guidance'}
+            {isGeneratingGuidance ? '⚡ Generating Construction Guidance + Images...' : '🛠️ Construction Guidance'}
           </button>
 
           {guidanceError && <p>{guidanceError}</p>}

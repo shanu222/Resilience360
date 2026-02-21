@@ -66,7 +66,7 @@ export const generateConstructionGuidance = async (payload: {
 }): Promise<ConstructionGuidanceResult> => {
   const response = await postJsonWithFallback('/api/guidance/construction', payload)
 
-  return parseJsonResponse<ConstructionGuidanceResult>(response, 'ML guidance generation failed')
+  return parseJsonResponse<ConstructionGuidanceResult>(response, 'Construction guidance generation failed')
 }
 
 export const generateGuidanceStepImages = async (payload: {
@@ -78,5 +78,5 @@ export const generateGuidanceStepImages = async (payload: {
 }): Promise<{ images: GuidanceStepImage[] }> => {
   const response = await postJsonWithFallback('/api/guidance/step-images', payload)
 
-  return parseJsonResponse<{ images: GuidanceStepImage[] }>(response, 'ML step image generation failed')
+  return parseJsonResponse<{ images: GuidanceStepImage[] }>(response, 'Construction image generation failed')
 }
