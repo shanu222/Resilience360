@@ -2543,58 +2543,77 @@ function App() {
       return (
         <div className="panel section-panel section-risk-maps">
           <h2>{t.sections.riskMaps}</h2>
-          <div className="inline-controls">
-            <label>
-              Layer
-              <select value={mapLayer} onChange={(event) => setMapLayer(event.target.value as typeof mapLayer)}>
-                <option value="earthquake">Earthquake</option>
-                <option value="flood">Flood</option>
-                <option value="infraRisk">Infrastructure Risk</option>
-              </select>
-            </label>
-            <label>
-              Province
-              <select
-                value={selectedProvince}
-                onChange={(event) => {
-                  setSelectedProvince(event.target.value)
-                  setSelectedDistrict(null)
-                }}
-              >
-                {Object.keys(provinceRisk).map((province) => (
-                  <option key={province}>{province}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              District
-              <select value={selectedDistrict ?? ''} onChange={(event) => setSelectedDistrict(event.target.value || null)}>
-                <option value="">Select District</option>
-                {availableMapDistricts.map((district) => (
-                  <option key={district} value={district}>
-                    {district}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Report Language
-              <select
-                value={districtReportLanguage}
-                onChange={(event) => setDistrictReportLanguage(event.target.value as typeof districtReportLanguage)}
-              >
-                <option>English</option>
-                <option>Urdu</option>
-              </select>
-            </label>
-            <label>
-              Alert Window
-              <select value={alertFilterWindow} onChange={(event) => setAlertFilterWindow(event.target.value as AlertFilterWindow)}>
-                <option value="24h">Last 24h</option>
-                <option value="7d">Last 7 days</option>
-                <option value="ongoing">Ongoing</option>
-              </select>
-            </label>
+          <div className="context-split-layout">
+            <aside className="context-left-panel">
+              <h3>Selection Summary</h3>
+              <p>
+                <strong>Province:</strong> {selectedProvince}
+              </p>
+              <p>
+                <strong>District:</strong> {selectedDistrict ?? 'All districts'}
+              </p>
+              <p>
+                <strong>Layer:</strong> {mapLayer === 'infraRisk' ? 'Infrastructure Risk' : mapLayer}
+              </p>
+              <p>
+                <strong>Selected Risk:</strong> {riskValue}
+              </p>
+            </aside>
+            <div className="context-main-panel">
+              <div className="inline-controls">
+                <label>
+                  Layer
+                  <select value={mapLayer} onChange={(event) => setMapLayer(event.target.value as typeof mapLayer)}>
+                    <option value="earthquake">Earthquake</option>
+                    <option value="flood">Flood</option>
+                    <option value="infraRisk">Infrastructure Risk</option>
+                  </select>
+                </label>
+                <label>
+                  Province
+                  <select
+                    value={selectedProvince}
+                    onChange={(event) => {
+                      setSelectedProvince(event.target.value)
+                      setSelectedDistrict(null)
+                    }}
+                  >
+                    {Object.keys(provinceRisk).map((province) => (
+                      <option key={province}>{province}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  District
+                  <select value={selectedDistrict ?? ''} onChange={(event) => setSelectedDistrict(event.target.value || null)}>
+                    <option value="">Select District</option>
+                    {availableMapDistricts.map((district) => (
+                      <option key={district} value={district}>
+                        {district}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Report Language
+                  <select
+                    value={districtReportLanguage}
+                    onChange={(event) => setDistrictReportLanguage(event.target.value as typeof districtReportLanguage)}
+                  >
+                    <option>English</option>
+                    <option>Urdu</option>
+                  </select>
+                </label>
+                <label>
+                  Alert Window
+                  <select value={alertFilterWindow} onChange={(event) => setAlertFilterWindow(event.target.value as AlertFilterWindow)}>
+                    <option value="24h">Last 24h</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="ongoing">Ongoing</option>
+                  </select>
+                </label>
+              </div>
+            </div>
           </div>
           <div className="inline-controls">
             <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
@@ -3457,48 +3476,61 @@ function App() {
       return (
         <div className="panel section-panel section-apply-region">
           <h2>{t.sections.applyRegion} — {applyBestPracticeTitle}</h2>
-          <p>
-            <strong>Best Practice (Apply in My Region):</strong> {applyBestPracticeTitle}
-          </p>
-          <div className="inline-controls">
-            <label>
-              Province
-              <select
-                value={applyProvince}
-                onChange={(event) => {
-                  const province = event.target.value
-                  setApplyProvince(province)
-                  setApplyCity((pakistanCitiesByProvince[province] ?? [])[0] ?? '')
-                }}
-              >
-                {Object.keys(provinceRisk).map((province) => (
-                  <option key={province}>{province}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              City
-              <select value={applyCity} onChange={(event) => setApplyCity(event.target.value)}>
-                {availableApplyCities.map((city) => (
-                  <option key={city}>{city}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Hazard Focus
-              <select value={applyHazard} onChange={(event) => setApplyHazard(event.target.value as 'flood' | 'earthquake')}>
-                <option value="flood">Flood</option>
-                <option value="earthquake">Earthquake</option>
-              </select>
-            </label>
-            <label>
-              Best Practice
-              <select value={applyBestPracticeTitle} onChange={(event) => handleApplyBestPracticeChange(event.target.value)}>
-                {availableApplyBestPractices.map((item) => (
-                  <option key={item.title} value={item.title}>{item.title}</option>
-                ))}
-              </select>
-            </label>
+          <div className="context-split-layout">
+            <aside className="context-left-panel">
+              <h3>Selection Summary</h3>
+              <p>
+                <strong>Best Practice (Apply in My Region):</strong> {applyBestPracticeTitle}
+              </p>
+              <p>
+                <strong>Area:</strong> {applyCity}, {applyProvince}
+              </p>
+              <p>
+                <strong>Hazard:</strong> {applyHazard}
+              </p>
+            </aside>
+            <div className="context-main-panel">
+              <div className="inline-controls">
+                <label>
+                  Province
+                  <select
+                    value={applyProvince}
+                    onChange={(event) => {
+                      const province = event.target.value
+                      setApplyProvince(province)
+                      setApplyCity((pakistanCitiesByProvince[province] ?? [])[0] ?? '')
+                    }}
+                  >
+                    {Object.keys(provinceRisk).map((province) => (
+                      <option key={province}>{province}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  City
+                  <select value={applyCity} onChange={(event) => setApplyCity(event.target.value)}>
+                    {availableApplyCities.map((city) => (
+                      <option key={city}>{city}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Hazard Focus
+                  <select value={applyHazard} onChange={(event) => setApplyHazard(event.target.value as 'flood' | 'earthquake')}>
+                    <option value="flood">Flood</option>
+                    <option value="earthquake">Earthquake</option>
+                  </select>
+                </label>
+                <label>
+                  Best Practice
+                  <select value={applyBestPracticeTitle} onChange={(event) => handleApplyBestPracticeChange(event.target.value)}>
+                    {availableApplyBestPractices.map((item) => (
+                      <option key={item.title} value={item.title}>{item.title}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div className="retrofit-model-output">
@@ -3528,10 +3560,23 @@ function App() {
           {constructionGuidance && (
             <div className="retrofit-model-output">
               <h3>Location-Tailored Construction Guidance — {applyBestPracticeTitle}</h3>
-              <p>
-                <strong>Area:</strong> {applyCity}, {applyProvince} | <strong>Hazard:</strong> {applyHazard} | <strong>Best Practice:</strong> {applyBestPracticeTitle}
-              </p>
-              <p>{constructionGuidance.summary}</p>
+              <div className="context-split-layout context-split-layout-compact">
+                <aside className="context-left-panel">
+                  <h3>Guidance Context</h3>
+                  <p>
+                    <strong>Area:</strong> {applyCity}, {applyProvince}
+                  </p>
+                  <p>
+                    <strong>Hazard:</strong> {applyHazard}
+                  </p>
+                  <p>
+                    <strong>Best Practice:</strong> {applyBestPracticeTitle}
+                  </p>
+                </aside>
+                <div className="context-main-panel">
+                  <p>{constructionGuidance.summary}</p>
+                </div>
+              </div>
 
               <h3>Materials</h3>
               <ul>
@@ -3581,35 +3626,54 @@ function App() {
       return (
         <div className="panel section-panel section-readiness">
           <h2>{t.sections.readiness}</h2>
-          <div className="inline-controls">
-            <label>
-              Building Type
-              <select value={buildingType} onChange={(event) => setBuildingType(event.target.value)}>
-                <option>Residential</option>
-                <option>Commercial</option>
-                <option>Critical Infrastructure</option>
-              </select>
-            </label>
-            <label>
-              Materials
-              <select value={materialType} onChange={(event) => setMaterialType(event.target.value)}>
-                <option>Reinforced Concrete</option>
-                <option>Steel Frame</option>
-                <option>Unreinforced Masonry</option>
-              </select>
-            </label>
-            <label>
-              Lifeline Presence
-              <select value={lifeline} onChange={(event) => setLifeline(event.target.value)}>
-                <option>No</option>
-                <option>Yes</option>
-              </select>
-            </label>
+          <div className="context-split-layout">
+            <aside className="context-left-panel">
+              <h3>Readiness Summary</h3>
+              <p>
+                <strong>Risk Score:</strong> {readinessScore}/100
+              </p>
+              <p>
+                <strong>Location:</strong> {locationText}
+              </p>
+              <p>
+                <strong>Building Type:</strong> {buildingType}
+              </p>
+              <p>
+                <strong>Materials:</strong> {materialType}
+              </p>
+            </aside>
+            <div className="context-main-panel">
+              <div className="inline-controls">
+                <label>
+                  Building Type
+                  <select value={buildingType} onChange={(event) => setBuildingType(event.target.value)}>
+                    <option>Residential</option>
+                    <option>Commercial</option>
+                    <option>Critical Infrastructure</option>
+                  </select>
+                </label>
+                <label>
+                  Materials
+                  <select value={materialType} onChange={(event) => setMaterialType(event.target.value)}>
+                    <option>Reinforced Concrete</option>
+                    <option>Steel Frame</option>
+                    <option>Unreinforced Masonry</option>
+                  </select>
+                </label>
+                <label>
+                  Lifeline Presence
+                  <select value={lifeline} onChange={(event) => setLifeline(event.target.value)}>
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Location
+                <input value={locationText} onChange={(event) => setLocationText(event.target.value)} />
+              </label>
+            </div>
           </div>
-          <label>
-            Location
-            <input value={locationText} onChange={(event) => setLocationText(event.target.value)} />
-          </label>
           <p>
             Risk Score: <strong>{readinessScore}/100</strong>
           </p>

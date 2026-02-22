@@ -405,6 +405,42 @@ main {
   flex: 1 1 220px;
 }
 
+.context-split-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  margin-bottom: var(--space-3);
+}
+
+.context-split-layout-compact {
+  margin-bottom: var(--space-2);
+}
+
+.context-left-panel {
+  background: #f3f9ff;
+  border: 1px solid #d5e7f7;
+  border-radius: 10px;
+  padding: var(--space-3);
+  text-align: left;
+}
+
+.context-left-panel h3 {
+  margin: 0 0 var(--space-2);
+}
+
+.context-left-panel p {
+  margin: 0 0 var(--space-2);
+}
+
+.context-left-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.context-main-panel {
+  min-width: 0;
+}
+
 input[type='checkbox'],
 input[type='radio'] {
   width: auto;
@@ -921,6 +957,10 @@ progress {
   .inline-controls {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .context-split-layout {
+    grid-template-columns: 1fr;
   }
 
   .section-back-row {
