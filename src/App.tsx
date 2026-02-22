@@ -86,7 +86,7 @@ const translations = {
       riskMaps: '🗺️ Risk Zone Maps',
       designToolkit: '🏗️ Design Toolkit',
       infraModels: '🧱 Resilience Infra Models',
-      applyRegion: '📍 Apply in My Region',
+      applyRegion: '📍 Construct in my Region',
       readiness: '📊 Readiness Calculator',
       retrofit: '🧰 Retrofit Guide',
       warning: '📢 Early Warning System',
@@ -107,7 +107,7 @@ const translations = {
       riskMaps: '🗺️ رسک زون میپس',
       designToolkit: '🏗️ ڈیزائن ٹول کٹ',
       infraModels: '🧱 ریزیلینس انفرا ماڈلز',
-      applyRegion: '📍 میرے علاقے میں اطلاق',
+      applyRegion: '📍 اپنے علاقے میں تعمیر',
       readiness: '📊 تیاری کیلکولیٹر',
       retrofit: '🧰 ریٹروفٹ گائیڈ',
       warning: '📢 ابتدائی وارننگ سسٹم',
@@ -307,7 +307,7 @@ const homeCardMeta: Record<
   },
   applyRegion: {
     icon: '📍',
-    title: 'Apply in My Region',
+    title: 'Construct in my Region',
     subtitle: 'District-Specific Guidance',
     tone: 'tone-d',
   },
@@ -1239,10 +1239,44 @@ function App() {
       }
 
       if (hasImage && imageDataUrl) {
-        const imageWidth = contentWidth - 8
-        try {
-          doc.addImage(imageDataUrl, 'PNG', margin + 4, textY + 2, imageWidth, imageHeight)
-        } catch {
+        // Match web UI: width 100% of content, max-height 380px, preserve aspect ratio
+        const img = new window.Image()
+        img.src = imageDataUrl
+        img.onload = () => {
+          let naturalWidth = img.naturalWidth || img.width
+          let naturalHeight = img.naturalHeight || img.height
+          // Web UI: width 100% (container), max-height 380px
+          const pxToMm = px => px * 25.4 / 96
+          const maxWidthMm = contentWidth - 8
+          const maxHeightPx = 380
+          let imageWidthPx = naturalWidth
+          let imageHeightPx = naturalHeight
+          // Scale to fit width, then clamp height
+          if (imageWidthPx > 0 && imageHeightPx > 0) {
+            // Scale to fit width
+            if (imageWidthPx > (maxWidthMm * 96 / 25.4)) {
+              const scale = (maxWidthMm * 96 / 25.4) / imageWidthPx
+              imageWidthPx = imageWidthPx * scale
+              imageHeightPx = imageHeightPx * scale
+            }
+            // Clamp height
+            if (imageHeightPx > maxHeightPx) {
+              const scale = maxHeightPx / imageHeightPx
+              imageWidthPx = imageWidthPx * scale
+              imageHeightPx = maxHeightPx
+            }
+          }
+          const imageWidthMm = pxToMm(imageWidthPx)
+          const imageHeightMm = pxToMm(imageHeightPx)
+          try {
+            doc.addImage(imageDataUrl, 'PNG', margin + 4, textY + 2, imageWidthMm, imageHeightMm)
+          } catch {
+            doc.setFontSize(9)
+            doc.setTextColor(120, 80, 52)
+            doc.text('Step image preview unavailable in PDF export.', margin + 4, textY + 7)
+          }
+        }
+        img.onerror = () => {
           doc.setFontSize(9)
           doc.setTextColor(120, 80, 52)
           doc.text('Step image preview unavailable in PDF export.', margin + 4, textY + 7)
@@ -2526,7 +2560,7 @@ function App() {
                     navigateToSection('applyRegion')
                   }}
                 >
-                  📍 Apply in My Area
+                  📍 Construct in my Region
                 </button>
               </details>
             )
@@ -3475,12 +3509,12 @@ function App() {
     if (activeSection === 'applyRegion') {
       return (
         <div className="panel section-panel section-apply-region">
-          <h2>{t.sections.applyRegion} — {applyBestPracticeTitle}</h2>
+          <h2>Construct in my Region — {applyBestPracticeTitle}</h2>
           <div className="context-split-layout">
             <aside className="context-left-panel">
               <h3>Selection Summary</h3>
               <p>
-                <strong>Best Practice (Apply in My Region):</strong> {applyBestPracticeTitle}
+                <strong>Best Practice (Construct in my Region):</strong> {applyBestPracticeTitle}
               </p>
               <p>
                 <strong>Area:</strong> {applyCity}, {applyProvince}
