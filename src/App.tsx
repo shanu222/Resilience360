@@ -1251,25 +1251,13 @@ function App() {
       const stepLines = [step.description, labels?.keyChecks ?? 'Key Checks:', ...keyChecks]
       const wrappedStepLines = stepLines.flatMap((line) => doc.splitTextToSize(line, contentWidth - 8))
       const lineBlockHeight = wrappedStepLines.length * 5
-      const hasImage = Boolean(imageDataUrl)
-      let imageHeight = 0
-      if (hasImage && imageDataUrl) {
-        try {
-          const imageProps = doc.getImageProperties(imageDataUrl)
-          const maxImageWidth = contentWidth - 8
-          const naturalRatio = imageProps.height / imageProps.width
-          imageHeight = Math.min(72, maxImageWidth * naturalRatio)
-        } catch {
-          imageHeight = 56
-        }
-      }
-      const blockHeight = 12 + lineBlockHeight + imageHeight + 8
+      const textBlockHeight = 12 + lineBlockHeight + 8
 
-      ensureSpace(blockHeight)
+      ensureSpace(textBlockHeight)
 
       doc.setFillColor(255, 255, 255)
       doc.setDrawColor(204, 219, 235)
-      doc.roundedRect(margin, cursorY, contentWidth, blockHeight, 2, 2, 'FD')
+      doc.roundedRect(margin, cursorY, contentWidth, textBlockHeight, 2, 2, 'FD')
 
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(24, 66, 105)
@@ -1286,16 +1274,50 @@ function App() {
         textY += 5
       }
 
-      if (hasImage && imageDataUrl) {
-        try {
-          doc.addImage(imageDataUrl, 'PNG', margin + 4, textY + 2, contentWidth - 8, imageHeight)
-        } catch {
-          doc.setFontSize(9)
-          doc.setTextColor(120, 80, 52)
-          doc.text('Step image preview unavailable in PDF export.', margin + 4, textY + 7)
+      cursorY += textBlockHeight + 4
+
+      if (!imageDataUrl) return
+
+      let imageWidth = contentWidth - 18
+      let imageHeight = 46
+
+      try {
+        const imageProps = doc.getImageProperties(imageDataUrl)
+        const maxImageWidth = contentWidth - 18
+        const maxImageHeight = 62
+        const naturalRatio = imageProps.height / imageProps.width
+        if (Number.isFinite(naturalRatio) && naturalRatio > 0) {
+          imageHeight = Math.min(maxImageHeight, maxImageWidth * naturalRatio)
+          imageWidth = imageHeight / naturalRatio
+          if (imageWidth > maxImageWidth) {
+            imageWidth = maxImageWidth
+            imageHeight = imageWidth * naturalRatio
+          }
         }
+      } catch {
+        imageWidth = contentWidth - 18
+        imageHeight = 46
       }
-      cursorY += blockHeight + 4
+
+      const imageCardHeight = imageHeight + 14
+      ensureSpace(imageCardHeight)
+
+      doc.setFillColor(252, 253, 255)
+      doc.setDrawColor(218, 229, 240)
+      doc.roundedRect(margin, cursorY, contentWidth, imageCardHeight, 2, 2, 'FD')
+
+      const imageX = margin + (contentWidth - imageWidth) / 2
+      const imageY = cursorY + 7
+
+      try {
+        doc.addImage(imageDataUrl, 'PNG', imageX, imageY, imageWidth, imageHeight)
+      } catch {
+        doc.setFontSize(9)
+        doc.setTextColor(120, 80, 52)
+        doc.text('Step image preview unavailable in PDF export.', margin + 4, cursorY + 10)
+      }
+
+      cursorY += imageCardHeight + 4
     }
 
     drawPageHeader()
