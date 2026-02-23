@@ -854,6 +854,7 @@ function App() {
   const [locationText, setLocationText] = useState('Lahore, Punjab')
   const [lifeline, setLifeline] = useState('No')
   const [structureType, setStructureType] = useState('Masonry House')
+  const [retrofitAreaSqft, setRetrofitAreaSqft] = useState(1200)
   const [retrofitCity, setRetrofitCity] = useState('Lahore')
   const [retrofitScope, setRetrofitScope] = useState<'Basic' | 'Standard' | 'Comprehensive'>('Standard')
   const [retrofitDamageLevel, setRetrofitDamageLevel] = useState<'Low' | 'Medium' | 'High'>('Medium')
@@ -1699,8 +1700,15 @@ function App() {
     [structureType, visionAnalysis?.costSignals, visionAnalysis?.defects.length],
   )
 
+  const effectiveRetrofitAreaSqft = useMemo(() => {
+    if (Number.isFinite(retrofitAreaSqft) && retrofitAreaSqft >= 300) {
+      return Math.round(Math.max(300, Math.min(25000, retrofitAreaSqft)))
+    }
+    return estimatedRetrofitAreaSqft
+  }, [estimatedRetrofitAreaSqft, retrofitAreaSqft])
+
   const retrofitEstimate = useMemo(() => {
-    const area = estimatedRetrofitAreaSqft
+    const area = effectiveRetrofitAreaSqft
 
     const scopeRate: Record<'Basic' | 'Standard' | 'Comprehensive', number> = {
       Basic: 300,
@@ -1831,7 +1839,7 @@ function App() {
     visionAnalysis?.imageQuality.visibility,
     retrofitCity,
     mlEstimate,
-    estimatedRetrofitAreaSqft,
+    effectiveRetrofitAreaSqft,
   ])
 
   const toolkit = {
@@ -1984,7 +1992,7 @@ function App() {
           structureType,
           province: selectedProvince,
           city: retrofitCity,
-          areaSqft: estimatedRetrofitAreaSqft,
+          areaSqft: effectiveRetrofitAreaSqft,
           severityScore: analysis.costSignals?.severityScore ?? fallbackSeverityScore,
           affectedAreaPercent: analysis.costSignals?.estimatedAffectedAreaPercent ?? Math.min(85, 20 + analysis.defects.length * 8),
           urgencyLevel: analysis.costSignals?.urgencyLevel ?? (analysis.defects.some((defect) => defect.severity === 'high') ? 'critical' : 'priority'),
@@ -3866,13 +3874,23 @@ function App() {
         <div className="panel section-panel section-retrofit">
           <h2>{t.sections.retrofit}</h2>
           <label>
-            Structure Type
+            Construction Type
             <select value={structureType} onChange={(event) => setStructureType(event.target.value)}>
               <option>Masonry House</option>
               <option>RC Frame</option>
               <option>School Block</option>
               <option>Bridge Approach</option>
             </select>
+          </label>
+          <label>
+            Construction Area (sq ft)
+            <input
+              type="number"
+              min={300}
+              step={50}
+              value={retrofitAreaSqft}
+              onChange={(event) => setRetrofitAreaSqft(Number(event.target.value) || 0)}
+            />
           </label>
           <div className="inline-controls">
             <label>
