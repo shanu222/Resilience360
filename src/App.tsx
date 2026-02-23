@@ -83,6 +83,20 @@ type EngineeringDrawing = {
   annotation: string
 }
 
+type GlobalEarthquake = {
+  id: string
+  magnitude: number
+  place: string
+  time: string
+  depthKm: number
+  lat: number
+  lng: number
+  url: string
+}
+
+const GLOBAL_EARTHQUAKE_FEED_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
+const GLOBAL_EARTHQUAKE_MAP_URL = 'https://earth3dmap.com/earthquake-live-map/'
+
 const translations = {
   en: {
     appTitle: 'Resilience360 – Infrastructure Safety & Disaster Engineering Toolkit',
@@ -877,6 +891,12 @@ function App() {
   })
   const [isLoadingPmdLive, setIsLoadingPmdLive] = useState(false)
   const [pmdLiveError, setPmdLiveError] = useState<string | null>(null)
+  const [globalEarthquakes, setGlobalEarthquakes] = useState<GlobalEarthquake[]>(() => {
+    const cached = localStorage.getItem('r360-global-earthquakes')
+    return cached ? (JSON.parse(cached) as GlobalEarthquake[]) : []
+  })
+  const [isLoadingGlobalEarthquakes, setIsLoadingGlobalEarthquakes] = useState(false)
+  const [globalEarthquakeError, setGlobalEarthquakeError] = useState<string | null>(null)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
   const [bestPracticeVisibleCount, setBestPracticeVisibleCount] = useState(2)
   const [applyProvince, setApplyProvince] = useState('Punjab')
@@ -2600,6 +2620,64 @@ function App() {
     }
   }, [])
 
+  const loadGlobalEarthquakes = useCallback(async () => {
+    setIsLoadingGlobalEarthquakes(true)
+    setGlobalEarthquakeError(null)
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), 16000)
+
+    try {
+      const response = await fetch(GLOBAL_EARTHQUAKE_FEED_URL, { signal: controller.signal })
+      if (!response.ok) {
+        throw new Error(`Live earthquake feed request failed with status ${response.status}.`)
+      }
+
+      const payload = (await response.json()) as {
+        features?: Array<{
+          id?: string
+          properties?: {
+            mag?: number | null
+            place?: string
+            time?: number
+            url?: string
+          }
+          geometry?: {
+            coordinates?: number[]
+          }
+        }>
+      }
+
+      const latest = (payload.features ?? [])
+        .slice(0, 30)
+        .map((feature, index) => {
+          const coords = feature.geometry?.coordinates ?? []
+          const lng = Number(coords[0] ?? 0)
+          const lat = Number(coords[1] ?? 0)
+          const depthKm = Number(coords[2] ?? 0)
+          const magnitude = Number(feature.properties?.mag ?? 0)
+          return {
+            id: String(feature.id ?? `eq-${index}`),
+            magnitude,
+            place: String(feature.properties?.place ?? 'Unknown location'),
+            time: new Date(Number(feature.properties?.time ?? Date.now())).toISOString(),
+            depthKm,
+            lat,
+            lng,
+            url: String(feature.properties?.url ?? 'https://earthquake.usgs.gov/earthquakes/'),
+          }
+        })
+        .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng))
+
+      setGlobalEarthquakes(latest)
+      localStorage.setItem('r360-global-earthquakes', JSON.stringify(latest))
+    } catch {
+      setGlobalEarthquakeError('Global live earthquake feed is temporarily unavailable. Showing last cached updates if available.')
+    } finally {
+      window.clearTimeout(timer)
+      setIsLoadingGlobalEarthquakes(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (activeSection !== 'warning' && activeSection !== 'riskMaps') return
     if (alertLog.length === 0) {
@@ -2619,6 +2697,19 @@ function App() {
 
     return () => window.clearInterval(timer)
   }, [activeSection, loadPmdLive, pmdLiveSnapshot])
+
+  useEffect(() => {
+    if (activeSection !== 'riskMaps') return
+    if (globalEarthquakes.length === 0) {
+      void loadGlobalEarthquakes()
+    }
+
+    const timer = window.setInterval(() => {
+      void loadGlobalEarthquakes()
+    }, 180000)
+
+    return () => window.clearInterval(timer)
+  }, [activeSection, globalEarthquakes.length, loadGlobalEarthquakes])
 
   useEffect(() => {
     const onHashChange = () => {
@@ -2826,6 +2917,41 @@ function App() {
             onSelectProvince={setSelectedProvince}
             onSelectDistrict={setSelectedDistrict}
           />
+          <div className="global-earthquake-panel">
+            <div className="inline-controls">
+              <h3>🌍 Global Live Earthquake Map</h3>
+              <button onClick={loadGlobalEarthquakes} disabled={isLoadingGlobalEarthquakes}>
+                {isLoadingGlobalEarthquakes ? '🔄 Syncing Earthquakes...' : '📡 Refresh Global Earthquakes'}
+              </button>
+              <a href={GLOBAL_EARTHQUAKE_MAP_URL} target="_blank" rel="noreferrer">
+                Open Fullscreen Globe
+              </a>
+            </div>
+            <div className="global-earthquake-map-wrap">
+              <iframe
+                title="Global Live Earthquake Globe"
+                src={GLOBAL_EARTHQUAKE_MAP_URL}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <p>
+              Globe source: Earth3DMap live earthquake globe. Event stream source: USGS live earthquake feed (last hour).
+            </p>
+            {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
+            <div className="global-earthquake-list">
+              {globalEarthquakes.length === 0 && <p>No global earthquakes available right now.</p>}
+              {globalEarthquakes.slice(0, 10).map((quake) => (
+                <p key={quake.id}>
+                  <strong>M {quake.magnitude.toFixed(1)}</strong> • {quake.place} • {new Date(quake.time).toLocaleString()} • Depth{' '}
+                  {quake.depthKm.toFixed(1)} km •{' '}
+                  <a href={quake.url} target="_blank" rel="noreferrer">
+                    Details
+                  </a>
+                </p>
+              ))}
+            </div>
+          </div>
           <p>Boundary source: geoBoundaries Pakistan ADM1 + ADM2 (public-domain dataset).</p>
           <p>Risk layer source: integrated NDMA Infrastructure Risk Atlas district profiles for practical planning workflows.</p>
           <p>

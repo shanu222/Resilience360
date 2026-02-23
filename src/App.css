@@ -134,3 +134,43 @@
   border-radius: 0.45rem;
   border: 1px solid #d9e0e6;
 }
+
+.global-earthquake-panel {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border: 1px solid #d9e0e6;
+  border-radius: 0.6rem;
+  text-align: left;
+}
+
+.global-earthquake-panel h3 {
+  margin: 0;
+}
+
+.global-earthquake-map-wrap {
+  width: 100%;
+  margin: 0.6rem 0;
+  border: 1px solid #d9e0e6;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.global-earthquake-map-wrap iframe {
+  display: block;
+  width: 100%;
+  min-height: 430px;
+  border: 0;
+}
+
+.global-earthquake-list {
+  margin-top: 0.55rem;
+  border: 1px solid #d9e0e6;
+  border-radius: 0.55rem;
+  padding: 0.6rem;
+  background: #ffffff;
+}
+
+.global-earthquake-list p {
+  margin: 0.35rem 0;
+}
