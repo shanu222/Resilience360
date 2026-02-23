@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { jsPDF } from 'jspdf'
+import {
+  AlignmentType,
+  Document,
+  HeadingLevel,
+  ImageRun,
+  Packer,
+  Paragraph,
+  TextRun,
+} from 'docx'
 import RiskMap from './components/RiskMap'
 import ResponsiveQa from './components/ResponsiveQa'
 import UserLocationMiniMap from './components/UserLocationMiniMap'
@@ -1160,96 +1169,110 @@ function App() {
       }
     }
 
-    const escapeHtml = (value: string) =>
-      value
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;')
+    const toImageBytes = (dataUrl: string): Uint8Array => {
+      const base64 = dataUrl.split(',')[1] ?? ''
+      const binary = window.atob(base64)
+      const bytes = new Uint8Array(binary.length)
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index)
+      }
+      return bytes
+    }
+
+    const getImageSize = (dataUrl: string): Promise<{ width: number; height: number }> =>
+      new Promise((resolve) => {
+        const img = new window.Image()
+        img.onload = () => {
+          const maxWidth = 560
+          const naturalWidth = img.naturalWidth || 1024
+          const naturalHeight = img.naturalHeight || 768
+          const ratio = naturalHeight / naturalWidth
+          const width = Math.min(maxWidth, naturalWidth)
+          const height = Math.max(220, Math.round(width * ratio))
+          resolve({ width, height })
+        }
+        img.onerror = () => resolve({ width: 520, height: 320 })
+        img.src = dataUrl
+      })
 
     const renderedAt = new Date().toLocaleString()
-    const stepCards = constructionGuidance.steps
-      .map((step, index) => {
-        const image = reportImages.find((item) => item.stepTitle === step.title) ?? reportImages[index]
-        const keyChecksHtml = step.keyChecks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
-        const imageHtml = image?.imageDataUrl
-          ? `<div class="step-image-wrap"><img src="${image.imageDataUrl}" alt="Step ${index + 1} visual" class="step-image" /></div>`
-          : '<p class="muted">Image unavailable for this step.</p>'
+    const docChildren: Paragraph[] = [
+      new Paragraph({
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Resilience360 Construction Guidance in English Report', bold: true, size: 34 })],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 260 },
+        children: [
+          new TextRun({
+            text: `Area: ${applyCity}, ${applyProvince}   |   Hazard: ${applyHazard}   |   Best Practice: ${applyBestPracticeTitle}   |   Generated: ${renderedAt}`,
+            size: 20,
+          }),
+        ],
+      }),
+      new Paragraph({ heading: HeadingLevel.HEADING_1, text: 'Executive Summary' }),
+      new Paragraph({ text: constructionGuidance.summary, spacing: { after: 220 } }),
+      new Paragraph({ heading: HeadingLevel.HEADING_1, text: 'Recommended Materials' }),
+      ...constructionGuidance.materials.map((item) => new Paragraph({ text: item, bullet: { level: 0 } })),
+      new Paragraph({ text: '', spacing: { after: 120 } }),
+      new Paragraph({ heading: HeadingLevel.HEADING_1, text: 'Safety Requirements' }),
+      ...constructionGuidance.safety.map((item) => new Paragraph({ text: item, bullet: { level: 0 } })),
+      new Paragraph({ text: '', spacing: { after: 140 } }),
+    ]
 
-        return `
-          <section class="step-card">
-            <h3>Step ${index + 1}: ${escapeHtml(step.title)}</h3>
-            <p>${escapeHtml(step.description)}</p>
-            ${imageHtml}
-            <h4>Key Checks</h4>
-            <ul>${keyChecksHtml}</ul>
-          </section>
-        `
-      })
-      .join('')
+    for (const [index, step] of constructionGuidance.steps.entries()) {
+      const image = reportImages.find((item) => item.stepTitle === step.title) ?? reportImages[index]
 
-    const html = `
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Resilience360 Construction Guidance Report</title>
-          <style>
-            body { font-family: Calibri, Arial, sans-serif; color: #1f2937; margin: 28px; }
-            .header { border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 16px; background: #eff6ff; }
-            .header h1 { margin: 0 0 6px 0; font-size: 22px; color: #1e3a5f; }
-            .meta { font-size: 13px; color: #334155; }
-            .section { margin-top: 16px; border: 1px solid #dbe5f0; border-radius: 10px; padding: 12px 14px; background: #ffffff; }
-            .section h2 { margin: 0 0 8px 0; font-size: 18px; color: #1e3a5f; }
-            ul { margin: 8px 0 0 20px; }
-            li { margin-bottom: 4px; }
-            .step-card { margin-top: 16px; border: 1px solid #dbe5f0; border-radius: 10px; padding: 12px 14px; }
-            .step-card h3 { margin: 0 0 8px 0; font-size: 16px; color: #1e3a5f; }
-            .step-card h4 { margin: 10px 0 6px 0; font-size: 14px; color: #1e3a5f; }
-            .step-image-wrap { margin-top: 10px; text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background: #f8fafc; }
-            .step-image { max-width: 100%; max-height: 330px; width: auto; height: auto; border-radius: 6px; }
-            .muted { color: #64748b; font-size: 12px; }
-            .footer { margin-top: 22px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Resilience360 Construction Guidance in English Report</h1>
-            <div class="meta">
-              <strong>Area:</strong> ${escapeHtml(`${applyCity}, ${applyProvince}`)} &nbsp;|&nbsp;
-              <strong>Hazard:</strong> ${escapeHtml(applyHazard)} &nbsp;|&nbsp;
-              <strong>Best Practice:</strong> ${escapeHtml(applyBestPracticeTitle)} &nbsp;|&nbsp;
-              <strong>Generated:</strong> ${escapeHtml(renderedAt)}
-            </div>
-          </div>
+      docChildren.push(
+        new Paragraph({ heading: HeadingLevel.HEADING_2, text: `Step ${index + 1}: ${step.title}`, spacing: { before: 240, after: 80 } }),
+        new Paragraph({ text: step.description, spacing: { after: 100 } }),
+        new Paragraph({ text: 'Key Checks', heading: HeadingLevel.HEADING_3 }),
+        ...step.keyChecks.map((item) => new Paragraph({ text: item, bullet: { level: 0 } })),
+      )
 
-          <section class="section">
-            <h2>Executive Summary</h2>
-            <p>${escapeHtml(constructionGuidance.summary)}</p>
-          </section>
+      if (image?.imageDataUrl) {
+        const imageBytes = toImageBytes(image.imageDataUrl)
+        const imageSize = await getImageSize(image.imageDataUrl)
 
-          <section class="section">
-            <h2>Recommended Materials</h2>
-            <ul>${constructionGuidance.materials.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-          </section>
+        docChildren.push(
+          new Paragraph({ text: '', spacing: { after: 80 } }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new ImageRun({
+                data: imageBytes,
+                type: 'png',
+                transformation: {
+                  width: imageSize.width,
+                  height: imageSize.height,
+                },
+              }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 180 },
+            children: [new TextRun({ text: `Step ${index + 1} visual`, italics: true, size: 18 })],
+          }),
+        )
+      }
+    }
 
-          <section class="section">
-            <h2>Safety Requirements</h2>
-            <ul>${constructionGuidance.safety.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-          </section>
+    const report = new Document({
+      sections: [
+        {
+          children: docChildren,
+        },
+      ],
+    })
 
-          ${stepCards}
-
-          <div class="footer">Generated by Resilience360 • Professional Engineering Guidance Report</div>
-        </body>
-      </html>
-    `
-
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' })
+    const blob = await Packer.toBlob(report)
     const url = window.URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `resilience360-guidance-report-english-${applyProvince}-${applyCity}-${Date.now()}.doc`
+    anchor.download = `resilience360-guidance-report-english-${applyProvince}-${applyCity}-${Date.now()}.docx`
     document.body.appendChild(anchor)
     anchor.click()
     document.body.removeChild(anchor)
