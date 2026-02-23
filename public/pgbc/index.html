@@ -25,17 +25,17 @@
 </header>
 
 <nav class="portal-nav">
-    <button id="homeBtn" onclick="showSection('home')">Home</button>
+    <button id="homeBtn" class="active-tab" onclick="showSection('home')">Home</button>
     <button id="libraryBtn" onclick="goToLibrary()">Codes Library</button>
     <button id="signupBtn" onclick="showSection('signup')">Signup</button>
-    <button id="loginBtn" class="active-tab" onclick="showSection('login')">Login</button>
+    <button id="loginBtn" onclick="showSection('login')">Login</button>
     <button id="adminLoginBtn" onclick="showSection('adminLogin')">Admin Login</button>
     <button id="logoutBtn" onclick="logout()" class="hidden">Logout</button>
 </nav>
 
 <main class="portal-main">
 <!-- HOME PAGE -->
-<section id="home" class="hidden">
+<section id="home" class="active">
     <div class="home-container">
         <div class="search-banner">
             <input type="text" id="librarySearch" placeholder="Search Codes Library..." class="search-input">
@@ -104,7 +104,7 @@
 </section>
 
 <!-- LOGIN SECTION -->
-<section id="login" class="active auth-page">
+<section id="login" class="hidden auth-page">
     <div class="auth-bg-left"></div>
     <div class="auth-bg-right"></div>
 
@@ -173,9 +173,13 @@
                 showSection('home');
             }
         } else {
-            let activeSection = document.querySelector('section.active');
-            if (activeSection && typeof updateActiveNav === 'function') {
-                updateActiveNav(activeSection.id);
+            if (typeof showSection === 'function') {
+                showSection('home');
+            } else {
+                let activeSection = document.querySelector('section.active');
+                if (activeSection && typeof updateActiveNav === 'function') {
+                    updateActiveNav(activeSection.id);
+                }
             }
         }
     });
