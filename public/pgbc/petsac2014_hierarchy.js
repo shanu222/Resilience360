@@ -1,0 +1,866 @@
+window.PETSAC2014_HIERARCHY = [
+  {
+    "number": 1,
+    "title": "— INTRODUCTION TO THE PAKISTAN ELECTRIC AND TELECOM SAFETY CODE",
+    "sections": [
+      {
+        "code": "1.1",
+        "title": "Title"
+      },
+      {
+        "code": "1.2",
+        "title": "Purpose"
+      },
+      {
+        "code": "1.3",
+        "title": "Scope"
+      },
+      {
+        "code": "1.3.1",
+        "title": "Applicable to"
+      },
+      {
+        "code": "1.3.2",
+        "title": "Not applicable to"
+      },
+      {
+        "code": "1.4",
+        "title": "General"
+      },
+      {
+        "code": "1.5",
+        "title": "Application"
+      },
+      {
+        "code": "1.5.1",
+        "title": "New Installations and Extensions"
+      },
+      {
+        "code": "1.5.2",
+        "title": "Existing installations"
+      },
+      {
+        "code": "1.5.3",
+        "title": "Inspection and work rules"
+      },
+      {
+        "code": "1.6",
+        "title": "Waivers and Limitations"
+      },
+      {
+        "code": "1.7",
+        "title": "Intent"
+      },
+      {
+        "code": "1.8",
+        "title": "Units of measure"
+      },
+      {
+        "code": "1.9",
+        "title": "Source documents"
+      }
+    ]
+  },
+  {
+    "number": 2,
+    "title": "— DEFINITIONS",
+    "sections": [
+      {
+        "code": "",
+        "title": "Definitions (comprehensive terminology list)"
+      },
+      {
+        "code": "",
+        "title": "📍 (starts p. 5)"
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "title": "— ADMINISTRATION AND ENFORCEMENT",
+    "sections": [
+      {
+        "code": "3.1",
+        "title": "Compliance Requirements"
+      },
+      {
+        "code": "3.2",
+        "title": "Administrative Requirements"
+      },
+      {
+        "code": "3.3",
+        "title": "Compliance Documents"
+      },
+      {
+        "code": "3.4",
+        "title": "Supplementary Information"
+      },
+      {
+        "code": "",
+        "title": "📍 (p. 20)"
+      }
+    ]
+  },
+  {
+    "number": 4,
+    "title": "— GROUNDING METHODS FOR ELECTRIC SUPPLY AND TELECOMMUNICATION FACILITIES",
+    "sections": [
+      {
+        "code": "4.1",
+        "title": "Purpose and scope of rules"
+      },
+      {
+        "code": "4.1.1",
+        "title": "Purpose"
+      },
+      {
+        "code": "4.1.2",
+        "title": "Scope"
+      },
+      {
+        "code": "4.2",
+        "title": "Point of connection of grounding conductor"
+      },
+      {
+        "code": "4.2.1",
+        "title": "DC systems required to be grounded"
+      },
+      {
+        "code": "4.2.1.1",
+        "title": "750 V and below"
+      },
+      {
+        "code": "4.2.1.2",
+        "title": "Over 750 V"
+      },
+      {
+        "code": "4.2.2",
+        "title": "AC systems required to be grounded"
+      },
+      {
+        "code": "4.2.2.1",
+        "title": "750 V and below"
+      },
+      {
+        "code": "4.2.2.2",
+        "title": "Over 750 V"
+      },
+      {
+        "code": "",
+        "title": "Messenger wires and guys"
+      },
+      {
+        "code": "",
+        "title": "Current in grounding conductor"
+      },
+      {
+        "code": "",
+        "title": "Fences"
+      },
+      {
+        "code": "4.3",
+        "title": "Grounding conductor and means of connection"
+      },
+      {
+        "code": "",
+        "title": "Composition"
+      },
+      {
+        "code": "",
+        "title": "Connection"
+      },
+      {
+        "code": "",
+        "title": "Ampacity and strength"
+      },
+      {
+        "code": "",
+        "title": "Guarding and protection"
+      },
+      {
+        "code": "",
+        "title": "Underground"
+      },
+      {
+        "code": "",
+        "title": "Common grounding conductor"
+      },
+      {
+        "code": "4.4",
+        "title": "Grounding electrodes"
+      },
+      {
+        "code": "",
+        "title": "Existing electrodes"
+      },
+      {
+        "code": "",
+        "title": "Made electrodes"
+      },
+      {
+        "code": "",
+        "title": "Concrete-encased electrodes"
+      },
+      {
+        "code": "",
+        "title": "Directly embedded poles"
+      },
+      {
+        "code": "4.5",
+        "title": "Method of connection to electrode"
+      },
+      {
+        "code": "4.6",
+        "title": "Ground resistance requirements"
+      },
+      {
+        "code": "4.7",
+        "title": "Separation of grounding conductors"
+      },
+      {
+        "code": "4.8",
+        "title": "Additional telecom grounding requirements"
+      },
+      {
+        "code": "",
+        "title": "📍 (pp. 21–35)"
+      }
+    ]
+  },
+  {
+    "number": 5,
+    "title": "— SAFETY RULES FOR ELECTRIC SUPPLY SUBSTATIONS AND EQUIPMENT",
+    "sections": [
+      {
+        "code": "5.1",
+        "title": "Purpose and scope"
+      },
+      {
+        "code": "5.2",
+        "title": "Specific requirements for substations"
+      },
+      {
+        "code": "",
+        "title": "Site selection"
+      },
+      {
+        "code": "",
+        "title": "Natural hazards"
+      },
+      {
+        "code": "",
+        "title": "Seismic design"
+      },
+      {
+        "code": "",
+        "title": "Flood and wind safety"
+      },
+      {
+        "code": "",
+        "title": "Instrumentation"
+      },
+      {
+        "code": "5.3",
+        "title": "Protective arrangements in substations"
+      },
+      {
+        "code": "",
+        "title": "Enclosures"
+      },
+      {
+        "code": "",
+        "title": "Rooms and spaces"
+      },
+      {
+        "code": "",
+        "title": "Monitoring"
+      },
+      {
+        "code": "",
+        "title": "Illumination"
+      },
+      {
+        "code": "",
+        "title": "Floors and stairs"
+      },
+      {
+        "code": "",
+        "title": "Exits"
+      },
+      {
+        "code": "",
+        "title": "Fire-extinguishing equipment"
+      },
+      {
+        "code": "5.4",
+        "title": "Installation and maintenance of equipment"
+      },
+      {
+        "code": "",
+        "title": "Periodic inspections"
+      },
+      {
+        "code": "",
+        "title": "Guarding moving parts"
+      },
+      {
+        "code": "",
+        "title": "Protective grounding"
+      },
+      {
+        "code": "",
+        "title": "Guarding live parts"
+      },
+      {
+        "code": "",
+        "title": "Working space about equipment"
+      },
+      {
+        "code": "5.5",
+        "title": "Rotating equipment"
+      },
+      {
+        "code": "5.6",
+        "title": "Storage batteries"
+      },
+      {
+        "code": "5.7",
+        "title": "Transformers and regulators"
+      },
+      {
+        "code": "5.8",
+        "title": "Conductors"
+      },
+      {
+        "code": "5.9",
+        "title": "Circuit breakers, switches, fuses"
+      },
+      {
+        "code": "5.10",
+        "title": "Switchgear and metal-enclosed bus"
+      },
+      {
+        "code": "5.11",
+        "title": "Surge arresters"
+      },
+      {
+        "code": "",
+        "title": "📍 (pp. 36–72)"
+      }
+    ]
+  },
+  {
+    "number": 6,
+    "title": "— SAFETY RULES FOR OVERHEAD LINES",
+    "sections": [
+      {
+        "code": "6.1",
+        "title": "Purpose and scope"
+      },
+      {
+        "code": "6.2",
+        "title": "General requirements"
+      },
+      {
+        "code": "",
+        "title": "Inspection and tests"
+      },
+      {
+        "code": "",
+        "title": "Grounding"
+      },
+      {
+        "code": "",
+        "title": "Switch arrangement"
+      },
+      {
+        "code": "",
+        "title": "Supporting structures"
+      },
+      {
+        "code": "",
+        "title": "Vegetation management"
+      },
+      {
+        "code": "6.3",
+        "title": "Relations between various classes of lines"
+      },
+      {
+        "code": "",
+        "title": "Relative levels"
+      },
+      {
+        "code": "",
+        "title": "Joint use"
+      },
+      {
+        "code": "",
+        "title": "Railway construction"
+      },
+      {
+        "code": "6.4",
+        "title": "Clearances"
+      },
+      {
+        "code": "",
+        "title": "(major detailed technical section)"
+      },
+      {
+        "code": "",
+        "title": "Structure clearances"
+      },
+      {
+        "code": "",
+        "title": "Vertical clearances"
+      },
+      {
+        "code": "",
+        "title": "Building clearances"
+      },
+      {
+        "code": "",
+        "title": "Same-structure clearances"
+      },
+      {
+        "code": "",
+        "title": "Climbing space"
+      },
+      {
+        "code": "",
+        "title": "Working space"
+      },
+      {
+        "code": "6.5",
+        "title": "Grades of construction"
+      },
+      {
+        "code": "6.6",
+        "title": "Loadings for Grades B and C"
+      },
+      {
+        "code": "6.7",
+        "title": "Strength requirements"
+      },
+      {
+        "code": "6.8",
+        "title": "Line insulation"
+      },
+      {
+        "code": "",
+        "title": "📍 (pp. 73–216 approx.)"
+      }
+    ]
+  },
+  {
+    "number": 7,
+    "title": "— SAFETY RULES FOR UNDERGROUND ELECTRIC SUPPLY AND TELECOMMUNICATION LINES",
+    "sections": [
+      {
+        "code": "7.1",
+        "title": "Purpose and Scope"
+      },
+      {
+        "code": "7.2",
+        "title": "General Requirements"
+      },
+      {
+        "code": "",
+        "title": "Installation and maintenance"
+      },
+      {
+        "code": "",
+        "title": "Inspection"
+      },
+      {
+        "code": "",
+        "title": "Grounding"
+      },
+      {
+        "code": "",
+        "title": "Induced voltage"
+      },
+      {
+        "code": "7.3",
+        "title": "Underground conduit systems"
+      },
+      {
+        "code": "",
+        "title": "Routing"
+      },
+      {
+        "code": "",
+        "title": "Separation"
+      },
+      {
+        "code": "",
+        "title": "Excavation and backfill"
+      },
+      {
+        "code": "",
+        "title": "Manholes and vaults"
+      },
+      {
+        "code": "7.4",
+        "title": "Supply cable"
+      },
+      {
+        "code": "7.5",
+        "title": "Cable in underground structures"
+      },
+      {
+        "code": "7.6",
+        "title": "Direct buried cable"
+      },
+      {
+        "code": "7.7",
+        "title": "Risers"
+      },
+      {
+        "code": "7.8",
+        "title": "Supply cable terminations"
+      },
+      {
+        "code": "7.9",
+        "title": "Equipment"
+      },
+      {
+        "code": "7.10",
+        "title": "Installation in tunnels"
+      },
+      {
+        "code": "",
+        "title": "📍 (pp. 217–243)"
+      }
+    ]
+  },
+  {
+    "number": 8,
+    "title": "— SAFETY RULES FOR TELECOMMUNICATION FACILITIES",
+    "sections": [
+      {
+        "code": "",
+        "title": "✅ 8.1 Purpose and Scope"
+      },
+      {
+        "code": "8.1.1",
+        "title": "Purpose"
+      },
+      {
+        "code": "8.1.2",
+        "title": "Scope"
+      },
+      {
+        "code": "",
+        "title": "✅ 8.2 Referenced Section"
+      },
+      {
+        "code": "",
+        "title": "✅ 8.3 Grounding Methods for Telecommunication Systems"
+      },
+      {
+        "code": "8.3.1",
+        "title": "Grounding of telecom feeder"
+      },
+      {
+        "code": "8.3.2",
+        "title": "Earthing arrangements for UHF & VHF towers (high/medium power)"
+      },
+      {
+        "code": "8.3.3",
+        "title": "Earthing arrangements for UHF, VHF & SHF towers (low power)"
+      },
+      {
+        "code": "8.3.4",
+        "title": "Arrangement for earthing telecom and broadcasting towers"
+      },
+      {
+        "code": "",
+        "title": "✅ 8.4 Protection of Telecom Exchanges and Transmission Equipment"
+      },
+      {
+        "code": "",
+        "title": "✅ 8.5 Safety Requirements for Cable Television Distribution Networks"
+      },
+      {
+        "code": "8.5.1",
+        "title": "Reference levels, subscriber drop length & cable grade"
+      },
+      {
+        "code": "8.5.2",
+        "title": "Reference frequency band"
+      },
+      {
+        "code": "8.5.3",
+        "title": "Permissible signal leakage levels"
+      },
+      {
+        "code": "8.5.4",
+        "title": "System/equipment layout and location"
+      },
+      {
+        "code": "8.5.5",
+        "title": "Scalability of cable TV distribution system"
+      },
+      {
+        "code": "8.5.6",
+        "title": "Safety measures"
+      },
+      {
+        "code": "",
+        "title": "🌱 8.6 Environmental, Health, and Safety in Telecommunications Infrastructures"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.6.1 Environment"
+      },
+      {
+        "code": "8.6.1.1",
+        "title": "Terrestrial habitat alteration"
+      },
+      {
+        "code": "8.6.1.2",
+        "title": "Avian collisions"
+      },
+      {
+        "code": "8.6.1.3",
+        "title": "Aquatic habitat alteration"
+      },
+      {
+        "code": "8.6.1.4",
+        "title": "Marine habitat alteration"
+      },
+      {
+        "code": "8.6.1.5",
+        "title": "Visual impacts"
+      },
+      {
+        "code": "8.6.1.6",
+        "title": "Hazardous materials and waste"
+      },
+      {
+        "code": "8.6.1.7",
+        "title": "Emissions to air"
+      },
+      {
+        "code": "8.6.1.8",
+        "title": "Noise"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.6.2 Occupational Health and Safety"
+      },
+      {
+        "code": "8.6.2.1",
+        "title": "Electrical safety"
+      },
+      {
+        "code": "8.6.2.2",
+        "title": "Optical fiber safety"
+      },
+      {
+        "code": "8.6.2.3",
+        "title": "Elevated and overhead work"
+      },
+      {
+        "code": "8.6.2.4",
+        "title": "Fall protection"
+      },
+      {
+        "code": "8.6.2.5",
+        "title": "Confined spaces"
+      },
+      {
+        "code": "8.6.2.6",
+        "title": "Motor vehicle safety"
+      },
+      {
+        "code": "8.6.2.7",
+        "title": "Electromagnetic fields (EMF)"
+      },
+      {
+        "code": "8.6.2.8",
+        "title": "Compliance of mobile handsets"
+      },
+      {
+        "code": "8.6.2.9",
+        "title": "Antenna installation, operation directions & safety procedures"
+      },
+      {
+        "code": "8.6.2.10",
+        "title": "Requirements for installation of telecom towers/antennas"
+      },
+      {
+        "code": "8.6.2.11",
+        "title": "Work practices standards"
+      },
+      {
+        "code": "8.6.2.12",
+        "title": "Requirements for installation of telecommunication & terminal equipment"
+      },
+      {
+        "code": "",
+        "title": "➜ Sub-obligations under 8.6.2.12"
+      },
+      {
+        "code": "",
+        "title": "Objective and applicability"
+      },
+      {
+        "code": "",
+        "title": "Telecom operator’s obligation"
+      },
+      {
+        "code": "",
+        "title": "Premises owner’s obligation"
+      },
+      {
+        "code": "",
+        "title": "Telecommunication & terminal equipment installer’s obligations"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.6.3 Community Health and Safety"
+      },
+      {
+        "code": "8.6.3.1",
+        "title": "Structural and site access issues"
+      },
+      {
+        "code": "8.6.3.2",
+        "title": "Aircraft navigation safety"
+      },
+      {
+        "code": "8.6.3.3",
+        "title": "Driver safety and cellular phones"
+      },
+      {
+        "code": "",
+        "title": "🧰 8.7 Work Environment Rules for Telecommunication Facilities"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.1 Application"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.2 General"
+      },
+      {
+        "code": "",
+        "title": "➜ Detailed items"
+      },
+      {
+        "code": "8.7.2.1",
+        "title": "Buildings containing telecom centers"
+      },
+      {
+        "code": "8.7.2.2",
+        "title": "Battery handling"
+      },
+      {
+        "code": "8.7.2.3",
+        "title": "First aid kit"
+      },
+      {
+        "code": "8.7.2.4",
+        "title": "Hazardous materials"
+      },
+      {
+        "code": "8.7.2.5",
+        "title": "Compressed gas"
+      },
+      {
+        "code": "8.7.2.6",
+        "title": "Support structures"
+      },
+      {
+        "code": "8.7.2.7",
+        "title": "Approach distances to energized power lines"
+      },
+      {
+        "code": "8.7.2.8",
+        "title": "Illumination of field work"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.3 Training"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.4 Employee protection in public work areas"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.5 Tools and PPE — generally"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.6 Rubber insulating equipment"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.7 Personal climbing equipment"
+      },
+      {
+        "code": "8.7.7.1",
+        "title": "General"
+      },
+      {
+        "code": "8.7.7.2",
+        "title": "Lineman body belts, safety straps & lanyards"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.8 Ladders"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.7.9 Other tools and PPE"
+      },
+      {
+        "code": "8.7.9.1",
+        "title": "Head protection"
+      },
+      {
+        "code": "8.7.9.2",
+        "title": "Eye protection"
+      },
+      {
+        "code": "8.7.9.3",
+        "title": "Tent heaters"
+      },
+      {
+        "code": "8.7.9.4",
+        "title": "Torches"
+      },
+      {
+        "code": "8.7.9.5",
+        "title": "Portable power equipment"
+      },
+      {
+        "code": "8.7.9.6",
+        "title": "Vehicle-mounted generators"
+      },
+      {
+        "code": "8.7.9.7",
+        "title": "Portable lights/tools/appliances"
+      },
+      {
+        "code": "8.7.9.8",
+        "title": "Soldering devices"
+      },
+      {
+        "code": "8.7.9.9",
+        "title": "Lead work"
+      },
+      {
+        "code": "",
+        "title": "🔹 8.8 Clearance"
+      },
+      {
+        "code": "",
+        "title": "Refer to Rule 6.4 for clearance between telecom and power line"
+      }
+    ]
+  }
+];

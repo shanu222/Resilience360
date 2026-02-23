@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Viewer - Pakistan Green Building Codes Portal</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="header-strip">
+        <div class="header-logo-wrap">
+            <img src="gov of pakistan logo.jpg" alt="" class="header-logo">
+        </div>
+        <div class="header-title-wrap">
+            <h1>Pakistan Green Building Codes Portal</h1>
+            <p>Sustainability &amp; Energy Efficiency Standards</p>
+        </div>
+        <div class="header-logo-wrap">
+            <img src="NDMA Logo.png" alt="" class="header-logo">
+        </div>
+    </div>
+    <div id="userInfo"></div>
+</header>
+
+<nav>
+    <button onclick="window.location.href='index.html'">Home</button>
+    <button onclick="window.location.href='library.html'">Codes Library</button>
+    <button onclick="window.location.href='index.html'">Signup</button>
+    <button onclick="window.location.href='index.html'">Login</button>
+    <button onclick="window.location.href='index.html'">Admin Login</button>
+    <button onclick="logoutFromLibrary()">Logout</button>
+</nav>
+
+<section class="active viewer-page">
+    <div class="code-browser-container">
+        <div class="browser-sidebar">
+            <div class="sidebar-header">
+                <h3 style="margin:0; color:#fff; font-size:1rem;">CODE BROWSER</h3>
+                <input type="text" id="viewerSearchBox" placeholder="🔍 Search code..." class="search-box">
+            </div>
+            <h4 style="margin: 15px 0 10px 0; color: #a0d4c4; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Sections</h4>
+            <div id="viewerSidebarList" class="chapters-sidebar"></div>
+        </div>
+
+        <div class="browser-main">
+            <div id="browserHeader" style="margin-bottom: 20px; border-bottom: 2px solid #026440; padding-bottom: 15px;">
+                <h2 id="viewerCodeTitle" style="margin: 0 0 5px 0; color: #043617;">Code</h2>
+                <p id="viewerCodeSubtitle" style="margin: 0; color: #666; font-size: 0.9rem;">Complete Code Navigation</p>
+            </div>
+
+            <div id="viewerMainList" class="browser-content-area"></div>
+
+            <div id="viewerActions" class="content-button-group"></div>
+        </div>
+    </div>
+</section>
+
+<script src="bcp2021_hierarchy.js"></script>
+<script src="standardization2021_hierarchy.js"></script>
+<script src="fire2016_hierarchy.js"></script>
+<script src="petsac2014_hierarchy.js"></script>
+<script src="gbcp2023_hierarchy.js"></script>
+<script src="ecbc2023_hierarchy.js"></script>
+<script src="bcp2007_seismic_hierarchy.js"></script>
+<script src="bec2011_hierarchy.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="script.js"></script>
+<script>
+window.onload = function() {
+    initializeCodeViewerPage();
+};
+</script>
+</body>
+</html>

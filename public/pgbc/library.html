@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codes Library - Pakistan Green Building Codes Portal</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="header-strip">
+        <div class="header-logo-wrap">
+            <img src="gov of pakistan logo.jpg" alt="" class="header-logo">
+        </div>
+        <div class="header-title-wrap">
+            <h1>Pakistan Green Building Codes Portal</h1>
+            <p>Sustainability &amp; Energy Efficiency Standards</p>
+        </div>
+        <div class="header-logo-wrap">
+            <img src="NDMA Logo.png" alt="" class="header-logo">
+        </div>
+    </div>
+    <div id="userInfo"></div>
+</header>
+
+<nav>
+    <button onclick="window.location.href='index.html'">Home</button>
+    <button onclick="window.location.href='library.html'">Codes Library</button>
+    <button id="signupBtn" onclick="window.location.href='index.html'">Signup</button>
+    <button id="loginBtn" onclick="window.location.href='index.html'">Login</button>
+    <button id="adminLoginBtn" onclick="window.location.href='index.html'">Admin Login</button>
+    <button id="logoutBtn" onclick="logoutFromLibrary()" class="hidden">Logout</button>
+</nav>
+
+<!-- LIBRARY SECTION -->
+<section class="active">
+    <div class="card library-card">
+        <h2 class="library-title">Codes Library</h2>
+
+        <div id="uploadSection" class="hidden">
+            <h3 style="color: #043617; margin-bottom: 15px; text-align: center;">📤 Upload New Code</h3>
+            <input type="text" id="codeName" placeholder="Code Name (e.g., Building Code of Pakistan 2025)">
+            <input type="file" id="pdfFile" accept="application/pdf">
+            <button onclick="uploadCode()" style="width: 100%; background: #026440; color: white; font-weight: bold; padding: 12px;">Upload Code</button>
+            <hr style="margin: 20px 0; border: 1px solid #ddd;">
+            
+            <h3 style="color: #043617; margin-bottom: 15px; text-align: center;">🤖 AI Settings</h3>
+            <p style="text-align: center; color: white; font-size: 0.9rem; margin: 4px 0 10px;">AI summary key is now server-side for security. No manual key entry is required here.</p>
+            <hr style="margin: 20px 0; border: 1px solid #ddd;">
+
+            <h3 style="color: #043617; margin-bottom: 15px; text-align: center;">📧 Recovery Email API</h3>
+            <input type="text" id="recoveryServiceId" placeholder="EmailJS Service ID">
+            <input type="text" id="recoveryTemplateId" placeholder="EmailJS Template ID">
+            <input type="text" id="recoveryPublicKey" placeholder="EmailJS Public Key">
+            <input type="text" id="recoveryFromName" placeholder="From Name (optional)">
+            <button onclick="saveRecoveryEmailConfig()" style="width: 100%; background: #026440; color: white; font-weight: bold; padding: 12px;">Save Recovery Email Settings</button>
+            <p style="text-align: center; color: white; font-size: 0.85rem; margin-top: 10px;">Configure these once in admin panel to enable Forgot Password email delivery.</p>
+            <hr style="margin: 20px 0; border: 1px solid #ddd;">
+        </div>
+
+        <h3 class="library-subtitle">📚 Available Codes</h3>
+        <div id="codesList" class="library-codes-list"></div>
+    </div>
+</section>
+
+<!-- Two-Panel Code Browser (for BCP 2007 and similar hierarchical codes) -->
+<section id="codeBrowserSection" class="hidden">
+    <div class="code-browser-container">
+        <!-- Left Sidebar -->
+        <div class="browser-sidebar">
+            <div class="sidebar-header">
+                <h3 style="margin: 0; color: white; font-size: 1rem;">BUILDING CODE<br>OF PAKISTAN<br><span style="font-size: 0.8rem;">(BCP-SP 2007)</span></h3>
+                <input type="text" id="codeSearchBox" placeholder="🔍 Search code..." class="search-box">
+            </div>
+            
+            <h4 style="margin: 15px 0 10px 0; color: #a0d4c4; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Chapters</h4>
+            <div id="sidebarChaptersList" class="chapters-sidebar"></div>
+        </div>
+        
+        <!-- Right Main Content -->
+        <div class="browser-main">
+            <div id="browserHeader" style="margin-bottom: 20px; border-bottom: 2px solid #026440; padding-bottom: 15px;">
+                <h2 style="margin: 0 0 5px 0; color: #043617;">BUILDING CODE OF PAKISTAN (BCP-SP 2007)</h2>
+                <p style="margin: 0; color: #666; font-size: 0.9rem;">Complete Code Navigation</p>
+            </div>
+            
+            <div id="browserContent" class="browser-content-area">
+                <p style="text-align: center; color: #999; padding: 40px 20px;">Select a chapter from the left sidebar to view details</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- AI Explanation Modal -->
+<div id="aiModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeAiModal()">&times;</span>
+        <div id="modalBody">
+            <div class="loading" id="loadingSpinner">
+                <div class="spinner"></div>
+                <p>Generating AI explanation...</p>
+            </div>
+            <div id="explanationContent" class="hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Chapter Explanation Modal (Non-downloadable PDF) -->
+<div id="explanationModal" class="modal hidden">
+    <div class="modal-content" style="user-select: none; -webkit-user-select: none; -moz-user-select: none;">
+        <span class="close-btn" onclick="closeExplanationModal()">&times;</span>
+        <div id="explanationModalBody">
+            <div class="loading" id="explanationLoadingSpinner">
+                <div class="spinner"></div>
+                <p>Loading explanation document...</p>
+            </div>
+            <div id="explanationContent" class="hidden" style="user-select: none; -webkit-user-select: none; -moz-user-select: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+    // Load user info and codes when page loads
+    window.onload = function() {
+        let user = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (!user) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        currentUser = user;
+        document.getElementById("userInfo").innerText = `Logged in as: ${user.role}`;
+        updateNavButtons();
+        
+        if (user.role === "Authority") {
+            document.getElementById("uploadSection").classList.remove("hidden");
+            
+            let recoveryServiceId = localStorage.getItem("recovery_emailjs_service_id");
+            let recoveryTemplateId = localStorage.getItem("recovery_emailjs_template_id");
+            let recoveryPublicKey = localStorage.getItem("recovery_emailjs_public_key");
+            let recoveryFromName = localStorage.getItem("recovery_from_name");
+
+            if (recoveryServiceId) document.getElementById("recoveryServiceId").value = recoveryServiceId;
+            if (recoveryTemplateId) document.getElementById("recoveryTemplateId").value = recoveryTemplateId;
+            if (recoveryPublicKey) document.getElementById("recoveryPublicKey").value = recoveryPublicKey;
+            if (recoveryFromName) document.getElementById("recoveryFromName").value = recoveryFromName;
+        }
+        
+        loadCodes();
+    }
+</script>
+</body>
+</html>

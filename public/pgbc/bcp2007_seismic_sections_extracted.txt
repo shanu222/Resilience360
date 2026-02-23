@@ -1,0 +1,150 @@
+📘 BUILDING CODE OF PAKISTAN (SP-2007)
+🔷 Chapters & Sections Hierarchy
+✅ CHAPTER 1 — SCOPE
+1.1 Objective and General Principles
+1.2 Scope
+✅ CHAPTER 2 — SEISMIC HAZARD
+2.1 Scope
+2.2 Design Basis Ground Motion
+2.3 Seismic Zones
+2.4 Site-specific Hazard Analysis
+2.5 Modeling of Ground Motion
+✅ CHAPTER 3 — SITE CONSIDERATIONS
+3.1 Scope
+3.2 Potential Fault Rupture Hazard
+3.3 Potential Liquefaction
+3.4 Potential Landslide and Slope Instability
+3.5 Sensitive Clays
+✅ CHAPTER 4 — SOILS AND FOUNDATIONS
+4.1 Symbols and Notations
+4.2 Scope
+4.3 Determination of Soil Conditions
+4.3.1 Site Geology and Soil Characteristics
+4.4 Soil Profile Types
+4.4.1 Scope
+4.4.2 Definitions
+4.5 Foundation Construction in Seismic Zones 3 and 4
+4.5.1 General
+4.5.2 Soil Capacity
+4.5.3 Superstructure-to-Foundation Connection
+4.5.4 Foundation-Soil Interface
+4.5.5 Special Requirements for Piles and Caissons
+✅ CHAPTER 5 — STRUCTURAL DESIGN REQUIREMENTS
+🔹 Division I — General Design Requirements
+5.1 Symbols and Notations
+5.2 Scope
+5.3 Definitions
+5.4 Standards
+5.5 Design
+5.5.1 General
+5.5.2 Rationality
+5.5.3 Erection of Structural Framing
+5.6 Dead Loads
+5.6.1 General
+5.6.2 Partition Loads
+5.7 Live Loads
+5.7.1 General
+5.7.2 Critical Distribution
+5.7.3 Floor Live Loads
+5.7.4 Roof Live Loads
+5.7.5 Reduction of Live Loads
+5.7.6 Alternate Reduction
+5.8 Snow Loads
+5.9 Wind Loads
+5.10 Earthquake Loads
+5.11 Other Minimum Loads
+5.11.1 → 5.11.11 (Impact, anchorage, flood, heliports, etc.)
+5.12 Combinations of Loads
+5.12.1 → 5.12.4
+5.13 Deflection
+🔹 Division II — Snow Loads
+5.14 Snow Loads
+🔹 Division III — Wind Design
+5.15 Symbols and Notations
+5.16 General
+5.17 Definitions
+5.18 Basic Wind Speed
+5.19 Exposure
+5.20 Design Wind Pressures
+5.21 Primary Frames and Systems
+5.21.1 → 5.21.3
+5.22 Elements and Components
+5.23 Open Frame Towers
+5.24 Miscellaneous Structures
+5.25 Occupancy Categories
+🔹 Division IV — Earthquake Design
+5.26 Symbols and Notations
+5.27 General
+5.27.1 → 5.27.3
+5.28 Definitions
+5.29 Criteria Selection
+5.29.1 → 5.29.10
+5.30 Minimum Design Lateral Forces
+5.30.1 → 5.30.11
+5.31 Dynamic Analysis Procedures
+5.31.1 → 5.31.6
+5.32 Lateral Force on Elements
+5.32.1 → 5.32.5
+5.33 Detailed Systems Design Requirements
+5.34 Nonbuilding Structures
+5.34.1 → 5.34.5
+5.35 Earthquake-Recording Instrumentations
+5.35.1 → 5.35.4
+✅ CHAPTER 6 — STRUCTURAL TESTS AND INSPECTIONS
+6.1 Special Inspections
+6.1.1 → 6.1.7
+6.2 Structural Observation
+6.3 Nondestructive Testing
+6.4 Prefabricated Construction
+6.4.1 → 6.4.6
+✅ CHAPTER 7 — STRUCTURAL CONCRETE
+(Main sections)
+7.1 Symbols and Notations
+7.2 Definitions
+7.3 General Requirements
+7.4 Flexural Members of SMF
+7.5 SMF Members Subjected to Bending and Axial Load
+7.6 Joints of SMF
+7.7 Precast SMF
+7.8 Special RC Structural Walls
+7.9 Precast Structural Walls
+7.10 Structural Diaphragms and Trusses
+7.11 Foundations
+7.12 Non-LFRS Members
+7.13 Intermediate Moment Frames
+7.14 Intermediate Precast Walls
+✅ CHAPTER 8 — STRUCTURAL STEEL
+(Highly detailed; summarized)
+Division I — Steel Buildings
+8.1 → 8.18 (Definitions, materials, connections, SMF, IMF, OMF, braced frames, SPSW, QA plan)
+Division II — Composite Steel & RC
+8.19 → 8.37 (Composite members, composite frames, composite shear walls, QA)
+✅ CHAPTER 9 — MASONRY
+9.1 Symbols and Notations
+9.2 Scope
+9.3 Definitions
+9.4 Material Standards
+9.5 Quality Assurance
+9.6 General Design Requirements
+9.7 Working Stress Design
+9.8 Strength Design
+9.9 Empirical Design
+✅ CHAPTER 10 — ARCHITECTURAL ELEMENTS
+10.1 Symbols and Notations
+10.2 Seismic Loads on Architectural Components
+10.2.1 → 10.2.4
+10.3 Suspended Ceilings
+10.4 Partitions
+✅ CHAPTER 11 — MECHANICAL & ELECTRICAL SYSTEMS
+11.1 Symbols and Notations
+11.2 Seismic Loads on MEP Components
+11.2.1 → 11.2.4
+11.3 Elevator Design Requirements
+✅ APPENDIX A — BACKGROUND FOR SEISMIC ZONING MAP
+A.1 Symbols and Notations
+A.2 Overview
+A.2.1 General
+A.2.2 Major Faults
+A.2.3 Seismicity
+A.3 Seismic Hazard Evaluation Procedure
+A.3.1 → A.3.6

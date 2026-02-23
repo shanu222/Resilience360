@@ -1,0 +1,278 @@
+🏗️ MAIN SECTIONS (Chapters)
+✅ SECTION 1 — GENERAL ITEMS
+1.1 Definition
+1.2 Purpose
+1.3 Applicability
+1.4 Interpretation
+1.5 Licensed design professional
+1.6 Authority Having Jurisdiction
+1.7 The Engineer
+1.8 Building Official
+1.9 Quality of Units (Houses or Homes)
+1.10 Materials
+1.11 Approval of Materials, Products or Systems
+1.12 Construction Practice
+📌 These clauses define scope, authority, and quality requirements for low-cost housing.
+standardization-of-building-cod…
+✅ SECTION 2 — EXCAVATION
+2.1 Scope
+2.2 Clearing and Grubbing-Up
+2.3 Excavation
+2.3.1 to 2.3.22 (detailed excavation, shoring, backfilling, payment items)
+📌 Covers earthwork procedures, safety, and compaction requirements.
+standardization-of-building-cod…
+✅ SECTION 3 — PLAIN AND REINFORCED CONCRETE
+Major headings
+Scope
+General
+Related Specifications
+Materials
+Materials subsections
+Aggregates
+Cement and Cementitious Materials
+Water
+Admixtures
+Reinforcement
+Reinforcement Fixing
+Concrete
+Tests for Concrete Quality
+3.4.8.1 General
+3.4.8.2 Samples
+3.4.8.3 Adequacy of Mix
+Additional clauses
+Repair of Surface Defects
+Concrete Construction Tolerance
+Tolerance for Precast Concrete
+Tolerance for Pavements
+Plant and Equipment
+Acceptance of Structure
+Methods of Measurement of Concrete Works
+📌 Provides full technical specs for concrete production and QA.
+standardization-of-building-cod…
+✅ SECTION 4 — MASONRY — PART I (Concrete Block)
+4.1 Concrete Block Masonry
+4.1.1 Scope
+4.1.2 Materials
+4.1.3 Concrete Masonry Units
+4.1.4 Cement Mortar
+4.1.5 Masonry and Jointing
+4.1.6 Coordination
+4.1.7 Protection and Cleaning
+4.1.8 Samples
+4.1.9 Testing
+4.1.10 Measurement and Payment
+✅ SECTION 4 — MASONRY — PART II (Brick Masonry)
+4.2 Brick Masonry
+4.2.1 Scope
+4.2.2 Codes and Standards
+4.2.3 Submittals
+4.2.4 Tolerances
+4.2.6 Delivery and Storage
+4.2.7 Mortar
+4.2.8 Bricks
+4.2.9 Scaffolding
+4.2.10 Execution
+4.2.11 Repairing Brickwork
+4.2.12 Horizontal Damp Proof Course
+4.2.13 Vertical Damp Proof Course
+4.2.14 Measurement and Payment
+✅ SECTION 5 — CARPENTRY AND JOINERY
+5.1 Scope of Work
+5.2 Submittals
+5.3 Applicable Standards
+5.4 Tolerances
+5.5 Delivery and Storage
+5.6 Products
+5.6.1 Timber
+5.6.2 Hardware
+5.6.3 Execution
+5.6.4 Measurement and Payment
+✅ SECTION 6 — TERRAZZO WORK
+6.1 Scope of Work
+6.2 Applicable Standard
+6.3 Materials
+6.3.1 Cement, Sand, Aggregate and Water
+6.3.2 Marble Chips
+6.3.3 Dividing Strips
+6.3.4 Angle Clips
+6.3.5 Bolts of precast toilet partitions
+6.3.6 Terrazzo Tiles
+6.3.7 Cleaning Compound
+6.4 Samples
+6.5 Execution
+In-situ flooring
+Dado & skirting
+Stairs
+Urinal partitions
+Tile works
+6.6 Measurements and Payments
+✅ SECTION 7 — CERAMIC TILES
+7.1 General
+7.2 Coordination
+7.3 Submittals
+7.4 Quality Assurance
+7.5 Mockups
+7.6 Delivery, Storage, Handling
+7.7 Products
+7.8 Execution
+Examination
+Preparation
+Installation
+Floor schedule
+Wall schedule
+Glass mosaic schedule
+Cleaning and Protecting
+✅ SECTION 8 — PLASTER AND POINTER
+8.1 Scope of Work
+8.2 Applicable Standards
+8.3 General
+8.4 Materials
+8.5 Proportioning and Mixing
+8.6 Surface Preparation
+8.7 Application of Plaster
+8.8 Metal Lath
+8.9 Beads & Profiles
+8.10 Cleaning and Protection
+8.11 Tolerances
+8.12 Pointing Work
+8.13 Measurement and Payment
+✅ SECTION 9 — INTERIOR PAINTING
+(Multi-part section)
+Part I — General
+9.1 Scope
+9.2 Submittals
+9.3 Quality Assurance
+9.4 Preconstruction Testing
+9.5 Mockups
+9.6 Delivery, Storage, Handling
+9.7 Project Conditions
+Part II — Products
+Manufacturers
+Decorative paints
+Primers
+Fillers
+Epoxy paint
+Polyurethane
+Acrylic systems
+Wood finishes
+Metal finishes
+Traffic paints
+Execution
+9.18 Execution
+9.19 Preparation
+9.20 Application
+9.21 Field Quality Control
+9.22 Cleaning and Protection
+9.23 Interior Painting Schedule
+9.24 Exterior Painting
+✅ SECTION 10 — GLAZING
+Scope of Work
+Applicable Standards
+General
+Delivery Storage and Handling
+Materials
+Installation of Glazing
+Protection and Cleaning
+Measurement and Payment
+✅ SECTION 11 — ROOF WATER PROOFING SYSTEM
+11.1 Scope
+11.2 Material (A)
+11.3 Normal to Moderate Rain Area
+11.4 Heavy Rain Area
+11.5 Heat Insulation Areas
+11.6 Protection
+11.7 Measurement
+11.8 Rate and Payment
+✅ SECTION 12 — ALUMINIUM WINDOWS
+Part 1 — General
+Performance requirements
+Submittals
+QA
+Conditions
+Warranty
+Part 2 — Products
+Manufacturers
+Materials
+Framing
+Glazing
+Screens
+Hardware
+Accessories
+Fabrication
+Finish
+Part 3 — Execution
+Examination
+Installation
+Adjusting & Protection
+✅ SECTION 13 — TERMITE CONTROL
+Part 1 — General
+Performance requirements
+Submittals
+Conditions
+Coordination
+Warranty
+Maintenance
+Part 2 — Products
+Manufacturers
+Soil Treatment
+Part 3 — Execution
+Examination
+Preparation
+Applying Soil Treatment
+✅ SECTION 14 — CAR PARK CURBS AND WALKWAYS
+Part 1 General
+Part 2 Products
+Part 3 Execution
+✅ SECTION 15 — EXPANSION JOINT COVER ASSEMBLIES
+Part 1 General
+Part 2 Products
+Part 3 Execution
+✅ SECTION 16 — PLUMBING WORKS
+Part 1 Particular Specifications
+Part 2 Underground and Drainage System
+Part 3 Internal Sanitary System
+Part 4 Installation of Sanitary Appliances
+Part 5 Cold and Hot Water Supply
+Part 6 Pipe Work and Fitting
+Part 7 Fire Fighting
+Part 8 Plumbing Equipment
+✅ SECTION 17 — ELECTRICAL WORKS
+Technical Provisions
+PVC Conduits
+Wires and Cables
+Wiring Accessories
+Point Wiring
+Light Fixtures
+Power Cable
+Main LT Switchboard
+Distribution Boards
+Earthing
+Testing and Commissioning
+✅ SECTION 18 — STEEL WORKS
+Scope
+Submittals
+Standards
+QA
+Materials
+Execution
+Delivery and Storage
+Measurement and Payment
+✅ SECTION 19 — ENVIRONMENTAL IMPACT ASSESSMENT
+General
+EIA Process
+Conducting an EIA
+✅ SECTION 20 — QA FOR PREFABRICATED UNITS
+General
+Component and Structural Tests
+✅ SECTION 21 — SOLAR PV GUIDELINES
+General
+Typical System Designs
+Single story house
+5 kW rooftop
+Apartments
+Prepaid metering
+📎 APPENDICES
+Appendix A — Structural Precast Concrete
+Appendix B — Hollow & Light Gauge Steel Sections
+Appendix C — PSQCA Standards
+Appendix D — Metric Conversion Guide

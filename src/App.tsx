@@ -46,6 +46,7 @@ type SectionKey =
   | 'riskMaps'
   | 'designToolkit'
   | 'infraModels'
+  | 'pgbc'
   | 'applyRegion'
   | 'readiness'
   | 'retrofit'
@@ -201,6 +202,7 @@ const translations = {
       riskMaps: '🗺️ Risk Zone Maps',
       designToolkit: '🏗️ Design Toolkit',
       infraModels: '🧱 Resilience Infra Models',
+      pgbc: '🏛️ PGBC Portal',
       applyRegion: '📍 Construct in my Region',
       readiness: '📊 Readiness Calculator',
       retrofit: '🧰 Retrofit Guide',
@@ -222,6 +224,7 @@ const translations = {
       riskMaps: '🗺️ رسک زون میپس',
       designToolkit: '🏗️ ڈیزائن ٹول کٹ',
       infraModels: '🧱 ریزیلینس انفرا ماڈلز',
+      pgbc: '🏛️ پی جی بی سی پورٹل',
       applyRegion: '📍 اپنے علاقے میں تعمیر',
       readiness: '📊 تیاری کیلکولیٹر',
       retrofit: '🧰 ریٹروفٹ گائیڈ',
@@ -380,6 +383,7 @@ const homeSectionKeys: SectionKey[] = [
   'riskMaps',
   'designToolkit',
   'infraModels',
+  'pgbc',
   'retrofit',
   'warning',
   'learn',
@@ -419,6 +423,12 @@ const homeCardMeta: Record<
     title: 'Resilience Infra Models',
     subtitle: 'AI Visual Catalog',
     tone: 'tone-d',
+  },
+  pgbc: {
+    icon: '🏛️',
+    title: 'PGBC',
+    subtitle: 'Open PGBC Login Portal',
+    tone: 'tone-c',
   },
   applyRegion: {
     icon: '📍',
@@ -4667,6 +4677,27 @@ function App() {
               </div>
             </div>
           )}
+        </div>
+      )
+    }
+
+    if (activeSection === 'pgbc') {
+      return (
+        <div className="panel section-panel section-pgbc">
+          <h2>{t.sections.pgbc}</h2>
+          <p>Pakistan Green Building Codes portal opens below. Login page loads first.</p>
+          <div className="inline-controls">
+            <a href={`${import.meta.env.BASE_URL}pgbc/index.html`} target="_blank" rel="noreferrer">
+              Open PGBC in new tab
+            </a>
+          </div>
+          <iframe
+            title="PGBC Portal"
+            className="pgbc-portal-frame"
+            src={`${import.meta.env.BASE_URL}pgbc/index.html`}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
         </div>
       )
     }

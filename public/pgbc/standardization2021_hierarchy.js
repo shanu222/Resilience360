@@ -1,0 +1,1142 @@
+window.STANDARDIZATION2021_HIERARCHY = [
+  {
+    "number": 1,
+    "title": "— GENERAL ITEMS",
+    "sections": [
+      {
+        "code": "1.1",
+        "title": "Definition"
+      },
+      {
+        "code": "1.2",
+        "title": "Purpose"
+      },
+      {
+        "code": "1.3",
+        "title": "Applicability"
+      },
+      {
+        "code": "1.4",
+        "title": "Interpretation"
+      },
+      {
+        "code": "1.5",
+        "title": "Licensed design professional"
+      },
+      {
+        "code": "1.6",
+        "title": "Authority Having Jurisdiction"
+      },
+      {
+        "code": "1.7",
+        "title": "The Engineer"
+      },
+      {
+        "code": "1.8",
+        "title": "Building Official"
+      },
+      {
+        "code": "1.9",
+        "title": "Quality of Units (Houses or Homes)"
+      },
+      {
+        "code": "1.10",
+        "title": "Materials"
+      },
+      {
+        "code": "1.11",
+        "title": "Approval of Materials, Products or Systems"
+      },
+      {
+        "code": "1.12",
+        "title": "Construction Practice"
+      },
+      {
+        "code": "",
+        "title": "📌 These clauses define scope, authority, and quality requirements for low-cost housing."
+      }
+    ]
+  },
+  {
+    "number": 2,
+    "title": "— EXCAVATION",
+    "sections": [
+      {
+        "code": "2.1",
+        "title": "Scope"
+      },
+      {
+        "code": "2.2",
+        "title": "Clearing and Grubbing-Up"
+      },
+      {
+        "code": "2.3",
+        "title": "Excavation"
+      },
+      {
+        "code": "2.3.1",
+        "title": "to 2.3.22 (detailed excavation, shoring, backfilling, payment items)"
+      },
+      {
+        "code": "",
+        "title": "📌 Covers earthwork procedures, safety, and compaction requirements."
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "title": "— PLAIN AND REINFORCED CONCRETE",
+    "sections": [
+      {
+        "code": "",
+        "title": "Major headings"
+      },
+      {
+        "code": "",
+        "title": "Scope"
+      },
+      {
+        "code": "",
+        "title": "General"
+      },
+      {
+        "code": "",
+        "title": "Related Specifications"
+      },
+      {
+        "code": "",
+        "title": "Materials"
+      },
+      {
+        "code": "",
+        "title": "Materials subsections"
+      },
+      {
+        "code": "",
+        "title": "Aggregates"
+      },
+      {
+        "code": "",
+        "title": "Cement and Cementitious Materials"
+      },
+      {
+        "code": "",
+        "title": "Water"
+      },
+      {
+        "code": "",
+        "title": "Admixtures"
+      },
+      {
+        "code": "",
+        "title": "Reinforcement"
+      },
+      {
+        "code": "",
+        "title": "Reinforcement Fixing"
+      },
+      {
+        "code": "",
+        "title": "Concrete"
+      },
+      {
+        "code": "",
+        "title": "Tests for Concrete Quality"
+      },
+      {
+        "code": "3.4.8.1",
+        "title": "General"
+      },
+      {
+        "code": "3.4.8.2",
+        "title": "Samples"
+      },
+      {
+        "code": "3.4.8.3",
+        "title": "Adequacy of Mix"
+      },
+      {
+        "code": "",
+        "title": "Additional clauses"
+      },
+      {
+        "code": "",
+        "title": "Repair of Surface Defects"
+      },
+      {
+        "code": "",
+        "title": "Concrete Construction Tolerance"
+      },
+      {
+        "code": "",
+        "title": "Tolerance for Precast Concrete"
+      },
+      {
+        "code": "",
+        "title": "Tolerance for Pavements"
+      },
+      {
+        "code": "",
+        "title": "Plant and Equipment"
+      },
+      {
+        "code": "",
+        "title": "Acceptance of Structure"
+      },
+      {
+        "code": "",
+        "title": "Methods of Measurement of Concrete Works"
+      },
+      {
+        "code": "",
+        "title": "📌 Provides full technical specs for concrete production and QA."
+      }
+    ]
+  },
+  {
+    "number": 4,
+    "title": "— MASONRY — PART I (Concrete Block)",
+    "sections": [
+      {
+        "code": "4.1",
+        "title": "Concrete Block Masonry"
+      },
+      {
+        "code": "4.1.1",
+        "title": "Scope"
+      },
+      {
+        "code": "4.1.2",
+        "title": "Materials"
+      },
+      {
+        "code": "4.1.3",
+        "title": "Concrete Masonry Units"
+      },
+      {
+        "code": "4.1.4",
+        "title": "Cement Mortar"
+      },
+      {
+        "code": "4.1.5",
+        "title": "Masonry and Jointing"
+      },
+      {
+        "code": "4.1.6",
+        "title": "Coordination"
+      },
+      {
+        "code": "4.1.7",
+        "title": "Protection and Cleaning"
+      },
+      {
+        "code": "4.1.8",
+        "title": "Samples"
+      },
+      {
+        "code": "4.1.9",
+        "title": "Testing"
+      },
+      {
+        "code": "4.1.10",
+        "title": "Measurement and Payment"
+      }
+    ]
+  },
+  {
+    "number": 4,
+    "title": "— MASONRY — PART II (Brick Masonry)",
+    "sections": [
+      {
+        "code": "4.2",
+        "title": "Brick Masonry"
+      },
+      {
+        "code": "4.2.1",
+        "title": "Scope"
+      },
+      {
+        "code": "4.2.2",
+        "title": "Codes and Standards"
+      },
+      {
+        "code": "4.2.3",
+        "title": "Submittals"
+      },
+      {
+        "code": "4.2.4",
+        "title": "Tolerances"
+      },
+      {
+        "code": "4.2.6",
+        "title": "Delivery and Storage"
+      },
+      {
+        "code": "4.2.7",
+        "title": "Mortar"
+      },
+      {
+        "code": "4.2.8",
+        "title": "Bricks"
+      },
+      {
+        "code": "4.2.9",
+        "title": "Scaffolding"
+      },
+      {
+        "code": "4.2.10",
+        "title": "Execution"
+      },
+      {
+        "code": "4.2.11",
+        "title": "Repairing Brickwork"
+      },
+      {
+        "code": "4.2.12",
+        "title": "Horizontal Damp Proof Course"
+      },
+      {
+        "code": "4.2.13",
+        "title": "Vertical Damp Proof Course"
+      },
+      {
+        "code": "4.2.14",
+        "title": "Measurement and Payment"
+      }
+    ]
+  },
+  {
+    "number": 5,
+    "title": "— CARPENTRY AND JOINERY",
+    "sections": [
+      {
+        "code": "5.1",
+        "title": "Scope of Work"
+      },
+      {
+        "code": "5.2",
+        "title": "Submittals"
+      },
+      {
+        "code": "5.3",
+        "title": "Applicable Standards"
+      },
+      {
+        "code": "5.4",
+        "title": "Tolerances"
+      },
+      {
+        "code": "5.5",
+        "title": "Delivery and Storage"
+      },
+      {
+        "code": "5.6",
+        "title": "Products"
+      },
+      {
+        "code": "5.6.1",
+        "title": "Timber"
+      },
+      {
+        "code": "5.6.2",
+        "title": "Hardware"
+      },
+      {
+        "code": "5.6.3",
+        "title": "Execution"
+      },
+      {
+        "code": "5.6.4",
+        "title": "Measurement and Payment"
+      }
+    ]
+  },
+  {
+    "number": 6,
+    "title": "— TERRAZZO WORK",
+    "sections": [
+      {
+        "code": "6.1",
+        "title": "Scope of Work"
+      },
+      {
+        "code": "6.2",
+        "title": "Applicable Standard"
+      },
+      {
+        "code": "6.3",
+        "title": "Materials"
+      },
+      {
+        "code": "6.3.1",
+        "title": "Cement, Sand, Aggregate and Water"
+      },
+      {
+        "code": "6.3.2",
+        "title": "Marble Chips"
+      },
+      {
+        "code": "6.3.3",
+        "title": "Dividing Strips"
+      },
+      {
+        "code": "6.3.4",
+        "title": "Angle Clips"
+      },
+      {
+        "code": "6.3.5",
+        "title": "Bolts of precast toilet partitions"
+      },
+      {
+        "code": "6.3.6",
+        "title": "Terrazzo Tiles"
+      },
+      {
+        "code": "6.3.7",
+        "title": "Cleaning Compound"
+      },
+      {
+        "code": "6.4",
+        "title": "Samples"
+      },
+      {
+        "code": "6.5",
+        "title": "Execution"
+      },
+      {
+        "code": "",
+        "title": "In-situ flooring"
+      },
+      {
+        "code": "",
+        "title": "Dado & skirting"
+      },
+      {
+        "code": "",
+        "title": "Stairs"
+      },
+      {
+        "code": "",
+        "title": "Urinal partitions"
+      },
+      {
+        "code": "",
+        "title": "Tile works"
+      },
+      {
+        "code": "6.6",
+        "title": "Measurements and Payments"
+      }
+    ]
+  },
+  {
+    "number": 7,
+    "title": "— CERAMIC TILES",
+    "sections": [
+      {
+        "code": "7.1",
+        "title": "General"
+      },
+      {
+        "code": "7.2",
+        "title": "Coordination"
+      },
+      {
+        "code": "7.3",
+        "title": "Submittals"
+      },
+      {
+        "code": "7.4",
+        "title": "Quality Assurance"
+      },
+      {
+        "code": "7.5",
+        "title": "Mockups"
+      },
+      {
+        "code": "7.6",
+        "title": "Delivery, Storage, Handling"
+      },
+      {
+        "code": "7.7",
+        "title": "Products"
+      },
+      {
+        "code": "7.8",
+        "title": "Execution"
+      },
+      {
+        "code": "",
+        "title": "Examination"
+      },
+      {
+        "code": "",
+        "title": "Preparation"
+      },
+      {
+        "code": "",
+        "title": "Installation"
+      },
+      {
+        "code": "",
+        "title": "Floor schedule"
+      },
+      {
+        "code": "",
+        "title": "Wall schedule"
+      },
+      {
+        "code": "",
+        "title": "Glass mosaic schedule"
+      },
+      {
+        "code": "",
+        "title": "Cleaning and Protecting"
+      }
+    ]
+  },
+  {
+    "number": 8,
+    "title": "— PLASTER AND POINTER",
+    "sections": [
+      {
+        "code": "8.1",
+        "title": "Scope of Work"
+      },
+      {
+        "code": "8.2",
+        "title": "Applicable Standards"
+      },
+      {
+        "code": "8.3",
+        "title": "General"
+      },
+      {
+        "code": "8.4",
+        "title": "Materials"
+      },
+      {
+        "code": "8.5",
+        "title": "Proportioning and Mixing"
+      },
+      {
+        "code": "8.6",
+        "title": "Surface Preparation"
+      },
+      {
+        "code": "8.7",
+        "title": "Application of Plaster"
+      },
+      {
+        "code": "8.8",
+        "title": "Metal Lath"
+      },
+      {
+        "code": "8.9",
+        "title": "Beads & Profiles"
+      },
+      {
+        "code": "8.10",
+        "title": "Cleaning and Protection"
+      },
+      {
+        "code": "8.11",
+        "title": "Tolerances"
+      },
+      {
+        "code": "8.12",
+        "title": "Pointing Work"
+      },
+      {
+        "code": "8.13",
+        "title": "Measurement and Payment"
+      }
+    ]
+  },
+  {
+    "number": 9,
+    "title": "— INTERIOR PAINTING",
+    "sections": [
+      {
+        "code": "",
+        "title": "(Multi-part section)"
+      },
+      {
+        "code": "Part",
+        "title": "Part I — General"
+      },
+      {
+        "code": "9.1",
+        "title": "Scope"
+      },
+      {
+        "code": "9.2",
+        "title": "Submittals"
+      },
+      {
+        "code": "9.3",
+        "title": "Quality Assurance"
+      },
+      {
+        "code": "9.4",
+        "title": "Preconstruction Testing"
+      },
+      {
+        "code": "9.5",
+        "title": "Mockups"
+      },
+      {
+        "code": "9.6",
+        "title": "Delivery, Storage, Handling"
+      },
+      {
+        "code": "9.7",
+        "title": "Project Conditions"
+      },
+      {
+        "code": "Part",
+        "title": "Part II — Products"
+      },
+      {
+        "code": "",
+        "title": "Manufacturers"
+      },
+      {
+        "code": "",
+        "title": "Decorative paints"
+      },
+      {
+        "code": "",
+        "title": "Primers"
+      },
+      {
+        "code": "",
+        "title": "Fillers"
+      },
+      {
+        "code": "",
+        "title": "Epoxy paint"
+      },
+      {
+        "code": "",
+        "title": "Polyurethane"
+      },
+      {
+        "code": "",
+        "title": "Acrylic systems"
+      },
+      {
+        "code": "",
+        "title": "Wood finishes"
+      },
+      {
+        "code": "",
+        "title": "Metal finishes"
+      },
+      {
+        "code": "",
+        "title": "Traffic paints"
+      },
+      {
+        "code": "",
+        "title": "Execution"
+      },
+      {
+        "code": "9.18",
+        "title": "Execution"
+      },
+      {
+        "code": "9.19",
+        "title": "Preparation"
+      },
+      {
+        "code": "9.20",
+        "title": "Application"
+      },
+      {
+        "code": "9.21",
+        "title": "Field Quality Control"
+      },
+      {
+        "code": "9.22",
+        "title": "Cleaning and Protection"
+      },
+      {
+        "code": "9.23",
+        "title": "Interior Painting Schedule"
+      },
+      {
+        "code": "9.24",
+        "title": "Exterior Painting"
+      }
+    ]
+  },
+  {
+    "number": 10,
+    "title": "— GLAZING",
+    "sections": [
+      {
+        "code": "",
+        "title": "Scope of Work"
+      },
+      {
+        "code": "",
+        "title": "Applicable Standards"
+      },
+      {
+        "code": "",
+        "title": "General"
+      },
+      {
+        "code": "",
+        "title": "Delivery Storage and Handling"
+      },
+      {
+        "code": "",
+        "title": "Materials"
+      },
+      {
+        "code": "",
+        "title": "Installation of Glazing"
+      },
+      {
+        "code": "",
+        "title": "Protection and Cleaning"
+      },
+      {
+        "code": "",
+        "title": "Measurement and Payment"
+      }
+    ]
+  },
+  {
+    "number": 11,
+    "title": "— ROOF WATER PROOFING SYSTEM",
+    "sections": [
+      {
+        "code": "11.1",
+        "title": "Scope"
+      },
+      {
+        "code": "11.2",
+        "title": "Material (A)"
+      },
+      {
+        "code": "11.3",
+        "title": "Normal to Moderate Rain Area"
+      },
+      {
+        "code": "11.4",
+        "title": "Heavy Rain Area"
+      },
+      {
+        "code": "11.5",
+        "title": "Heat Insulation Areas"
+      },
+      {
+        "code": "11.6",
+        "title": "Protection"
+      },
+      {
+        "code": "11.7",
+        "title": "Measurement"
+      },
+      {
+        "code": "11.8",
+        "title": "Rate and Payment"
+      }
+    ]
+  },
+  {
+    "number": 12,
+    "title": "— ALUMINIUM WINDOWS",
+    "sections": [
+      {
+        "code": "Part",
+        "title": "Part 1 — General"
+      },
+      {
+        "code": "",
+        "title": "Performance requirements"
+      },
+      {
+        "code": "",
+        "title": "Submittals"
+      },
+      {
+        "code": "",
+        "title": "QA"
+      },
+      {
+        "code": "",
+        "title": "Conditions"
+      },
+      {
+        "code": "",
+        "title": "Warranty"
+      },
+      {
+        "code": "Part",
+        "title": "Part 2 — Products"
+      },
+      {
+        "code": "",
+        "title": "Manufacturers"
+      },
+      {
+        "code": "",
+        "title": "Materials"
+      },
+      {
+        "code": "",
+        "title": "Framing"
+      },
+      {
+        "code": "",
+        "title": "Glazing"
+      },
+      {
+        "code": "",
+        "title": "Screens"
+      },
+      {
+        "code": "",
+        "title": "Hardware"
+      },
+      {
+        "code": "",
+        "title": "Accessories"
+      },
+      {
+        "code": "",
+        "title": "Fabrication"
+      },
+      {
+        "code": "",
+        "title": "Finish"
+      },
+      {
+        "code": "Part",
+        "title": "Part 3 — Execution"
+      },
+      {
+        "code": "",
+        "title": "Examination"
+      },
+      {
+        "code": "",
+        "title": "Installation"
+      },
+      {
+        "code": "",
+        "title": "Adjusting & Protection"
+      }
+    ]
+  },
+  {
+    "number": 13,
+    "title": "— TERMITE CONTROL",
+    "sections": [
+      {
+        "code": "Part",
+        "title": "Part 1 — General"
+      },
+      {
+        "code": "",
+        "title": "Performance requirements"
+      },
+      {
+        "code": "",
+        "title": "Submittals"
+      },
+      {
+        "code": "",
+        "title": "Conditions"
+      },
+      {
+        "code": "",
+        "title": "Coordination"
+      },
+      {
+        "code": "",
+        "title": "Warranty"
+      },
+      {
+        "code": "",
+        "title": "Maintenance"
+      },
+      {
+        "code": "Part",
+        "title": "Part 2 — Products"
+      },
+      {
+        "code": "",
+        "title": "Manufacturers"
+      },
+      {
+        "code": "",
+        "title": "Soil Treatment"
+      },
+      {
+        "code": "Part",
+        "title": "Part 3 — Execution"
+      },
+      {
+        "code": "",
+        "title": "Examination"
+      },
+      {
+        "code": "",
+        "title": "Preparation"
+      },
+      {
+        "code": "",
+        "title": "Applying Soil Treatment"
+      }
+    ]
+  },
+  {
+    "number": 14,
+    "title": "— CAR PARK CURBS AND WALKWAYS",
+    "sections": [
+      {
+        "code": "Part",
+        "title": "Part 1 General"
+      },
+      {
+        "code": "Part",
+        "title": "Part 2 Products"
+      },
+      {
+        "code": "Part",
+        "title": "Part 3 Execution"
+      }
+    ]
+  },
+  {
+    "number": 15,
+    "title": "— EXPANSION JOINT COVER ASSEMBLIES",
+    "sections": [
+      {
+        "code": "Part",
+        "title": "Part 1 General"
+      },
+      {
+        "code": "Part",
+        "title": "Part 2 Products"
+      },
+      {
+        "code": "Part",
+        "title": "Part 3 Execution"
+      }
+    ]
+  },
+  {
+    "number": 16,
+    "title": "— PLUMBING WORKS",
+    "sections": [
+      {
+        "code": "Part",
+        "title": "Part 1 Particular Specifications"
+      },
+      {
+        "code": "Part",
+        "title": "Part 2 Underground and Drainage System"
+      },
+      {
+        "code": "Part",
+        "title": "Part 3 Internal Sanitary System"
+      },
+      {
+        "code": "Part",
+        "title": "Part 4 Installation of Sanitary Appliances"
+      },
+      {
+        "code": "Part",
+        "title": "Part 5 Cold and Hot Water Supply"
+      },
+      {
+        "code": "Part",
+        "title": "Part 6 Pipe Work and Fitting"
+      },
+      {
+        "code": "Part",
+        "title": "Part 7 Fire Fighting"
+      },
+      {
+        "code": "Part",
+        "title": "Part 8 Plumbing Equipment"
+      }
+    ]
+  },
+  {
+    "number": 17,
+    "title": "— ELECTRICAL WORKS",
+    "sections": [
+      {
+        "code": "",
+        "title": "Technical Provisions"
+      },
+      {
+        "code": "",
+        "title": "PVC Conduits"
+      },
+      {
+        "code": "",
+        "title": "Wires and Cables"
+      },
+      {
+        "code": "",
+        "title": "Wiring Accessories"
+      },
+      {
+        "code": "",
+        "title": "Point Wiring"
+      },
+      {
+        "code": "",
+        "title": "Light Fixtures"
+      },
+      {
+        "code": "",
+        "title": "Power Cable"
+      },
+      {
+        "code": "",
+        "title": "Main LT Switchboard"
+      },
+      {
+        "code": "",
+        "title": "Distribution Boards"
+      },
+      {
+        "code": "",
+        "title": "Earthing"
+      },
+      {
+        "code": "",
+        "title": "Testing and Commissioning"
+      }
+    ]
+  },
+  {
+    "number": 18,
+    "title": "— STEEL WORKS",
+    "sections": [
+      {
+        "code": "",
+        "title": "Scope"
+      },
+      {
+        "code": "",
+        "title": "Submittals"
+      },
+      {
+        "code": "",
+        "title": "Standards"
+      },
+      {
+        "code": "",
+        "title": "QA"
+      },
+      {
+        "code": "",
+        "title": "Materials"
+      },
+      {
+        "code": "",
+        "title": "Execution"
+      },
+      {
+        "code": "",
+        "title": "Delivery and Storage"
+      },
+      {
+        "code": "",
+        "title": "Measurement and Payment"
+      }
+    ]
+  },
+  {
+    "number": 19,
+    "title": "— ENVIRONMENTAL IMPACT ASSESSMENT",
+    "sections": [
+      {
+        "code": "",
+        "title": "General"
+      },
+      {
+        "code": "",
+        "title": "EIA Process"
+      },
+      {
+        "code": "",
+        "title": "Conducting an EIA"
+      }
+    ]
+  },
+  {
+    "number": 20,
+    "title": "— QA FOR PREFABRICATED UNITS",
+    "sections": [
+      {
+        "code": "",
+        "title": "General"
+      },
+      {
+        "code": "",
+        "title": "Component and Structural Tests"
+      }
+    ]
+  },
+  {
+    "number": 21,
+    "title": "— SOLAR PV GUIDELINES",
+    "sections": [
+      {
+        "code": "",
+        "title": "General"
+      },
+      {
+        "code": "",
+        "title": "Typical System Designs"
+      },
+      {
+        "code": "",
+        "title": "Single story house"
+      },
+      {
+        "code": "",
+        "title": "5 kW rooftop"
+      },
+      {
+        "code": "",
+        "title": "Apartments"
+      },
+      {
+        "code": "",
+        "title": "Prepaid metering"
+      },
+      {
+        "code": "",
+        "title": "📎 APPENDICES"
+      },
+      {
+        "code": "Appendix",
+        "title": "Appendix A — Structural Precast Concrete"
+      },
+      {
+        "code": "Appendix",
+        "title": "Appendix B — Hollow & Light Gauge Steel Sections"
+      },
+      {
+        "code": "Appendix",
+        "title": "Appendix C — PSQCA Standards"
+      },
+      {
+        "code": "Appendix",
+        "title": "Appendix D — Metric Conversion Guide"
+      }
+    ]
+  }
+];

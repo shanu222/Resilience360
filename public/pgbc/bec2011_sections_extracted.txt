@@ -1,0 +1,70 @@
+⚡ BEC-2011 — CHAPTERS & SECTIONS
+✅ SECTION 1 — GENERAL
+1.1 Scope
+1.2 Compliance
+1.3 Definitions
+1.4 Climate Zones
+(Establishes applicability and baseline requirements.)
+✅ SECTION 2 — ADMINISTRATION AND ENFORCEMENT
+2.1 Compliance Documents
+2.2 Enforcement
+2.3 Supplementary Information
+✅ SECTION 3 — BUILDING ENVELOPE
+3.1 General
+3.2 Mandatory Requirements
+3.2.1 Building Envelope
+3.2.1.1 External Walls and Roofs
+3.2.1.2 Glass and Framing System
+3.2.2 Window-to-Wall Ratio
+📍 Example: The envelope U-value limits table appears in Section 4 image (Table 4.2.1.1) showing wall and roof limits.
+BCP-Energy-Provisions-2011
+✅ SECTION 4 — HVAC (HEATING, VENTILATION AND AIR CONDITIONING)
+🔹 4.1 General
+🔹 4.2 Mandatory Requirements
+Major subsections:
+4.2.1 HVAC Equipment Efficiency
+4.2.2 Piping and Ductwork
+4.2.3 System Balancing
+4.2.3.1 General
+4.2.3.2 Air System Balancing
+4.2.3.3 Hydronic System Balancing
+4.2.4 Condenser
+4.2.4.1 Condenser Location
+4.2.4.2 Treated Water for Condenser
+📍 These subsections and efficiency tables are visible across pp. 10–20 of the code.
+BCP-Energy-Provisions-2011
+✅ SECTION 5 — SERVICE WATER HEATING
+🔹 5.1 General
+🔹 5.2 Mandatory Requirements
+Detailed subsections:
+5.2.1 Piping Insulation
+5.2.2 Equipment Efficiency
+5.2.3 Swimming Pools
+5.2.3.1 Pool Covers
+5.2.3.2 Pool Heaters
+🔹 5.3 Voluntary Adoption
+📍 Efficiency tables for water heating equipment appear on pp. 22–24.
+BCP-Energy-Provisions-2011
+✅ SECTION 6 — LIGHTING
+🔹 6.1 General
+🔹 6.2 Interior Lighting
+Lighting Power Density (LPD)
+Space-by-space method
+🔹 6.3 Exterior Lighting
+Exterior lighting power limits
+Exceptions
+📍 Interior LPD tables and exterior limits appear on pp. 31–32.
+BCP-Energy-Provisions-2011
+✅ SECTION 7 — ELECTRICAL POWER
+🔹 7.1 General
+🔹 7.2 Electric Motors
+7.2.2 Energy Efficient Motors
+📍 Minimum motor efficiency table shown on p. 36.
+BCP-Energy-Provisions-2011
+✅ SECTION 8 — COMPLIANCE
+8.1 Compliance Approaches
+8.2 Documentation
+8.3 Verification
+✅ SECTION 9 — REFERENCED STANDARDS
+ASHRAE references
+Test procedure standards

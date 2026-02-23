@@ -1,0 +1,682 @@
+window.ECBC2023_HIERARCHY = [
+  {
+    "number": 1,
+    "title": "— INTRODUCTION",
+    "sections": [
+      {
+        "code": "1.1",
+        "title": "Background"
+      },
+      {
+        "code": "1.2",
+        "title": "The Energy Conservation Building Code 2023 (ECBC-2023)"
+      },
+      {
+        "code": "1.2.1",
+        "title": "Purpose of ECBC-2023"
+      },
+      {
+        "code": "1.2.2",
+        "title": "Title of ECBC-2023"
+      },
+      {
+        "code": "1.2.3",
+        "title": "Scope of ECBC-2023"
+      },
+      {
+        "code": "1.2.3",
+        "title": "Applicable Building Systems Under ECBC-2023"
+      },
+      {
+        "code": "1.2.4",
+        "title": "Exemptions of Buildings from ECBC-2023"
+      },
+      {
+        "code": "1.3",
+        "title": "Development Process of ECBC-2023"
+      },
+      {
+        "code": "1.4",
+        "title": "Adoption of ECBC-2023"
+      },
+      {
+        "code": "1.5",
+        "title": "Maintenance of ECBC-2023"
+      },
+      {
+        "code": "1.6",
+        "title": "Waiver from ECBC-2023"
+      },
+      {
+        "code": "1.7",
+        "title": "Source Documents for Development of ECBC-2023"
+      },
+      {
+        "code": "1.8",
+        "title": "Process for Revision of Energy Provisions-2011"
+      },
+      {
+        "code": "1.9",
+        "title": "Limitations of ECBC-2023"
+      }
+    ]
+  },
+  {
+    "number": 2,
+    "title": "— ADMINISTRATION AND ENFORCEMENT",
+    "sections": [
+      {
+        "code": "2.1",
+        "title": "Introduction"
+      },
+      {
+        "code": "2.2",
+        "title": "Administration of the ECBC-2023"
+      },
+      {
+        "code": "2.3",
+        "title": "Implementation Requirements"
+      },
+      {
+        "code": "2.4",
+        "title": "Mandatory Compliance of ECBC-2023"
+      },
+      {
+        "code": "2.5",
+        "title": "Compliance Documents"
+      },
+      {
+        "code": "2.6",
+        "title": "Enforcement of ECBC-2023"
+      },
+      {
+        "code": "2.7",
+        "title": "Supplementary Information"
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "title": "— URBANIZATION AND DEVELOPMENTS",
+    "sections": [
+      {
+        "code": "3.1",
+        "title": "Introduction"
+      },
+      {
+        "code": "3.2",
+        "title": "Problems in Major Cities of Pakistan"
+      },
+      {
+        "code": "3.2.1",
+        "title": "High Energy Consumption"
+      },
+      {
+        "code": "3.2.2",
+        "title": "Population in Major Cities of Pakistan"
+      },
+      {
+        "code": "3.2.3",
+        "title": "Low Rise Constructions"
+      },
+      {
+        "code": "3.2.4",
+        "title": "Improvements Proposed in the Building Bylaws"
+      },
+      {
+        "code": "3.3",
+        "title": "City Size for Energy Efficiency and Conservation"
+      },
+      {
+        "code": "3.3.1",
+        "title": "Factors Affecting the Size of Cities"
+      },
+      {
+        "code": "3.3.2",
+        "title": "Size of the Cities"
+      },
+      {
+        "code": "3.3.2.1",
+        "title": "Small to Medium-Sized Cities"
+      },
+      {
+        "code": "3.3.2.2",
+        "title": "Medium to Large-Sized Cities"
+      },
+      {
+        "code": "3.3.2.3",
+        "title": "Metropolitan Regions"
+      },
+      {
+        "code": "3.4",
+        "title": "Vertical Development for Energy Efficient Buildings"
+      },
+      {
+        "code": "3.4.1",
+        "title": "Impact of Low-Rise Construction"
+      },
+      {
+        "code": "3.4.2",
+        "title": "Energy Efficiency in Vertical Development"
+      }
+    ]
+  },
+  {
+    "number": 4,
+    "title": "— BUILDING ENVELOPE",
+    "sections": [
+      {
+        "code": "",
+        "title": "Sections (visible from code):"
+      },
+      {
+        "code": "4.1",
+        "title": "Introduction"
+      },
+      {
+        "code": "4.2",
+        "title": "Mandatory Requirements"
+      },
+      {
+        "code": "4.2.1",
+        "title": "Building Envelope"
+      },
+      {
+        "code": "4.2.1.1",
+        "title": "External Walls and Roofs"
+      },
+      {
+        "code": "4.2.1.2",
+        "title": "Glass and Framing System"
+      },
+      {
+        "code": "4.2.2",
+        "title": "Window to Wall Ratio"
+      },
+      {
+        "code": "4.2.2.1",
+        "title": "For Mechanically Ventilated Building"
+      }
+    ]
+  },
+  {
+    "number": 5,
+    "title": "— PASSIVE BUILDING DESIGN",
+    "sections": [
+      {
+        "code": "5.1",
+        "title": "Introduction5.2 Climate Responsive Design5.3 Building Orientation"
+      },
+      {
+        "code": "5.3.1",
+        "title": "North–South Orientation"
+      },
+      {
+        "code": "5.3.2",
+        "title": "East–West Exposure Control"
+      },
+      {
+        "code": "5.4",
+        "title": "Building Form and Massing"
+      },
+      {
+        "code": "5.4.1",
+        "title": "Compact Building Forms"
+      },
+      {
+        "code": "5.4.2",
+        "title": "Core Placement Strategies"
+      },
+      {
+        "code": "5.5",
+        "title": "Natural Ventilation"
+      },
+      {
+        "code": "5.5.1",
+        "title": "Cross Ventilation"
+      },
+      {
+        "code": "5.5.2",
+        "title": "Stack Ventilation"
+      },
+      {
+        "code": "5.6",
+        "title": "Daylighting"
+      },
+      {
+        "code": "5.6.1",
+        "title": "Window Design"
+      },
+      {
+        "code": "5.6.2",
+        "title": "Skylights"
+      },
+      {
+        "code": "5.6.3",
+        "title": "Light Shelves and Reflective Surfaces"
+      },
+      {
+        "code": "5.7",
+        "title": "Shading Devices"
+      },
+      {
+        "code": "5.7.1",
+        "title": "Horizontal Shading"
+      },
+      {
+        "code": "5.7.2",
+        "title": "Vertical Louvers"
+      },
+      {
+        "code": "5.7.3",
+        "title": "Façade Design with External Shading"
+      },
+      {
+        "code": "5.8",
+        "title": "Building Envelope Strategies"
+      },
+      {
+        "code": "5.8.1",
+        "title": "Window-to-Wall Ratio"
+      },
+      {
+        "code": "5.8.2",
+        "title": "Glazing Selection"
+      },
+      {
+        "code": "5.8.3",
+        "title": "Thermal Mass Considerations"
+      },
+      {
+        "code": "5.9",
+        "title": "Landscaping for Microclimate Control"
+      },
+      {
+        "code": "5.9.1",
+        "title": "Strategic Planting"
+      },
+      {
+        "code": "5.9.2",
+        "title": "Hardscape Materials"
+      },
+      {
+        "code": "5.9.3",
+        "title": "Landscaping Plan Development"
+      }
+    ]
+  },
+  {
+    "number": 6,
+    "title": "— RETROFITTING OF EXISTING BUILDINGS",
+    "sections": [
+      {
+        "code": "6.1",
+        "title": "Introduction6.2 Purpose of Retrofitting6.3 Scope of Retrofitting6.4 Applicable Building Systems"
+      },
+      {
+        "code": "",
+        "title": "Building Envelope"
+      },
+      {
+        "code": "",
+        "title": "HVAC Systems"
+      },
+      {
+        "code": "",
+        "title": "Water System"
+      },
+      {
+        "code": "",
+        "title": "Lighting"
+      },
+      {
+        "code": "",
+        "title": "Monitoring Devices"
+      },
+      {
+        "code": "6.4.1",
+        "title": "Exemptions"
+      },
+      {
+        "code": "6.5",
+        "title": "Safety, Health and Environmental Considerations"
+      },
+      {
+        "code": "6.6",
+        "title": "Compliance Requirements"
+      },
+      {
+        "code": "6.7",
+        "title": "Mandatory Requirements"
+      },
+      {
+        "code": "",
+        "title": "BIM energy model submission"
+      },
+      {
+        "code": "",
+        "title": "Minimum 50% efficiency improvement"
+      },
+      {
+        "code": "6.8",
+        "title": "Building Envelope Upgrades"
+      },
+      {
+        "code": "",
+        "title": "External Walls and Roof"
+      },
+      {
+        "code": "",
+        "title": "Glass and Shading Devices"
+      },
+      {
+        "code": "6.9",
+        "title": "Air Leakage / Infiltration"
+      },
+      {
+        "code": "6.10",
+        "title": "Building Mechanical Systems and Equipment"
+      },
+      {
+        "code": "6.11",
+        "title": "Recommended Voluntary Adoption"
+      },
+      {
+        "code": "",
+        "title": "Natural ventilation"
+      },
+      {
+        "code": "",
+        "title": "Renewable energy systems"
+      },
+      {
+        "code": "6.12",
+        "title": "Water System (WS)"
+      },
+      {
+        "code": "6.12.1",
+        "title": "General"
+      },
+      {
+        "code": "6.12.2",
+        "title": "Mandatory Requirements"
+      },
+      {
+        "code": "6.12.2.1",
+        "title": "Piping Insulation"
+      },
+      {
+        "code": "6.12.2.2",
+        "title": "Equipment Efficiency"
+      },
+      {
+        "code": "6.12.3",
+        "title": "Voluntary Adoption"
+      },
+      {
+        "code": "6.13",
+        "title": "Lighting (Retrofit Requirements)"
+      },
+      {
+        "code": "6.13.1",
+        "title": "Retrofitting Techniques"
+      },
+      {
+        "code": "6.13.1.1",
+        "title": "Attached Houses"
+      },
+      {
+        "code": "6.13.1.2",
+        "title": "Semi-Detached Houses"
+      },
+      {
+        "code": "6.13.1.3",
+        "title": "Detached Houses"
+      }
+    ]
+  },
+  {
+    "number": 7,
+    "title": "— BUILDING INSULATION",
+    "sections": [
+      {
+        "code": "7.1",
+        "title": "Introduction"
+      },
+      {
+        "code": "7.2",
+        "title": "Thermal Insulation Requirements"
+      },
+      {
+        "code": "",
+        "title": "Walls"
+      },
+      {
+        "code": "",
+        "title": "Roofs"
+      },
+      {
+        "code": "",
+        "title": "Floors"
+      },
+      {
+        "code": "",
+        "title": "Windows"
+      },
+      {
+        "code": "7.3",
+        "title": "Determination of R-Values"
+      },
+      {
+        "code": "7.4",
+        "title": "Insulation Materials"
+      },
+      {
+        "code": "",
+        "title": "Conventional materials"
+      },
+      {
+        "code": "",
+        "title": "Natural insulation options"
+      },
+      {
+        "code": "7.5",
+        "title": "Installation Requirements"
+      },
+      {
+        "code": "7.6",
+        "title": "Thermal Bridging Reduction"
+      },
+      {
+        "code": "7.7",
+        "title": "Testing and Verification"
+      },
+      {
+        "code": "7.8",
+        "title": "Maintenance of Insulation Systems"
+      }
+    ]
+  },
+  {
+    "number": 8,
+    "title": "— HEATING, VENTILATION, AND AIR CONDITIONING (HVAC)",
+    "sections": [
+      {
+        "code": "",
+        "title": "(Major equipment efficiency tables referenced)"
+      },
+      {
+        "code": "8.1",
+        "title": "Introduction8.2 Climate and Design Conditions8.3 HVAC System Design Requirements"
+      },
+      {
+        "code": "8.4",
+        "title": "Equipment Efficiency Requirements"
+      },
+      {
+        "code": "",
+        "title": "Air Conditioners"
+      },
+      {
+        "code": "",
+        "title": "Heat Pumps"
+      },
+      {
+        "code": "",
+        "title": "Chillers"
+      },
+      {
+        "code": "",
+        "title": "Boilers"
+      },
+      {
+        "code": "",
+        "title": "Furnaces"
+      },
+      {
+        "code": "",
+        "title": "Heat Rejection Equipment"
+      },
+      {
+        "code": "8.5",
+        "title": "Controls and System Optimization"
+      },
+      {
+        "code": "8.6",
+        "title": "Ductwork and Piping Requirements"
+      },
+      {
+        "code": "8.7",
+        "title": "Ventilation Requirements"
+      },
+      {
+        "code": "8.8",
+        "title": "Maintenance and Commissioning"
+      }
+    ]
+  },
+  {
+    "number": 9,
+    "title": "— SERVICE WATER HEATING",
+    "sections": [
+      {
+        "code": "9.1",
+        "title": "General Requirements"
+      },
+      {
+        "code": "9.2",
+        "title": "System Requirements"
+      },
+      {
+        "code": "9.2.1",
+        "title": "Piping Insulation"
+      },
+      {
+        "code": "9.2.2",
+        "title": "Swimming Pools"
+      },
+      {
+        "code": "9.2.2.1",
+        "title": "Pool Covers"
+      },
+      {
+        "code": "9.2.2.2",
+        "title": "Exception"
+      },
+      {
+        "code": "9.2.2.3",
+        "title": "Pool Heaters"
+      },
+      {
+        "code": "9.3",
+        "title": "Voluntary Adoption"
+      },
+      {
+        "code": "",
+        "title": "Solar / renewable water heating"
+      },
+      {
+        "code": "9.4",
+        "title": "Code Implementation"
+      },
+      {
+        "code": "9.5",
+        "title": "Data Collection"
+      },
+      {
+        "code": "9.6",
+        "title": "Compliance Documentation"
+      }
+    ]
+  },
+  {
+    "number": 10,
+    "title": "— LIGHTING",
+    "sections": [
+      {
+        "code": "10.1",
+        "title": "Introduction"
+      },
+      {
+        "code": "10.2",
+        "title": "General Lighting Requirements"
+      },
+      {
+        "code": "10.3",
+        "title": "Interior Lighting Design"
+      },
+      {
+        "code": "",
+        "title": "Lighting Power Density (LPD)"
+      },
+      {
+        "code": "",
+        "title": "Building Area Method"
+      },
+      {
+        "code": "",
+        "title": "Space Function Method"
+      },
+      {
+        "code": "10.4",
+        "title": "Exterior Lighting Requirements"
+      },
+      {
+        "code": "10.5",
+        "title": "Lighting Controls"
+      },
+      {
+        "code": "",
+        "title": "Occupancy sensors"
+      },
+      {
+        "code": "",
+        "title": "Daylight controls"
+      },
+      {
+        "code": "",
+        "title": "Scheduling"
+      },
+      {
+        "code": "10.6",
+        "title": "Simplified Building Method"
+      },
+      {
+        "code": "",
+        "title": "Offices"
+      },
+      {
+        "code": "",
+        "title": "Retail"
+      },
+      {
+        "code": "",
+        "title": "Schools"
+      },
+      {
+        "code": "",
+        "title": "Building Exterior"
+      }
+    ]
+  }
+];

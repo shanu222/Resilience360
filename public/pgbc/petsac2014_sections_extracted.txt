@@ -1,0 +1,229 @@
+⚡ PETSAC-2014 — Chapters / Sections
+✅ SECTION 1 — INTRODUCTION TO THE PAKISTAN ELECTRIC AND TELECOM SAFETY CODE
+1.1 Title
+1.2 Purpose
+1.3 Scope
+1.3.1 Applicable to
+1.3.2 Not applicable to
+1.4 General
+1.5 Application
+1.5.1 New Installations and Extensions
+1.5.2 Existing installations
+1.5.3 Inspection and work rules
+1.6 Waivers and Limitations
+1.7 Intent
+1.8 Units of measure
+1.9 Source documents
+📍 (Table of Contents, p. xii)
+Pakistan-Electric-Telecommunica…
+✅ SECTION 2 — DEFINITIONS
+Definitions (comprehensive terminology list)
+📍 (starts p. 5)
+Pakistan-Electric-Telecommunica…
+✅ SECTION 3 — ADMINISTRATION AND ENFORCEMENT
+3.1 Compliance Requirements
+3.2 Administrative Requirements
+3.3 Compliance Documents
+3.4 Supplementary Information
+📍 (p. 20)
+Pakistan-Electric-Telecommunica…
+✅ SECTION 4 — GROUNDING METHODS FOR ELECTRIC SUPPLY AND TELECOMMUNICATION FACILITIES
+4.1 Purpose and scope of rules
+4.1.1 Purpose
+4.1.2 Scope
+4.2 Point of connection of grounding conductor
+4.2.1 DC systems required to be grounded
+4.2.1.1 750 V and below
+4.2.1.2 Over 750 V
+4.2.2 AC systems required to be grounded
+4.2.2.1 750 V and below
+4.2.2.2 Over 750 V
+Messenger wires and guys
+Current in grounding conductor
+Fences
+4.3 Grounding conductor and means of connection
+Composition
+Connection
+Ampacity and strength
+Guarding and protection
+Underground
+Common grounding conductor
+4.4 Grounding electrodes
+Existing electrodes
+Made electrodes
+Concrete-encased electrodes
+Directly embedded poles
+4.5 Method of connection to electrode
+4.6 Ground resistance requirements
+4.7 Separation of grounding conductors
+4.8 Additional telecom grounding requirements
+📍 (pp. 21–35)
+Pakistan-Electric-Telecommunica…
+✅ SECTION 5 — SAFETY RULES FOR ELECTRIC SUPPLY SUBSTATIONS AND EQUIPMENT
+5.1 Purpose and scope
+5.2 Specific requirements for substations
+Site selection
+Natural hazards
+Seismic design
+Flood and wind safety
+Instrumentation
+5.3 Protective arrangements in substations
+Enclosures
+Rooms and spaces
+Monitoring
+Illumination
+Floors and stairs
+Exits
+Fire-extinguishing equipment
+5.4 Installation and maintenance of equipment
+Periodic inspections
+Guarding moving parts
+Protective grounding
+Guarding live parts
+Working space about equipment
+5.5 Rotating equipment
+5.6 Storage batteries
+5.7 Transformers and regulators
+5.8 Conductors
+5.9 Circuit breakers, switches, fuses
+5.10 Switchgear and metal-enclosed bus
+5.11 Surge arresters
+📍 (pp. 36–72)
+Pakistan-Electric-Telecommunica…
+✅ SECTION 6 — SAFETY RULES FOR OVERHEAD LINES
+6.1 Purpose and scope
+6.2 General requirements
+Inspection and tests
+Grounding
+Switch arrangement
+Supporting structures
+Vegetation management
+6.3 Relations between various classes of lines
+Relative levels
+Joint use
+Railway construction
+6.4 Clearances
+(major detailed technical section)
+Structure clearances
+Vertical clearances
+Building clearances
+Same-structure clearances
+Climbing space
+Working space
+6.5 Grades of construction
+6.6 Loadings for Grades B and C
+6.7 Strength requirements
+6.8 Line insulation
+📍 (pp. 73–216 approx.)
+Pakistan-Electric-Telecommunica…
+✅ SECTION 7 — SAFETY RULES FOR UNDERGROUND ELECTRIC SUPPLY AND TELECOMMUNICATION LINES
+7.1 Purpose and Scope
+7.2 General Requirements
+Installation and maintenance
+Inspection
+Grounding
+Induced voltage
+7.3 Underground conduit systems
+Routing
+Separation
+Excavation and backfill
+Manholes and vaults
+7.4 Supply cable
+7.5 Cable in underground structures
+7.6 Direct buried cable
+7.7 Risers
+7.8 Supply cable terminations
+7.9 Equipment
+7.10 Installation in tunnels
+📍 (pp. 217–243)
+📡 SECTION 8 — SAFETY RULES FOR TELECOMMUNICATION FACILITIES
+✅ 8.1 Purpose and Scope
+8.1.1 Purpose
+8.1.2 Scope
+Pakistan-Electric-Telecommunica…
+✅ 8.2 Referenced Section
+Pakistan-Electric-Telecommunica…
+✅ 8.3 Grounding Methods for Telecommunication Systems
+8.3.1 Grounding of telecom feeder
+8.3.2 Earthing arrangements for UHF & VHF towers (high/medium power)
+8.3.3 Earthing arrangements for UHF, VHF & SHF towers (low power)
+8.3.4 Arrangement for earthing telecom and broadcasting towers
+Pakistan-Electric-Telecommunica…
+✅ 8.4 Protection of Telecom Exchanges and Transmission Equipment
+Pakistan-Electric-Telecommunica…
+✅ 8.5 Safety Requirements for Cable Television Distribution Networks
+8.5.1 Reference levels, subscriber drop length & cable grade
+8.5.2 Reference frequency band
+8.5.3 Permissible signal leakage levels
+8.5.4 System/equipment layout and location
+8.5.5 Scalability of cable TV distribution system
+8.5.6 Safety measures
+Pakistan-Electric-Telecommunica…
+🌱 8.6 Environmental, Health, and Safety in Telecommunications Infrastructures
+🔹 8.6.1 Environment
+8.6.1.1 Terrestrial habitat alteration
+8.6.1.2 Avian collisions
+8.6.1.3 Aquatic habitat alteration
+8.6.1.4 Marine habitat alteration
+8.6.1.5 Visual impacts
+8.6.1.6 Hazardous materials and waste
+8.6.1.7 Emissions to air
+8.6.1.8 Noise
+Pakistan-Electric-Telecommunica…
+🔹 8.6.2 Occupational Health and Safety
+8.6.2.1 Electrical safety
+8.6.2.2 Optical fiber safety
+8.6.2.3 Elevated and overhead work
+8.6.2.4 Fall protection
+8.6.2.5 Confined spaces
+8.6.2.6 Motor vehicle safety
+8.6.2.7 Electromagnetic fields (EMF)
+8.6.2.8 Compliance of mobile handsets
+8.6.2.9 Antenna installation, operation directions & safety procedures
+8.6.2.10 Requirements for installation of telecom towers/antennas
+8.6.2.11 Work practices standards
+8.6.2.12 Requirements for installation of telecommunication & terminal equipment
+➜ Sub-obligations under 8.6.2.12
+Objective and applicability
+Telecom operator’s obligation
+Premises owner’s obligation
+Telecommunication & terminal equipment installer’s obligations
+Pakistan-Electric-Telecommunica…
+🔹 8.6.3 Community Health and Safety
+8.6.3.1 Structural and site access issues
+8.6.3.2 Aircraft navigation safety
+8.6.3.3 Driver safety and cellular phones
+Pakistan-Electric-Telecommunica…
+🧰 8.7 Work Environment Rules for Telecommunication Facilities
+🔹 8.7.1 Application
+🔹 8.7.2 General
+➜ Detailed items
+8.7.2.1 Buildings containing telecom centers
+8.7.2.2 Battery handling
+8.7.2.3 First aid kit
+8.7.2.4 Hazardous materials
+8.7.2.5 Compressed gas
+8.7.2.6 Support structures
+8.7.2.7 Approach distances to energized power lines
+8.7.2.8 Illumination of field work
+🔹 8.7.3 Training
+🔹 8.7.4 Employee protection in public work areas
+🔹 8.7.5 Tools and PPE — generally
+🔹 8.7.6 Rubber insulating equipment
+🔹 8.7.7 Personal climbing equipment
+8.7.7.1 General
+8.7.7.2 Lineman body belts, safety straps & lanyards
+🔹 8.7.8 Ladders
+🔹 8.7.9 Other tools and PPE
+8.7.9.1 Head protection
+8.7.9.2 Eye protection
+8.7.9.3 Tent heaters
+8.7.9.4 Torches
+8.7.9.5 Portable power equipment
+8.7.9.6 Vehicle-mounted generators
+8.7.9.7 Portable lights/tools/appliances
+8.7.9.8 Soldering devices
+8.7.9.9 Lead work
+Pakistan-Electric-Telecommunica…
+🔹 8.8 Clearance
+Refer to Rule 6.4 for clearance between telecom and power line

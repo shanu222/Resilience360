@@ -1,0 +1,144 @@
+🌿 GBCP-2023 — Chapters & Sections
+✅ CHAPTER 1 — SCOPE AND ADMINISTRATION
+🔹 Part 1 — Scope and Application
+Section 101 Scope and General Requirements
+Section 102 Applicability
+🔹 Part 2 — Administration and Enforcement
+Section 103 Code Compliance Agency
+Section 104 Duties and Powers of the Authority Having Jurisdiction
+Section 105 Approval
+Section 106 Permits
+Section 107 Construction Documents
+Section 108 Fees
+Section 109 Inspections
+Section 110 Certificate of Occupancy
+Section 111 Means of Appeals
+📍 (Table of Contents p. x)
+Green Building Code of Pakistan…
+⚠️ CHAPTER 2 — RESERVED
+(No sections)
+📍 (p. x)
+Green Building Code of Pakistan…
+✅ CHAPTER 3 — DEFINITIONS, ABBREVIATIONS AND ACRONYMS
+Section 301 General
+Section 301.2 Definitions
+📍 (p. xi)
+Green Building Code of Pakistan…
+⚠️ CHAPTER 4 — RESERVED
+(No sections)
+📍 (p. xi)
+🌿 CHAPTER 5 — SITE SUSTAINABILITY
+501 General
+501.1 (5.1) Scope
+501.2 (5.2) Compliance
+501.3 (5.3) Mandatory provisions
+Green Building Code of Pakistan…
+🔹 501.3.1 Site selection
+501.3.1.1 Allowable sites
+501.3.1.2 Prohibited development activity
+Green Building Code of Pakistan…
+🔹 501.3.2 Predesign site inventory and assessment
+Environmental inventory requirements
+Climate and heat-island considerations
+Green Building Code of Pakistan…
+🔹 501.3.3 Plants
+501.3.3.1 Invasive plants
+501.3.3.2 Greenfield sites
+Native plant retention rules
+Green Building Code of Pakistan…
+🔹 501.3.4 Storm-water management
+Infiltration
+Evapotranspiration
+Rainwater harvesting
+Stormwater reuse
+501.3.4.1 Projects on greenfields
+Green Building Code of Pakistan…
+🔹 501.3.5 Mitigation of heat island effect
+(includes roof/wall provisions — jurisdictional option)
+🔹 501.3.6 Reduction of light pollution
+🔹 501.3.7 Transportation impact reduction
+Bicycle & parking provisions
+Bicycle parking quantity
+Bicycle parking location
+Horizontal racks
+Security and visibility
+Documentation
+Green Building Code of Pakistan…
+🔹 501.3.8 Building site waste management
+501.3.8.1 Waste management plan
+Diversion requirements (≥90%)
+Documentation requirements
+Green Building Code of Pakistan…
+💧 CHAPTER 6 — WATER USE EFFICIENCY
+601 General
+601.1 (6.1) Scope
+601.2 (6.2) Compliance
+601.3 (6.3) Mandatory provisions
+Green Building Code of Pakistan…
+🔹 601.3.1 Site water use reduction
+601.3.1.1 Landscape design
+601.3.1.2 Horticulture
+601.3.1.2.1 Irrigation system design
+Green Building Code of Pakistan…
+🔹 601.3.2 Building water use reduction
+(fixture efficiency requirements)
+🔹 601.3.3 Water metering and monitoring
+🔹 601.3.4 HVAC water use
+🔹 601.3.5 Process water use
+🔹 601.3.6 Water softeners
+Demand-initiated regeneration
+Water consumption limits
+Waste connections
+Efficiency & listing
+Green Building Code of Pakistan…
+🔹 601.3.7 Reverse osmosis systems
+🔹 601.3.8 On-site reclaimed water systems
+🔹 601.3.9 Dual water supply plumbing
+Green Building Code of Pakistan…
+⚡ CHAPTER 7 — ENERGY EFFICIENCY
+701 General
+701.1 (7.1) Scope
+701.2 (7.2) Compliance
+701.3 (7.3) Mandatory provisions
+Green Building Code of Pakistan…
+🔹 701.3.1 General energy requirements
+Climate zones
+ASHRAE 90.1 linkage
+Green Building Code of Pakistan…
+🔹 701.3.2 On-site renewable energy systems
+🔹 701.4 Prescriptive option
+(major pathway)
+Includes:
+Building envelope
+HVAC
+Service water heating
+Lighting
+Electrical power
+Other equipment
+🔹 701.5 Performance option
+(energy modeling path)
+🌬️ CHAPTER 8 — INDOOR ENVIRONMENTAL QUALITY (IEQ)
+801 General
+802 Indoor air quality
+803 Environmental tobacco smoke control
+804 Daylighting
+805 Artificial lighting
+806 Thermal environmental conditions
+807 Acoustics
+808 Indoor air quality during construction
+(Structured per IEQ framework used in IgCC-based codes.)
+♻️ CHAPTER 9 — MATERIALS AND RESOURCES
+901 General
+902 Construction waste management
+903 Material selection
+904 Environmental product declarations
+905 Refrigerants
+906 Storage and collection of recyclables
+(Focus: life-cycle and sustainable materials)
+🏗️ CHAPTER 10 — CONSTRUCTION AND PLANS FOR OPERATION
+1001 General
+1002 Construction requirements
+1003 Commissioning
+1004 Building operations and maintenance
+1005 Measurement and verification
+1006 Documentation

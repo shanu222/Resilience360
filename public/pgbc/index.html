@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pakistan Green Building Codes Portal</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="header-strip">
+        <div class="header-logo-wrap">
+            <img src="gov of pakistan logo.jpg" alt="" class="header-logo">
+        </div>
+        <div class="header-title-wrap">
+            <h1>Pakistan Green Building Codes Portal</h1>
+            <p>Sustainability &amp; Energy Efficiency Standards</p>
+        </div>
+        <div class="header-logo-wrap">
+            <img src="NDMA Logo.png" alt="" class="header-logo">
+        </div>
+    </div>
+    <div id="userInfo"></div>
+</header>
+
+<nav class="portal-nav">
+    <button id="homeBtn" onclick="showSection('home')">Home</button>
+    <button id="libraryBtn" onclick="goToLibrary()">Codes Library</button>
+    <button id="signupBtn" onclick="showSection('signup')">Signup</button>
+    <button id="loginBtn" class="active-tab" onclick="showSection('login')">Login</button>
+    <button id="adminLoginBtn" onclick="showSection('adminLogin')">Admin Login</button>
+    <button id="logoutBtn" onclick="logout()" class="hidden">Logout</button>
+</nav>
+
+<main class="portal-main">
+<!-- HOME PAGE -->
+<section id="home" class="hidden">
+    <div class="home-container">
+        <div class="search-banner">
+            <input type="text" id="librarySearch" placeholder="Search Codes Library..." class="search-input">
+            <button onclick="searchLibrary()" class="search-button">Search</button>
+        </div>
+
+        <div class="welcome-banner">
+            <h2>Welcome to Pakistan Green Building Codes Portal</h2>
+            <p>Access national green building codes, sustainability standards, and energy conservation regulations through this comprehensive portal.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card green-building">
+                <div class="feature-icon">🏢</div>
+                <div class="feature-content">
+                    <h3>Green Building</h3>
+                    <p>Sustainable construction practices</p>
+                </div>
+            </div>
+
+            <div class="feature-card energy-conservation">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-content">
+                    <h3>Energy Conservation</h3>
+                    <p>Energy efficiency standards</p>
+                </div>
+            </div>
+
+            <div class="feature-card rainwater-harvesting">
+                <div class="feature-icon">💧</div>
+                <div class="feature-content">
+                    <h3>Rainwater Harvesting</h3>
+                    <p>Water management codes</p>
+                </div>
+            </div>
+
+            <div class="feature-card sustainable-design">
+                <div class="feature-icon">🌱</div>
+                <div class="feature-content">
+                    <h3>Sustainable Design</h3>
+                    <p>Eco-friendly architecture</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SIGNUP SECTION -->
+<section id="signup" class="hidden auth-page">
+    <div class="auth-card alt-card">
+        <h2>Signup</h2>
+        <p class="auth-subtitle">Create an account as Public or Engineer</p>
+
+        <select id="signupRole" onchange="updateSignupForm()">
+            <option value="">Select Role</option>
+            <option value="Public">Public</option>
+            <option value="Engineer">Engineer</option>
+        </select>
+
+        <div id="signupFields"></div>
+
+        <button class="auth-btn" onclick="handleSignup()">Signup</button>
+        <p class="auth-link-line">Already have an account? <a href="#" onclick="showSection('login'); return false;">Login here</a></p>
+        <p class="auth-link-line">Admin? <a href="#" onclick="showSection('adminLogin'); return false;">Login as Admin</a></p>
+    </div>
+</section>
+
+<!-- LOGIN SECTION -->
+<section id="login" class="active auth-page">
+    <div class="auth-bg-left"></div>
+    <div class="auth-bg-right"></div>
+
+    <div class="auth-card">
+        <h2>User Login</h2>
+        <p class="auth-subtitle">Access Your Account</p>
+
+        <label class="auth-label" for="loginRole">Select Role</label>
+        <div class="auth-input-wrap">
+            <span class="input-icon">🔒</span>
+            <select id="loginRole">
+            <option value="">-- Choose Role --</option>
+            <option value="Public">Public</option>
+            <option value="Engineer">Engineer</option>
+            </select>
+        </div>
+
+        <label class="auth-label" for="loginUsername">Username</label>
+        <div class="auth-input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="text" id="loginUsername" placeholder="Enter your username">
+        </div>
+
+        <div class="password-row">
+            <label class="auth-label" for="loginPassword">Password</label>
+            <a href="#" onclick="handleForgotCredentials(); return false;" class="forgot-link">Forgot Password?</a>
+        </div>
+        <div class="auth-input-wrap">
+            <span class="input-icon">🔐</span>
+            <input type="password" id="loginPassword" placeholder="Enter your password">
+            <button type="button" class="password-toggle" onclick="toggleLoginPassword()">👁</button>
+        </div>
+
+        <button class="auth-btn" onclick="handleLogin()">Login</button>
+        <p class="auth-link-line">Don’t have an account? <a href="#" onclick="showSection('signup'); return false;">Signup Here</a></p>
+        <button class="admin-switch-btn" onclick="showSection('adminLogin')">Admin? Login as Admin</button>
+    </div>
+</section>
+
+<!-- ADMIN LOGIN SECTION -->
+<section id="adminLogin" class="hidden auth-page">
+    <div class="auth-card alt-card">
+        <h2>Admin Login</h2>
+        <p class="auth-subtitle">Only authorized admin email is allowed</p>
+
+        <input type="email" id="adminEmail" placeholder="Admin Email">
+        <input type="password" id="adminPassword" placeholder="Password">
+
+        <button class="auth-btn" onclick="handleAdminLogin()">Login as Admin</button>
+        <p class="auth-link-line">User? <a href="#" onclick="showSection('login'); return false;">Login here</a></p>
+    </div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+<script>
+    // Check if user is logged in and display info
+    window.addEventListener('DOMContentLoaded', function() {
+        updateNavButtons();
+        let user = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (user) {
+            currentUser = user;
+            document.getElementById("userInfo").innerText = `Logged in as: ${user.role}`;
+            if (typeof showSection === 'function') {
+                showSection('home');
+            }
+        } else {
+            let activeSection = document.querySelector('section.active');
+            if (activeSection && typeof updateActiveNav === 'function') {
+                updateActiveNav(activeSection.id);
+            }
+        }
+    });
+</script>
+</body>
+</html>

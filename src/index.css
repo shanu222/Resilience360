@@ -587,6 +587,18 @@ img {
   margin-top: 8px;
 }
 
+.section-pgbc .inline-controls {
+  justify-content: flex-start;
+}
+
+.pgbc-portal-frame {
+  width: 100%;
+  min-height: 76vh;
+  border: 1px solid #cddff0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
 .infra-video-panel {
   margin: 10px 0 14px;
   border: 1px solid #d5e4f2;
