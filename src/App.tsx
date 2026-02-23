@@ -1036,8 +1036,8 @@ function App() {
   const [floorAreaSqftCost, setFloorAreaSqftCost] = useState(1200)
   const [designSummaryText, setDesignSummaryText] = useState<string | null>(null)
   const [showTrainingPrograms] = useState(false)
-  const [activeLearnVideoFile, setActiveLearnVideoFile] = useState<string | null>(learnTrainingVideos[0]?.fileName ?? null)
-  const [isLearnVideoVisible, setIsLearnVideoVisible] = useState(true)
+  const [activeLearnVideoFile, setActiveLearnVideoFile] = useState<string | null>(null)
+  const [isLearnVideoVisible, setIsLearnVideoVisible] = useState(false)
   const learnVideoRef = useRef<HTMLVideoElement | null>(null)
 
   const t = translations[language]
@@ -1101,8 +1101,8 @@ function App() {
 
   useEffect(() => {
     if (activeSection === 'learn' && !activeLearnVideoFile && learnTrainingVideos.length > 0) {
-      setActiveLearnVideoFile(learnTrainingVideos[0].fileName)
-      setIsLearnVideoVisible(true)
+      setActiveLearnVideoFile(learnTrainingVideos[0]?.fileName ?? null)
+      setIsLearnVideoVisible(false)
     }
   }, [activeSection, activeLearnVideoFile])
   const districtRiskLookup = useMemo(() => districtRiskLookupByName(), [])
@@ -4631,15 +4631,17 @@ function App() {
           <h2>{t.sections.learn}</h2>
           <p>Watch IAPD training videos directly in-app. Videos are stream-only, support fullscreen, and are kept for offline use on installed builds.</p>
 
-          <div className="card-grid learn-video-grid">
-            {learnTrainingVideos.map((video) => (
-              <article key={video.id} className="learn-video-card">
-                <h3>{video.title}</h3>
-                <p>{video.summary}</p>
-                <button onClick={() => openLearnVideoPlayer(video.fileName)}>▶️ Watch Video</button>
-              </article>
-            ))}
-          </div>
+          {!isLearnVideoVisible && (
+            <div className="card-grid learn-video-grid">
+              {learnTrainingVideos.map((video) => (
+                <article key={video.id} className="learn-video-card">
+                  <h3>{video.title}</h3>
+                  <p>{video.summary}</p>
+                  <button onClick={() => openLearnVideoPlayer(video.fileName)}>▶️ Watch Video</button>
+                </article>
+              ))}
+            </div>
+          )}
 
           {isLearnVideoVisible && activeLearnVideo && (
             <div className="infra-video-panel learn-video-player-panel">
@@ -4659,6 +4661,7 @@ function App() {
                 Your browser does not support the video tag.
               </video>
               <div className="learn-video-player-actions">
+                <button onClick={() => setIsLearnVideoVisible(false)}>⬅ Back to All Videos</button>
                 <button onClick={openLearnVideoFullscreen}>⛶ Full Screen</button>
                 <button onClick={() => setIsLearnVideoVisible(false)}>⏹️ Hide Video</button>
               </div>
