@@ -1106,6 +1106,8 @@ function App() {
           steps: guidance.steps,
         })
         setGuidanceStepImages(imageResult.images)
+      } catch {
+        setGuidanceStepImages([])
       } finally {
         setIsGeneratingStepImages(false)
       }

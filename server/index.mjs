@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import express from 'express'
 import multer from 'multer'
 import OpenAI from 'openai'
+import { generateConstructionGuidanceMl, generateGuidanceStepImagesMl } from './ml/constructionGuidanceMl.mjs'
 import { predictRetrofitMl } from './ml/retrofitMlModel.mjs'
 
 dotenv.config()
@@ -144,19 +145,23 @@ app.post('/api/ml/retrofit-estimate', (req, res) => {
 })
 
 app.post('/api/guidance/construction', async (req, res) => {
-  if (!openai) {
-    res.status(503).json({
-      error: 'OpenAI key missing. Set OPENAI_API_KEY to enable construction guidance.',
-    })
-    return
-  }
-
   try {
     const province = String(req.body.province ?? 'Punjab')
     const city = String(req.body.city ?? 'Lahore')
     const hazard = String(req.body.hazard ?? 'flood')
     const structureType = String(req.body.structureType ?? 'Masonry House')
     const bestPracticeName = String(req.body.bestPracticeName ?? 'General Resilient Construction Practice')
+
+    if (!openai) {
+      const fallback = generateConstructionGuidanceMl({
+        province,
+        city,
+        hazard,
+        structureType,
+      })
+      res.json(fallback)
+      return
+    }
 
     const completion = await openai.chat.completions.create({
       model,
@@ -191,19 +196,33 @@ app.post('/api/guidance/construction', async (req, res) => {
         .filter((step) => step.title && step.description),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Construction guidance generation failed.'
-    res.status(500).json({ error: message })
+    try {
+      const province = String(req.body.province ?? 'Punjab')
+      const city = String(req.body.city ?? 'Lahore')
+      const hazard = String(req.body.hazard ?? 'flood')
+      const structureType = String(req.body.structureType ?? 'Masonry House')
+
+      const fallback = generateConstructionGuidanceMl({
+        province,
+        city,
+        hazard,
+        structureType,
+      })
+
+      res.json(fallback)
+    } catch (fallbackError) {
+      const message =
+        fallbackError instanceof Error
+          ? fallbackError.message
+          : error instanceof Error
+            ? error.message
+            : 'Construction guidance generation failed.'
+      res.status(500).json({ error: message })
+    }
   }
 })
 
 app.post('/api/guidance/step-images', async (req, res) => {
-  if (!openai) {
-    res.status(503).json({
-      error: 'OpenAI key missing. Set OPENAI_API_KEY to enable construction images.',
-    })
-    return
-  }
-
   try {
     const province = String(req.body.province ?? 'Punjab')
     const city = String(req.body.city ?? 'Lahore')
@@ -211,6 +230,18 @@ app.post('/api/guidance/step-images', async (req, res) => {
     const structureType = String(req.body.structureType ?? 'Masonry House')
     const bestPracticeName = String(req.body.bestPracticeName ?? 'General Resilient Construction Practice')
     const steps = safeArray(req.body.steps).slice(0, 4)
+
+    if (!openai) {
+      const fallbackImages = await generateGuidanceStepImagesMl({
+        province,
+        city,
+        hazard,
+        structureType,
+        steps,
+      })
+      res.json({ images: fallbackImages })
+      return
+    }
 
     const generatedImages = await Promise.allSettled(
       steps.map(async (step) => {
@@ -239,10 +270,46 @@ app.post('/api/guidance/step-images', async (req, res) => {
       .filter((result) => result.status === 'fulfilled' && result.value)
       .map((result) => result.value)
 
-    res.json({ images })
+    if (images.length > 0) {
+      res.json({ images })
+      return
+    }
+
+    const fallbackImages = await generateGuidanceStepImagesMl({
+      province,
+      city,
+      hazard,
+      structureType,
+      steps,
+    })
+
+    res.json({ images: fallbackImages })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Step image generation failed.'
-    res.status(500).json({ error: message })
+    try {
+      const province = String(req.body.province ?? 'Punjab')
+      const city = String(req.body.city ?? 'Lahore')
+      const hazard = String(req.body.hazard ?? 'flood')
+      const structureType = String(req.body.structureType ?? 'Masonry House')
+      const steps = safeArray(req.body.steps).slice(0, 4)
+
+      const fallbackImages = await generateGuidanceStepImagesMl({
+        province,
+        city,
+        hazard,
+        structureType,
+        steps,
+      })
+
+      res.json({ images: fallbackImages })
+    } catch (fallbackError) {
+      const message =
+        fallbackError instanceof Error
+          ? fallbackError.message
+          : error instanceof Error
+            ? error.message
+            : 'Step image generation failed.'
+      res.status(500).json({ error: message })
+    }
   }
 })
 
