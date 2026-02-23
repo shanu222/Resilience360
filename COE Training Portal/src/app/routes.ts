@@ -10,6 +10,8 @@ import { ProgressAnalytics } from "./pages/ProgressAnalytics";
 import { AdminSettings } from "./pages/AdminSettings";
 import { Auth } from "./pages/Auth";
 import { MyCourses } from "./pages/MyCourses";
+import { Profile } from "./pages/Profile";
+import { SettingsPage } from "./pages/Settings";
 
 export const router = createHashRouter([
   {
@@ -28,6 +30,8 @@ export const router = createHashRouter([
       { path: "knowledge", Component: KnowledgeRepository },
       { path: "assessments", Component: Assessments },
       { path: "analytics", Component: ProgressAnalytics },
+      { path: "profile", Component: Profile },
+      { path: "settings", Component: SettingsPage },
       { path: "admin", Component: AdminSettings },
     ],
   },
