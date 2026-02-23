@@ -1130,48 +1130,33 @@ function App() {
   const downloadApplyGuidanceReport = async () => {
     if (!constructionGuidance) return
 
-    type PreloadedStepImage = {
-      base64: string
-      width: number
-      height: number
-    }
+    let reportImages = guidanceStepImages
+    if (reportImages.length < constructionGuidance.steps.length) {
+      try {
+        setIsGeneratingStepImages(true)
+        const imageResult = await generateGuidanceStepImages({
+          province: applyProvince,
+          city: applyCity,
+          hazard: applyHazard,
+          structureType,
+          bestPracticeName: applyBestPracticeTitle,
+          steps: constructionGuidance.steps,
+        })
 
-    // Preload and convert all step images to base64 before PDF generation
-    const stepImages = constructionGuidance.steps.map((step, index) => {
-      const image = guidanceStepImages.find((item) => item.stepTitle === step.title) ?? guidanceStepImages[index]
-      return image?.imageDataUrl || null
-    })
-    const preloadAndConvertImage = (url: string | null) => {
-      return new Promise<PreloadedStepImage | null>((resolve) => {
-        if (!url) return resolve(null)
-        const img = new window.Image()
-        img.crossOrigin = 'Anonymous'
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas')
-            canvas.width = img.naturalWidth || img.width
-            canvas.height = img.naturalHeight || img.height
-            const ctx = canvas.getContext('2d')
-            if (!ctx) {
-              resolve(null)
-              return
-            }
-            ctx.drawImage(img, 0, 0)
-            const dataUrl = canvas.toDataURL('image/png')
-            resolve({
-              base64: dataUrl,
-              width: canvas.width,
-              height: canvas.height,
-            })
-          } catch (e) {
-            resolve(null)
-          }
+        if (imageResult.images.length < constructionGuidance.steps.length) {
+          setGuidanceError('Report download blocked: all AI step images must be generated first. Please try again.')
+          return
         }
-        img.onerror = () => resolve(null)
-        img.src = url
-      })
+
+        reportImages = imageResult.images
+        setGuidanceStepImages(imageResult.images)
+      } catch (error) {
+        setGuidanceError(error instanceof Error ? error.message : 'Failed to generate AI images for report download.')
+        return
+      } finally {
+        setIsGeneratingStepImages(false)
+      }
     }
-    const preloadedImgs = await Promise.all(stepImages.map((url) => preloadAndConvertImage(url)))
 
     const doc = new jsPDF({ unit: 'mm', format: 'a4' })
     const pageWidth = doc.internal.pageSize.getWidth()
@@ -1260,14 +1245,23 @@ function App() {
       step: { title: string; description: string; keyChecks: string[] },
       index: number,
       imageDataUrl?: string | null,
-      preloadedImg?: PreloadedStepImage | null,
     ) => {
       const keyChecks = step.keyChecks.map((item) => `- ${item}`)
       const stepLines = [step.description, 'Key Checks:', ...keyChecks]
       const wrappedStepLines = stepLines.flatMap((line) => doc.splitTextToSize(line, contentWidth - 8))
       const lineBlockHeight = wrappedStepLines.length * 5
       const hasImage = Boolean(imageDataUrl)
-      const imageHeight = hasImage ? 56 : 0
+      let imageHeight = 0
+      if (hasImage && imageDataUrl) {
+        try {
+          const imageProps = doc.getImageProperties(imageDataUrl)
+          const maxImageWidth = contentWidth - 8
+          const naturalRatio = imageProps.height / imageProps.width
+          imageHeight = Math.min(72, maxImageWidth * naturalRatio)
+        } catch {
+          imageHeight = 56
+        }
+      }
       const blockHeight = 12 + lineBlockHeight + imageHeight + 8
 
       ensureSpace(blockHeight)
@@ -1292,36 +1286,9 @@ function App() {
       }
 
       if (hasImage && imageDataUrl) {
-        if (preloadedImg && preloadedImg.base64) {
-          let naturalWidth = preloadedImg.width
-          let naturalHeight = preloadedImg.height
-          const pxToMm = (px: number) => px * 25.4 / 96
-          const maxWidthMm = contentWidth - 8
-          const maxHeightPx = 380
-          let imageWidthPx = naturalWidth
-          let imageHeightPx = naturalHeight
-          if (imageWidthPx > 0 && imageHeightPx > 0) {
-            if (imageWidthPx > (maxWidthMm * 96 / 25.4)) {
-              const scale = (maxWidthMm * 96 / 25.4) / imageWidthPx
-              imageWidthPx = imageWidthPx * scale
-              imageHeightPx = imageHeightPx * scale
-            }
-            if (imageHeightPx > maxHeightPx) {
-              const scale = maxHeightPx / imageHeightPx
-              imageWidthPx = imageWidthPx * scale
-              imageHeightPx = maxHeightPx
-            }
-          }
-          const imageWidthMm = pxToMm(imageWidthPx)
-          const imageHeightMm = pxToMm(imageHeightPx)
-          try {
-            doc.addImage(preloadedImg.base64, 'PNG', margin + 4, textY + 2, imageWidthMm, imageHeightMm)
-          } catch {
-            doc.setFontSize(9)
-            doc.setTextColor(120, 80, 52)
-            doc.text('Step image preview unavailable in PDF export.', margin + 4, textY + 7)
-          }
-        } else {
+        try {
+          doc.addImage(imageDataUrl, 'PNG', margin + 4, textY + 2, contentWidth - 8, imageHeight)
+        } catch {
           doc.setFontSize(9)
           doc.setTextColor(120, 80, 52)
           doc.text('Step image preview unavailable in PDF export.', margin + 4, textY + 7)
@@ -1348,13 +1315,13 @@ function App() {
     drawSection('حفاظتی ہدایات (اردو)', constructionGuidance.safetyUrdu.map((item) => `- ${item}`))
 
     for (const [index, step] of constructionGuidance.steps.entries()) {
-      const image = guidanceStepImages.find((item) => item.stepTitle === step.title) ?? guidanceStepImages[index]
-      drawStep(step, index, image?.imageDataUrl, preloadedImgs[index])
+      const image = reportImages.find((item) => item.stepTitle === step.title) ?? reportImages[index]
+      drawStep(step, index, image?.imageDataUrl)
     }
 
     for (const [index, step] of constructionGuidance.stepsUrdu.entries()) {
-      const image = guidanceStepImages[index]
-      drawStep(step, index, image?.imageDataUrl, preloadedImgs[index])
+      const image = reportImages[index]
+      drawStep(step, index, image?.imageDataUrl)
     }
 
     drawFooter()
@@ -3722,7 +3689,11 @@ function App() {
                       )
                     })}
                   </div>
-                  <button onClick={downloadApplyGuidanceReport}>📄 Download Professional Guidance Report (PDF)</button>
+                  <button onClick={downloadApplyGuidanceReport} disabled={isGeneratingStepImages}>
+                    {isGeneratingStepImages
+                      ? '📄 Preparing AI Images for Report...'
+                      : '📄 Download Professional Guidance Report (PDF)'}
+                  </button>
                   {isGeneratingStepImages && <p>Generating AI stepwise construction images...</p>}
                 </div>
               )}
