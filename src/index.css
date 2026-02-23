@@ -1170,6 +1170,97 @@ progress {
     padding: var(--space-2);
   }
 
+/* Desert Dusk palette */
+:root {
+  --dd-1: #a2574f;
+  --dd-2: #e68057;
+  --dd-3: #bf7587;
+  --dd-4: #993a8b;
+  --dd-bg: #f7efec;
+  --dd-surface: #fff7f4;
+  --dd-text: #2f1d25;
+}
+
+body {
+  color: var(--dd-text);
+  background: linear-gradient(180deg, #f8efeb 0%, #f2dfd9 45%, #efd7df 100%);
+}
+
+.home-shell {
+  background: rgba(255, 247, 244, 0.78);
+  border: 1px solid rgba(162, 87, 79, 0.22);
+}
+
+.home-navbar {
+  background: linear-gradient(130deg, rgba(255, 250, 248, 0.95) 0%, rgba(245, 225, 218, 0.92) 55%, rgba(236, 211, 220, 0.92) 100%);
+  border: 1px solid rgba(191, 117, 135, 0.32);
+}
+
+.logo-badge {
+  background: linear-gradient(180deg, var(--dd-4) 0%, var(--dd-1) 100%);
+}
+
+.hero-title {
+  color: var(--dd-4);
+}
+
+.hero-subtitle,
+label,
+.home-card-copy small,
+.section-panel p {
+  color: #6b3a4a;
+}
+
+select,
+input,
+button {
+  border-color: rgba(162, 87, 79, 0.32);
+}
+
+button,
+.section-panel button {
+  background: linear-gradient(180deg, var(--dd-4) 0%, var(--dd-1) 100%);
+  box-shadow: 0 8px 16px rgba(153, 58, 139, 0.22);
+}
+
+button:hover,
+.section-panel button:hover {
+  box-shadow: 0 10px 20px rgba(162, 87, 79, 0.28);
+}
+
+.home-card,
+.panel,
+.section-card {
+  background: linear-gradient(180deg, #fff9f7 0%, #fdeee8 100%);
+  border-color: rgba(191, 117, 135, 0.28);
+}
+
+.home-card-copy strong,
+.panel h2,
+.section-panel h3 {
+  color: #5f2f4e;
+}
+
+.tone-a,
+.tone-b,
+.tone-c,
+.tone-d,
+.tone-e,
+.tone-f,
+.tone-g,
+.tone-h {
+  background: linear-gradient(140deg, rgba(162, 87, 79, 0.22) 0%, rgba(230, 128, 87, 0.2) 40%, rgba(191, 117, 135, 0.2) 72%, rgba(153, 58, 139, 0.22) 100%);
+}
+
+.home-bottom-strip {
+  background: linear-gradient(90deg, var(--dd-1), var(--dd-4));
+  color: #fff7f4;
+}
+
+.home-bottom-strip strong {
+  color: #ffd8c0;
+}
+
   .home-shell {
     border-radius: 12px;
   }

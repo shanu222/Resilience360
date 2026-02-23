@@ -240,3 +240,31 @@
     max-height: min(42vh, 280px);
   }
 }
+
+/* Desert Dusk palette accents */
+.live-pmd-badge {
+  background: rgba(230, 128, 87, 0.2);
+  color: #7a3e46;
+}
+
+.pmd-live-widget,
+.pmd-city-card,
+.pmd-media-card,
+.global-earthquake-panel,
+.global-earthquake-table {
+  border-color: rgba(191, 117, 135, 0.35);
+  background: #fff8f5;
+}
+
+.pmd-city-card span,
+.global-earthquake-table th {
+  color: #993a8b;
+}
+
+.global-earthquake-table th {
+  background: #f5e6eb;
+}
+
+.global-earthquake-table tbody tr:hover {
+  background: #fbeee9;
+}

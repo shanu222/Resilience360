@@ -27,6 +27,85 @@ header h1 {
     margin-top: 8px;
 }
 
+/* Desert Dusk palette */
+:root {
+    --dd-1: #a2574f;
+    --dd-2: #e68057;
+    --dd-3: #bf7587;
+    --dd-4: #993a8b;
+    --dd-surface: #fff7f4;
+    --dd-text: #2f1d25;
+}
+
+body {
+    color: var(--dd-text);
+    background-color: #f8eeea;
+}
+
+header {
+    background: linear-gradient(120deg, var(--dd-1), var(--dd-4));
+}
+
+nav {
+    background: linear-gradient(120deg, var(--dd-1), var(--dd-3));
+}
+
+nav button,
+button {
+    background: var(--dd-surface);
+    border-color: var(--dd-3);
+    color: #54263e;
+}
+
+.card,
+.library-card,
+.auth-card,
+.feature-card,
+.code-card,
+.library-codes-list,
+.chapters-list {
+    background: #fff8f5 !important;
+    border-color: rgba(191, 117, 135, 0.45) !important;
+    color: var(--dd-text);
+}
+
+.library-title,
+.card h2,
+.portal-header h1 {
+    color: #5f2f4e !important;
+}
+
+.library-subtitle,
+.card p,
+.auth-subtitle {
+    color: #7a4658 !important;
+}
+
+.feature-box,
+.library-card .code-card button,
+.explanation-btn,
+.auth-btn,
+.search-button,
+.admin-switch-btn {
+    background: linear-gradient(120deg, var(--dd-2), var(--dd-4)) !important;
+    color: #fff !important;
+    border: none !important;
+}
+
+.chapters-list li span,
+.section-title,
+a,
+.forgot-link {
+    color: #993a8b !important;
+}
+
+.portal-nav .active-tab,
+nav button.active-tab {
+    background: #f8e6ef !important;
+    color: #6e2d60 !important;
+    border-color: #993a8b !important;
+}
+
 nav {
     background: #026440;
     text-align: center;

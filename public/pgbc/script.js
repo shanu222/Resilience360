@@ -1157,13 +1157,13 @@ function loadCodes() {
         list.innerHTML += `
             <div class="code-card code-openable" onclick="openCodeViewer('predefined', ${index})" style="display: block; margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                    <strong style="font-size: 18px; color: #043617; flex: 1;">${code.name}</strong>
+                    <strong style="font-size: 18px; color: #5f2f4e; flex: 1;">${code.name}</strong>
                     <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                         <a href="${code.pdfPath}" onclick="event.stopPropagation()" download="${code.name}.pdf">
-                            <button style="background: #026440; color: white; padding: 8px 15px;">📥 PDF</button>
+                            <button style="background: #993a8b; color: white; padding: 8px 15px;">📥 PDF</button>
                         </a>
                         ${currentUser?.role === "Authority" ? 
-                            `<button onclick="event.stopPropagation(); deletePredefinedCode(${index})" style="background: #b60f0f; color: white; padding: 8px 15px;">🗑️ Delete</button>` : ""}
+                            `<button onclick="event.stopPropagation(); deletePredefinedCode(${index})" style="background: #a2574f; color: white; padding: 8px 15px;">🗑️ Delete</button>` : ""}
                     </div>
                 </div>
             </div>
@@ -1175,13 +1175,13 @@ function loadCodes() {
         list.innerHTML += `
             <div class="code-card code-openable" onclick="openCodeViewer('uploaded', ${index})" style="display: block; margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <strong style="font-size: 18px; color: #043617;">${code.name}</strong>
+                    <strong style="font-size: 18px; color: #5f2f4e;">${code.name}</strong>
                     <div>
                         <a href="${code.pdf}" onclick="event.stopPropagation()" download="${code.name}.pdf">
-                            <button style="background: #026440; color: white; padding: 8px 15px; margin-right: 5px;">📥 Download PDF</button>
+                            <button style="background: #993a8b; color: white; padding: 8px 15px; margin-right: 5px;">📥 Download PDF</button>
                         </a>
                         ${currentUser?.role === "Authority" ? 
-                            `<button onclick="event.stopPropagation(); deleteUploadedCode(${index})" style="background: #b60f0f; color: white; padding: 8px 15px;">🗑️ Delete</button>` : ""}
+                            `<button onclick="event.stopPropagation(); deleteUploadedCode(${index})" style="background: #a2574f; color: white; padding: 8px 15px;">🗑️ Delete</button>` : ""}
                     </div>
                 </div>
             </div>
@@ -1597,7 +1597,7 @@ function createNodeMarkup(node, depth, forceExpand) {
     const codeText = node.code ? `${node.code} ` : '';
 
     let markup = `
-        <div class="sidebar-subsection-item" onclick="onViewerNodeClick('${node.key}')" style="padding-left:${paddingLeft}px; background:${isSelected ? 'rgba(95, 192, 135, 0.25)' : 'rgba(255,255,255,0.05)'}; border-left:${isSelected ? '3px solid #5fc087' : '3px solid transparent'};">
+        <div class="sidebar-subsection-item" onclick="onViewerNodeClick('${node.key}')" style="padding-left:${paddingLeft}px; background:${isSelected ? 'rgba(191, 117, 135, 0.24)' : 'rgba(255,255,255,0.05)'}; border-left:${isSelected ? '3px solid #993a8b' : '3px solid transparent'};">
             ${indicator} ${codeText}${node.title}
         </div>
     `;
@@ -1967,10 +1967,10 @@ function renderViewerPage() {
     if (actions && viewerUiState.selectedCode) {
         actions.innerHTML = `
             <a href="${viewerUiState.selectedCode.pdfPath}" download="${viewerUiState.selectedCode.name}.pdf" style="text-decoration:none;">
-                <button style="background:#026440; color:#fff;">📥 Download PDF</button>
+                <button style="background:#993a8b; color:#fff;">📥 Download PDF</button>
             </a>
             <a href="${viewerUiState.selectedCode.pdfPath}" target="_blank" style="text-decoration:none;">
-                <button style="background:#5fc087; color:#fff;">👁️ View PDF</button>
+                <button style="background:#e68057; color:#fff;">👁️ View PDF</button>
             </a>
         `;
     }
