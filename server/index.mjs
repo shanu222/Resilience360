@@ -99,6 +99,36 @@ const parsePmdSatelliteImage = (html) => {
 
   return null
 }
+
+const decodeXmlEntities = (value) =>
+  value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+
+const parseTag = (xmlChunk, tag) => {
+  const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i')
+  const match = xmlChunk.match(regex)
+  return match?.[1] ? decodeXmlEntities(normalizeWhitespace(match[1])) : ''
+}
+
+const parsePmdRssItems = (xmlString) => {
+  const items = [...xmlString.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, 8)
+  return items.map((match, index) => {
+    const chunk = match[1]
+    const title = parseTag(chunk, 'title') || `PMD Update ${index + 1}`
+    const link = parseTag(chunk, 'link') || PMD_RSS_URL
+    const publishedAt = parseTag(chunk, 'pubDate')
+    return {
+      id: `pmd-rss-${index}-${link}`,
+      title,
+      link,
+      publishedAt,
+    }
+  })
+}
 const mapGuidanceSteps = (value) =>
   safeArray(value)
     .map((step) => ({
@@ -165,18 +195,30 @@ app.get('/api/pmd/live', async (_req, res) => {
     const satelliteHtml = satelliteResult.status === 'fulfilled' ? satelliteResult.value : ''
     const cities = homeHtml ? parsePmdCityTemperatures(homeHtml) : []
     const satelliteImageUrl = satelliteHtml ? parsePmdSatelliteImage(satelliteHtml) : null
+    let latestAlerts = []
 
-    if (homeResult.status === 'rejected' && satelliteResult.status === 'rejected') {
+    try {
+      const rssXml = await fetchRemoteText(PMD_RSS_URL, 24000)
+      latestAlerts = parsePmdRssItems(rssXml)
+    } catch {
+      latestAlerts = []
+    }
+
+    if (homeResult.status === 'rejected' && satelliteResult.status === 'rejected' && latestAlerts.length === 0) {
       const homeError = homeResult.reason instanceof Error ? homeResult.reason.message : 'PMD home fetch failed'
-      const satelliteError =
-        satelliteResult.reason instanceof Error ? satelliteResult.reason.message : 'PMD satellite fetch failed'
-      throw new Error(`${homeError}; ${satelliteError}`)
+      const satelliteError = satelliteResult.reason instanceof Error ? satelliteResult.reason.message : 'PMD satellite fetch failed'
+      throw new Error(`${homeError}; ${satelliteError}; PMD RSS fallback unavailable`)
     }
 
     res.json({
       source: 'PMD',
       updatedAt: new Date().toISOString(),
+      mode:
+        homeResult.status === 'fulfilled' || satelliteResult.status === 'fulfilled'
+          ? 'full-or-partial-web'
+          : 'rss-fallback',
       cities,
+      latestAlerts,
       links: {
         home: PMD_HOME_URL,
         radar: PMD_RADAR_URL,

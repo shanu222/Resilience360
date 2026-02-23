@@ -4214,6 +4214,24 @@ function App() {
               ) : (
                 <p>Live city temperatures are temporarily unavailable from PMD. Satellite/radar links remain live.</p>
               )}
+              {pmdLiveSnapshot.mode === 'rss-fallback' && (
+                <p className="pmd-live-meta">PMD web endpoints are slow/unreachable right now; showing CAP RSS fallback updates.</p>
+              )}
+              {pmdLiveSnapshot.latestAlerts && pmdLiveSnapshot.latestAlerts.length > 0 && (
+                <div className="pmd-media-card">
+                  <h4>Latest PMD Updates (CAP)</h4>
+                  <ul>
+                    {pmdLiveSnapshot.latestAlerts.slice(0, 5).map((item) => (
+                      <li key={item.id}>
+                        <a href={item.link} target="_blank" rel="noreferrer">
+                          {item.title}
+                        </a>
+                        {item.publishedAt ? ` • ${new Date(item.publishedAt).toLocaleString()}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <p className="pmd-live-meta">Updated: {new Date(pmdLiveSnapshot.updatedAt).toLocaleString()}</p>
 
               <div className="pmd-media-grid">
