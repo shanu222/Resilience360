@@ -4685,7 +4685,6 @@ function App() {
       return (
         <div className="panel section-panel section-pgbc">
           <h2>{t.sections.pgbc}</h2>
-          <p>Pakistan Green Building Codes portal opens below. Home page loads first.</p>
           <div className="inline-controls">
             <a href={`${import.meta.env.BASE_URL}pgbc/index.html`} target="_blank" rel="noreferrer">
               Open PGBC in new tab
