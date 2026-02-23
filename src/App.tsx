@@ -380,6 +380,7 @@ const getHazardOverlay = (province: string, city: string) => {
 }
 
 const roleOptions = ['General Public', 'Engineer / Planner', 'Government Officer'] as const
+const BUILD_VERSION_LABEL = 'fbe32c0'
 
 const homeSectionKeys: SectionKey[] = [
   'bestPractices',
@@ -4827,6 +4828,7 @@ function App() {
               <p>
                 Building a <strong>Resilient Pakistan</strong> – Safer Infrastructure, Stronger Communities
               </p>
+              <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.8 }}>Build Version: {BUILD_VERSION_LABEL}</p>
               <button onClick={() => navigateToSection('settings')}>⚙️ {t.sections.settings}</button>
             </section>
           </>
