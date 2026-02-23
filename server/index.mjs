@@ -261,7 +261,7 @@ app.post('/api/guidance/step-images', async (req, res) => {
           const generated = await openai.images.generate({
             model: 'gpt-image-1',
             prompt,
-            size: '768x768',
+            size: 'auto',
           })
 
           const b64 = generated.data?.[0]?.b64_json
