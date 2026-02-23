@@ -12,6 +12,10 @@ const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } })
 const port = Number(process.env.PORT ?? process.env.VISION_API_PORT ?? 8787)
 const model = process.env.OPENAI_VISION_MODEL ?? 'gpt-4.1-mini'
 const hasKey = Boolean(process.env.OPENAI_API_KEY)
+const NDMA_ADVISORIES_URL = process.env.NDMA_ADVISORIES_URL ?? 'https://ndma.gov.pk/advisories'
+const NDMA_SITREPS_URL = process.env.NDMA_SITREPS_URL ?? 'https://ndma.gov.pk/sitreps'
+const NDMA_PROJECTIONS_URL = process.env.NDMA_PROJECTIONS_URL ?? 'https://ndma.gov.pk/projection-impact-list_new'
+const PMD_RSS_URL = process.env.PMD_RSS_URL ?? 'https://cap-sources.s3.amazonaws.com/pk-pmd-en/rss.xml'
 
 const openai = hasKey ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
 
@@ -36,6 +40,19 @@ const extractJson = (rawText) => {
 }
 
 const safeArray = (value) => (Array.isArray(value) ? value : [])
+const fetchRemoteText = async (url, timeoutMs = 14000) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, { signal: controller.signal })
+    if (!response.ok) {
+      throw new Error(`Upstream request failed (${response.status}) for ${url}`)
+    }
+    return await response.text()
+  } finally {
+    clearTimeout(timer)
+  }
+}
 const mapGuidanceSteps = (value) =>
   safeArray(value)
     .map((step) => ({
@@ -77,6 +94,54 @@ const translateGuidanceToUrdu = async (openaiClient, modelName, guidance) => {
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, hasVisionKey: hasKey, model })
+})
+
+app.get('/api/pmd/rss', async (_req, res) => {
+  try {
+    const xml = await fetchRemoteText(PMD_RSS_URL)
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-store')
+    res.send(xml)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to fetch PMD RSS feed.'
+    res.status(502).send(message)
+  }
+})
+
+app.get('/api/ndma/advisories', async (_req, res) => {
+  try {
+    const html = await fetchRemoteText(NDMA_ADVISORIES_URL)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-store')
+    res.send(html)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to fetch NDMA advisories.'
+    res.status(502).send(message)
+  }
+})
+
+app.get('/api/ndma/sitreps', async (_req, res) => {
+  try {
+    const html = await fetchRemoteText(NDMA_SITREPS_URL)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-store')
+    res.send(html)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to fetch NDMA situation reports.'
+    res.status(502).send(message)
+  }
+})
+
+app.get('/api/ndma/projections', async (_req, res) => {
+  try {
+    const html = await fetchRemoteText(NDMA_PROJECTIONS_URL)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-store')
+    res.send(html)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to fetch NDMA projections.'
+    res.status(502).send(message)
+  }
 })
 
 app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {

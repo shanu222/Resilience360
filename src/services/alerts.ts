@@ -1,4 +1,4 @@
-import { buildApiUrl } from './apiBase'
+import { buildApiTargets } from './apiBase'
 
 export type LiveAlert = {
   id: string
@@ -50,6 +50,12 @@ const fetchTextFromAny = async (candidates: string[]): Promise<string> => {
   }
   if (lastError) throw lastError
   throw new Error('No live endpoint responded.')
+}
+
+const liveHazardPriority = (alert: LiveAlert): number => {
+  const text = `${alert.title} ${alert.summary ?? ''}`.toLowerCase()
+  const keywords = ['flood', 'rain', 'thunderstorm', 'cyclone', 'heatwave', 'cold wave', 'earthquake', 'landslide', 'storm']
+  return keywords.some((keyword) => text.includes(keyword)) ? 1 : 0
 }
 
 const stripHtml = (value: string): string => {
@@ -107,15 +113,15 @@ const parsePmdRss = (xmlString: string): LiveAlert[] => {
 
 export const fetchLiveAlerts = async (): Promise<LiveAlert[]> => {
   const ndmaCandidates = [
-    buildApiUrl('/api/ndma/advisories'),
+    ...buildApiTargets('/api/ndma/advisories'),
     NDMA_ADVISORIES_URL,
-    buildApiUrl('/api/ndma/sitreps'),
+    ...buildApiTargets('/api/ndma/sitreps'),
     NDMA_SITREPS_URL,
-    buildApiUrl('/api/ndma/projections'),
+    ...buildApiTargets('/api/ndma/projections'),
     NDMA_PROJECTIONS_URL,
   ]
 
-  const pmdCandidates = [buildApiUrl('/api/pmd/rss'), PMD_RSS_URL]
+  const pmdCandidates = [...buildApiTargets('/api/pmd/rss'), PMD_RSS_URL]
 
   const [ndmaAdvisoryHtml, ndmaSitrepHtml, ndmaProjectionHtml, pmdRssXml] = await Promise.all([
     fetchTextFromAny(ndmaCandidates.slice(0, 2)),
@@ -132,6 +138,10 @@ export const fetchLiveAlerts = async (): Promise<LiveAlert[]> => {
   ]
 
   return merged
-    .sort((a, b) => parseDateMaybe(b.publishedAt) - parseDateMaybe(a.publishedAt))
+    .sort((a, b) => {
+      const priorityDiff = liveHazardPriority(b) - liveHazardPriority(a)
+      if (priorityDiff !== 0) return priorityDiff
+      return parseDateMaybe(b.publishedAt) - parseDateMaybe(a.publishedAt)
+    })
     .slice(0, 12)
 }
