@@ -20,6 +20,17 @@ type HazardAlertMarker = {
   lng: number
 }
 
+type GlobalEarthquakeMarker = {
+  id: string
+  magnitude: number
+  place: string
+  time: string
+  depthKm: number
+  lat: number
+  lng: number
+  url: string
+}
+
 type RiskMapProps = {
   layer: MapLayer
   selectedProvince: string
@@ -27,6 +38,8 @@ type RiskMapProps = {
   riskByProvince: Record<string, { earthquake: string; flood: string; infraRisk: string; landslide?: string }>
   districtRiskLookup?: DistrictRiskLookup
   alertMarkers?: HazardAlertMarker[]
+  globalEarthquakeMarkers?: GlobalEarthquakeMarker[]
+  showGlobalEarthquakeMarkers?: boolean
   userLocationMarker?: { lat: number; lng: number } | null
   colorblindFriendly?: boolean
   onSelectProvince: (province: string) => void
@@ -86,6 +99,8 @@ function RiskMap({
   riskByProvince,
   districtRiskLookup,
   alertMarkers,
+  globalEarthquakeMarkers,
+  showGlobalEarthquakeMarkers,
   userLocationMarker,
   colorblindFriendly,
   onSelectProvince,
@@ -293,6 +308,39 @@ function RiskMap({
             </Popup>
           </CircleMarker>
         ))}
+
+        {showGlobalEarthquakeMarkers &&
+          (globalEarthquakeMarkers ?? []).map((quake) => {
+            const magnitude = Number.isFinite(quake.magnitude) ? quake.magnitude : 0
+            const markerRadius = Math.max(4, Math.min(11, 3.5 + magnitude * 0.9))
+            const markerColor = magnitude >= 6 ? '#b91c1c' : magnitude >= 5 ? '#ea580c' : magnitude >= 4 ? '#ca8a04' : '#2563eb'
+
+            return (
+              <CircleMarker
+                key={`global-eq-${quake.id}`}
+                center={[quake.lat, quake.lng]}
+                radius={markerRadius}
+                pathOptions={{ color: '#1f2937', weight: 1, fillColor: markerColor, fillOpacity: 0.78 }}
+              >
+                <Tooltip direction="top" offset={[0, -4]} opacity={1}>
+                  M {magnitude.toFixed(1)}
+                </Tooltip>
+                <Popup>
+                  <strong>M {magnitude.toFixed(1)}</strong>
+                  <br />
+                  {quake.place}
+                  <br />
+                  Depth: {quake.depthKm.toFixed(1)} km
+                  <br />
+                  {new Date(quake.time).toLocaleString()}
+                  <br />
+                  <a href={quake.url} target="_blank" rel="noreferrer">
+                    Open details
+                  </a>
+                </Popup>
+              </CircleMarker>
+            )
+          })}
 
         {userLocationMarker && (
           <CircleMarker

@@ -897,6 +897,7 @@ function App() {
   })
   const [isLoadingGlobalEarthquakes, setIsLoadingGlobalEarthquakes] = useState(false)
   const [globalEarthquakeError, setGlobalEarthquakeError] = useState<string | null>(null)
+  const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(true)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
   const [bestPracticeVisibleCount, setBestPracticeVisibleCount] = useState(2)
   const [applyProvince, setApplyProvince] = useState('Punjab')
@@ -2880,6 +2881,14 @@ function App() {
             </label>
             <label>
               <input
+                type="checkbox"
+                checked={showGlobalEarthquakesOnMap}
+                onChange={(event) => setShowGlobalEarthquakesOnMap(event.target.checked)}
+              />{' '}
+              Show global live earthquake dots
+            </label>
+            <label>
+              <input
                 type="radio"
                 name="district-lang"
                 checked={districtUiLanguage === 'English'}
@@ -2912,6 +2921,8 @@ function App() {
             riskByProvince={provinceRisk}
             districtRiskLookup={districtRiskLookup}
             alertMarkers={filteredHazardAlerts}
+            globalEarthquakeMarkers={globalEarthquakes}
+            showGlobalEarthquakeMarkers={showGlobalEarthquakesOnMap}
             userLocationMarker={detectedUserLocation}
             colorblindFriendly={colorblindFriendlyMap}
             onSelectProvince={setSelectedProvince}
