@@ -25,22 +25,22 @@ type User = Trainee | Admin;
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password?: string) => boolean;
-  signup: (data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">) => boolean;
+  login: (email: string, password?: string) => Promise<boolean>;
+  signup: (data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">) => Promise<boolean>;
   updateProfile: (data: {
     name: string;
     email: string;
     qualifications?: string;
     university?: string;
     reason?: string;
-  }) => boolean;
+  }) => Promise<boolean>;
   logout: () => void;
-  enrollInCourse: (courseId: number) => void;
-  updateCourseProgress: (courseId: number, progress: number) => void;
-  updateCompletedModules: (courseId: number, moduleId: number) => void;
-  getAllTrainees: () => Trainee[];
-  deleteTrainee: (traineeId: string) => void;
-  addTrainee: (data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">) => boolean;
+  enrollInCourse: (courseId: number) => Promise<void>;
+  updateCourseProgress: (courseId: number, progress: number) => Promise<void>;
+  updateCompletedModules: (courseId: number, moduleId: number) => Promise<void>;
+  getAllTrainees: () => Promise<Trainee[]>;
+  deleteTrainee: (traineeId: string) => Promise<void>;
+  addTrainee: (data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,19 +50,74 @@ const ADMIN_CREDENTIALS = {
   email: "shanu1998end@gmail.com",
 };
 
+const SUPABASE_URL = "https://fylvxupxzwuzxdbyvzoq.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5bHZ4dXB4end1enhkYnl2em9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MDI5NzEsImV4cCI6MjA3MjA3ODk3MX0.wGs6f6vQwH3EaYQvn1mBcx0R8UJ6F4aVvvrTjvYQ2mA";
+const COE_TABLE = "coe_trainees";
+
+const SUPABASE_HEADERS: HeadersInit = {
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  "Content-Type": "application/json",
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Load user from localStorage on mount
     const savedUser = localStorage.getItem("ndma_user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
   }, []);
 
-  const login = (email: string, password?: string): boolean => {
-    // Admin login
+  const mapTraineeFromDb = (record: any): Trainee => ({
+    id: record.id,
+    name: record.name || "",
+    email: record.email || "",
+    qualifications: record.qualifications || "",
+    university: record.university || "",
+    cnic: record.cnic || "",
+    reason: record.reason || "",
+    role: "trainee",
+    enrolledCourses: Array.isArray(record.enrolled_courses) ? record.enrolled_courses : [],
+    courseProgress:
+      record.course_progress && typeof record.course_progress === "object" ? record.course_progress : {},
+    completedModules:
+      record.completed_modules && typeof record.completed_modules === "object" ? record.completed_modules : {},
+  });
+
+  const persistSessionUser = (nextUser: User) => {
+    setUser(nextUser);
+    localStorage.setItem("ndma_user", JSON.stringify(nextUser));
+  };
+
+  const updateTraineeRecord = async (traineeId: string, payload: Record<string, unknown>) => {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/${COE_TABLE}?id=eq.${encodeURIComponent(traineeId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          ...SUPABASE_HEADERS,
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to update trainee (${response.status})`);
+    }
+
+    const rows = await response.json();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error("No trainee record returned after update");
+    }
+
+    return mapTraineeFromDb(rows[0]);
+  };
+
+  const login = async (email: string, password?: string): Promise<boolean> => {
     if (email === ADMIN_CREDENTIALS.email) {
       const adminUser: Admin = {
         id: "admin-1",
@@ -70,47 +125,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: ADMIN_CREDENTIALS.email,
         role: "admin",
       };
-      setUser(adminUser);
-      localStorage.setItem("ndma_user", JSON.stringify(adminUser));
+      persistSessionUser(adminUser);
       return true;
     }
 
-    // Trainee login - check localStorage for existing trainees
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    const trainee = trainees.find((t: Trainee) => t.email === email);
-    
-    if (trainee) {
-      setUser(trainee);
-      localStorage.setItem("ndma_user", JSON.stringify(trainee));
-      return true;
-    }
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/${COE_TABLE}?select=*&email=eq.${encodeURIComponent(email)}&limit=1`,
+        {
+          headers: SUPABASE_HEADERS,
+        },
+      );
 
-    return false;
+      if (!response.ok) {
+        return false;
+      }
+
+      const rows = await response.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return false;
+      }
+
+      const trainee = mapTraineeFromDb(rows[0]);
+      persistSessionUser(trainee);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
-  const signup = (data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">): boolean => {
-    // Check if email already exists
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    if (trainees.some((t: Trainee) => t.email === data.email)) {
-      return false; // Email already exists
+  const signup = async (
+    data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">,
+  ): Promise<boolean> => {
+    try {
+      const payload = {
+        name: data.name,
+        email: data.email,
+        qualifications: data.qualifications,
+        university: data.university,
+        cnic: data.cnic,
+        reason: data.reason,
+        role: "trainee",
+        enrolled_courses: [],
+        course_progress: {},
+        completed_modules: {},
+      };
+
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${COE_TABLE}`, {
+        method: "POST",
+        headers: {
+          ...SUPABASE_HEADERS,
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const rows = await response.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return false;
+      }
+
+      const newTrainee = mapTraineeFromDb(rows[0]);
+      persistSessionUser(newTrainee);
+      return true;
+    } catch {
+      return false;
     }
-
-    const newTrainee: Trainee = {
-      ...data,
-      id: `trainee-${Date.now()}`,
-      role: "trainee",
-      enrolledCourses: [],
-      courseProgress: {},
-      completedModules: {},
-    };
-
-    trainees.push(newTrainee);
-    localStorage.setItem("ndma_trainees", JSON.stringify(trainees));
-    
-    setUser(newTrainee);
-    localStorage.setItem("ndma_user", JSON.stringify(newTrainee));
-    
-    return true;
   };
 
   const logout = () => {
@@ -118,13 +202,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("ndma_user");
   };
 
-  const updateProfile = (data: {
+  const updateProfile = async (data: {
     name: string;
     email: string;
     qualifications?: string;
     university?: string;
     reason?: string;
-  }): boolean => {
+  }): Promise<boolean> => {
     if (!user) return false;
 
     if (user.role === "admin") {
@@ -134,144 +218,132 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email || user.email,
       };
 
-      setUser(updatedAdmin);
-      localStorage.setItem("ndma_user", JSON.stringify(updatedAdmin));
+      persistSessionUser(updatedAdmin);
       return true;
     }
 
     const trainee = user as Trainee;
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]") as Trainee[];
-
-    const duplicateEmail = trainees.some(
-      (entry) => entry.id !== trainee.id && entry.email.toLowerCase() === data.email.toLowerCase(),
-    );
-
-    if (duplicateEmail) {
+    try {
+      const updatedTrainee = await updateTraineeRecord(trainee.id, {
+        name: data.name,
+        email: data.email,
+        qualifications: data.qualifications ?? trainee.qualifications,
+        university: data.university ?? trainee.university,
+        reason: data.reason ?? trainee.reason,
+      });
+      persistSessionUser(updatedTrainee);
+      return true;
+    } catch {
       return false;
     }
-
-    const updatedTrainee: Trainee = {
-      ...trainee,
-      name: data.name,
-      email: data.email,
-      qualifications: data.qualifications ?? trainee.qualifications,
-      university: data.university ?? trainee.university,
-      reason: data.reason ?? trainee.reason,
-    };
-
-    setUser(updatedTrainee);
-    localStorage.setItem("ndma_user", JSON.stringify(updatedTrainee));
-
-    const updatedTrainees = trainees.map((entry) =>
-      entry.id === trainee.id ? updatedTrainee : entry,
-    );
-    localStorage.setItem("ndma_trainees", JSON.stringify(updatedTrainees));
-
-    return true;
   };
 
-  const enrollInCourse = (courseId: number) => {
+  const enrollInCourse = async (courseId: number) => {
     if (!user || user.role !== "trainee") return;
 
     const trainee = user as Trainee;
     if (trainee.enrolledCourses.includes(courseId)) return;
 
-    const updatedTrainee: Trainee = {
-      ...trainee,
-      enrolledCourses: [...trainee.enrolledCourses, courseId],
-      courseProgress: { ...trainee.courseProgress, [courseId]: 0 },
-      completedModules: { ...trainee.completedModules, [courseId]: [] },
-    };
-
-    // Update in state
-    setUser(updatedTrainee);
-    localStorage.setItem("ndma_user", JSON.stringify(updatedTrainee));
-
-    // Update in trainees list
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    const updatedTrainees = trainees.map((t: Trainee) =>
-      t.id === trainee.id ? updatedTrainee : t
-    );
-    localStorage.setItem("ndma_trainees", JSON.stringify(updatedTrainees));
+    try {
+      const updatedTrainee = await updateTraineeRecord(trainee.id, {
+        enrolled_courses: [...trainee.enrolledCourses, courseId],
+        course_progress: { ...trainee.courseProgress, [courseId]: 0 },
+        completed_modules: { ...trainee.completedModules, [courseId]: [] },
+      });
+      persistSessionUser(updatedTrainee);
+    } catch {
+      return;
+    }
   };
 
-  const updateCourseProgress = (courseId: number, progress: number) => {
+  const updateCourseProgress = async (courseId: number, progress: number) => {
     if (!user || user.role !== "trainee") return;
 
     const trainee = user as Trainee;
-    const updatedTrainee: Trainee = {
-      ...trainee,
-      courseProgress: { ...trainee.courseProgress, [courseId]: progress },
-    };
-
-    setUser(updatedTrainee);
-    localStorage.setItem("ndma_user", JSON.stringify(updatedTrainee));
-
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    const updatedTrainees = trainees.map((t: Trainee) =>
-      t.id === trainee.id ? updatedTrainee : t
-    );
-    localStorage.setItem("ndma_trainees", JSON.stringify(updatedTrainees));
+    try {
+      const updatedTrainee = await updateTraineeRecord(trainee.id, {
+        course_progress: { ...trainee.courseProgress, [courseId]: progress },
+      });
+      persistSessionUser(updatedTrainee);
+    } catch {
+      return;
+    }
   };
 
-  const updateCompletedModules = (courseId: number, moduleId: number) => {
+  const updateCompletedModules = async (courseId: number, moduleId: number) => {
     if (!user || user.role !== "trainee") return;
 
     const trainee = user as Trainee;
     const currentModules = trainee.completedModules[courseId] || [];
-    
+
     if (currentModules.includes(moduleId)) return;
 
-    const updatedModules = [...currentModules, moduleId];
-    const updatedTrainee: Trainee = {
-      ...trainee,
-      completedModules: {
-        ...trainee.completedModules,
-        [courseId]: updatedModules,
-      },
-    };
-
-    setUser(updatedTrainee);
-    localStorage.setItem("ndma_user", JSON.stringify(updatedTrainee));
-
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    const updatedTrainees = trainees.map((t: Trainee) =>
-      t.id === trainee.id ? updatedTrainee : t
-    );
-    localStorage.setItem("ndma_trainees", JSON.stringify(updatedTrainees));
-  };
-
-  const getAllTrainees = (): Trainee[] => {
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    return trainees;
-  };
-
-  const deleteTrainee = (traineeId: string) => {
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    const updatedTrainees = trainees.filter((t: Trainee) => t.id !== traineeId);
-    localStorage.setItem("ndma_trainees", JSON.stringify(updatedTrainees));
-  };
-
-  const addTrainee = (data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">): boolean => {
-    // Check if email already exists
-    const trainees = JSON.parse(localStorage.getItem("ndma_trainees") || "[]");
-    if (trainees.some((t: Trainee) => t.email === data.email)) {
-      return false; // Email already exists
+    try {
+      const updatedTrainee = await updateTraineeRecord(trainee.id, {
+        completed_modules: {
+          ...trainee.completedModules,
+          [courseId]: [...currentModules, moduleId],
+        },
+      });
+      persistSessionUser(updatedTrainee);
+    } catch {
+      return;
     }
+  };
 
-    const newTrainee: Trainee = {
-      ...data,
-      id: `trainee-${Date.now()}`,
-      role: "trainee",
-      enrolledCourses: [],
-      courseProgress: {},
-      completedModules: {},
-    };
+  const getAllTrainees = async (): Promise<Trainee[]> => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${COE_TABLE}?select=*&order=created_at.desc`, {
+        headers: SUPABASE_HEADERS,
+      });
+      if (!response.ok) {
+        return [];
+      }
+      const rows = await response.json();
+      if (!Array.isArray(rows)) {
+        return [];
+      }
+      return rows.map(mapTraineeFromDb);
+    } catch {
+      return [];
+    }
+  };
 
-    trainees.push(newTrainee);
-    localStorage.setItem("ndma_trainees", JSON.stringify(trainees));
-    
-    return true;
+  const deleteTrainee = async (traineeId: string) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/${COE_TABLE}?id=eq.${encodeURIComponent(traineeId)}`, {
+      method: "DELETE",
+      headers: SUPABASE_HEADERS,
+    });
+  };
+
+  const addTrainee = async (
+    data: Omit<Trainee, "id" | "role" | "enrolledCourses" | "courseProgress" | "completedModules">,
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${COE_TABLE}`, {
+        method: "POST",
+        headers: {
+          ...SUPABASE_HEADERS,
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          qualifications: data.qualifications,
+          university: data.university,
+          cnic: data.cnic,
+          reason: data.reason,
+          role: "trainee",
+          enrolled_courses: [],
+          course_progress: {},
+          completed_modules: {},
+        }),
+      });
+
+      return response.ok;
+    } catch {
+      return false;
+    }
   };
 
   return (

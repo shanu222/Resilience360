@@ -56,7 +56,7 @@ export function Profile() {
     setErrors((previous) => ({ ...previous, [field]: "" }));
   };
 
-  const handleSave = (event: React.FormEvent) => {
+  const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const nextErrors: Record<string, string> = {};
@@ -76,7 +76,7 @@ export function Profile() {
       return;
     }
 
-    const success = updateProfile({
+    const success = await updateProfile({
       name: form.name.trim(),
       email: form.email.trim(),
       qualifications: isTrainee ? form.qualifications.trim() : undefined,

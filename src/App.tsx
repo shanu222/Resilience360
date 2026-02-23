@@ -386,6 +386,7 @@ const homeSectionKeys: SectionKey[] = [
   'riskMaps',
   'designToolkit',
   'infraModels',
+  'coePortal',
   'pgbc',
   'retrofit',
   'warning',

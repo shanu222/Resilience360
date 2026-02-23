@@ -32,7 +32,7 @@ export function Auth() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!adminEmail) {
@@ -40,7 +40,7 @@ export function Auth() {
       return;
     }
 
-    const success = login(adminEmail);
+    const success = await login(adminEmail);
     
     if (success) {
       toast.success("Welcome back, Admin!");
@@ -51,7 +51,7 @@ export function Auth() {
     }
   };
 
-  const handleTraineeSignup = (e: React.FormEvent) => {
+  const handleTraineeSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const newErrors: Record<string, string> = {};
@@ -78,7 +78,7 @@ export function Auth() {
       return;
     }
 
-    const success = signup(traineeData);
+    const success = await signup(traineeData);
     
     if (success) {
       toast.success("Registration successful! Welcome to NDMA Portal");
@@ -89,7 +89,7 @@ export function Auth() {
     }
   };
 
-  const handleTraineeLogin = (e: React.FormEvent) => {
+  const handleTraineeLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!traineeLoginEmail) {
@@ -97,7 +97,7 @@ export function Auth() {
       return;
     }
 
-    const success = login(traineeLoginEmail);
+    const success = await login(traineeLoginEmail);
     
     if (success) {
       toast.success("Welcome back!");
