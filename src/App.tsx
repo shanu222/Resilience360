@@ -2929,36 +2929,37 @@ function App() {
             onSelectDistrict={setSelectedDistrict}
           />
           <div className="global-earthquake-panel global-earthquake-panel-fullscreen">
-            <div className="global-earthquake-layout">
-              <div className="global-earthquake-map-wrap">
-                <iframe
-                  title="Global Live Earthquake Globe"
-                  src={GLOBAL_EARTHQUAKE_MAP_URL}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-              <aside className="global-earthquake-alerts-rail">
-                <div className="global-earthquake-alerts-head">
-                  <h3>🌍 Live Earthquake Alerts</h3>
-                  <button onClick={loadGlobalEarthquakes} disabled={isLoadingGlobalEarthquakes}>
-                    {isLoadingGlobalEarthquakes ? '🔄 Syncing...' : '📡 Refresh'}
-                  </button>
-                </div>
-                {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
-                <div className="global-earthquake-list">
-                  {globalEarthquakes.length === 0 && <p>No global earthquakes available right now.</p>}
-                  {globalEarthquakes.slice(0, 15).map((quake) => (
-                    <p key={quake.id}>
-                      <strong>M {quake.magnitude.toFixed(1)}</strong> • {quake.place} • {new Date(quake.time).toLocaleString()} • Depth{' '}
-                      {quake.depthKm.toFixed(1)} km •{' '}
-                      <a href={quake.url} target="_blank" rel="noreferrer">
-                        Details
-                      </a>
-                    </p>
-                  ))}
-                </div>
-              </aside>
+            <div className="global-earthquake-map-head">
+              <h3>🌍 Global Live Earthquake Map</h3>
+            </div>
+            <div className="global-earthquake-map-wrap">
+              <iframe
+                title="Global Live Earthquake Globe"
+                src={GLOBAL_EARTHQUAKE_MAP_URL}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
+          <div className="global-earthquake-panel global-earthquake-alerts-card">
+            <div className="global-earthquake-alerts-head">
+              <h3>🌍 Live Earthquake Alerts</h3>
+              <button onClick={loadGlobalEarthquakes} disabled={isLoadingGlobalEarthquakes}>
+                {isLoadingGlobalEarthquakes ? '🔄 Syncing...' : '📡 Refresh'}
+              </button>
+            </div>
+            {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
+            <div className="global-earthquake-list">
+              {globalEarthquakes.length === 0 && <p>No global earthquakes available right now.</p>}
+              {globalEarthquakes.slice(0, 15).map((quake) => (
+                <p key={quake.id}>
+                  <strong>M {quake.magnitude.toFixed(1)}</strong> • {quake.place} • {new Date(quake.time).toLocaleString()} • Depth{' '}
+                  {quake.depthKm.toFixed(1)} km •{' '}
+                  <a href={quake.url} target="_blank" rel="noreferrer">
+                    Details
+                  </a>
+                </p>
+              ))}
             </div>
           </div>
           <p>Boundary source: geoBoundaries Pakistan ADM1 + ADM2 (public-domain dataset).</p>
