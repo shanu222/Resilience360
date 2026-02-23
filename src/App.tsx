@@ -95,6 +95,7 @@ type GlobalEarthquake = {
 }
 
 const GLOBAL_EARTHQUAKE_FEED_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
+const GLOBAL_EARTHQUAKE_FEED_URL_BACKUP = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
 
 const translations = {
   en: {
@@ -896,6 +897,9 @@ function App() {
   })
   const [isLoadingGlobalEarthquakes, setIsLoadingGlobalEarthquakes] = useState(false)
   const [globalEarthquakeError, setGlobalEarthquakeError] = useState<string | null>(null)
+  const [globalEarthquakesSyncedAt, setGlobalEarthquakesSyncedAt] = useState<string | null>(() =>
+    localStorage.getItem('r360-global-earthquakes-synced-at'),
+  )
   const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(true)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
   const [bestPracticeVisibleCount, setBestPracticeVisibleCount] = useState(2)
@@ -2627,27 +2631,44 @@ function App() {
     const timer = window.setTimeout(() => controller.abort(), 16000)
 
     try {
-      const response = await fetch(GLOBAL_EARTHQUAKE_FEED_URL, { signal: controller.signal })
-      if (!response.ok) {
-        throw new Error(`Live earthquake feed request failed with status ${response.status}.`)
+      const fetchLiveFeed = async (feedUrl: string) => {
+        const cacheBustedUrl = `${feedUrl}?_ts=${Date.now()}`
+        const response = await fetch(cacheBustedUrl, {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Live earthquake feed request failed with status ${response.status}.`)
+        }
+
+        return (await response.json()) as {
+          features?: Array<{
+            id?: string
+            properties?: {
+              mag?: number | null
+              place?: string
+              time?: number
+              url?: string
+            }
+            geometry?: {
+              coordinates?: number[]
+            }
+          }>
+        }
       }
 
-      const payload = (await response.json()) as {
-        features?: Array<{
-          id?: string
-          properties?: {
-            mag?: number | null
-            place?: string
-            time?: number
-            url?: string
-          }
-          geometry?: {
-            coordinates?: number[]
-          }
-        }>
+      let payload = await fetchLiveFeed(GLOBAL_EARTHQUAKE_FEED_URL)
+      if ((payload.features?.length ?? 0) === 0) {
+        payload = await fetchLiveFeed(GLOBAL_EARTHQUAKE_FEED_URL_BACKUP)
       }
 
       const latest = (payload.features ?? [])
+        .sort((a, b) => Number(b.properties?.time ?? 0) - Number(a.properties?.time ?? 0))
         .slice(0, 30)
         .map((feature, index) => {
           const coords = feature.geometry?.coordinates ?? []
@@ -2668,8 +2689,12 @@ function App() {
         })
         .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng))
 
+      const syncedAt = new Date().toISOString()
+      setGlobalEarthquakesSyncedAt(syncedAt)
+
       setGlobalEarthquakes(latest)
       localStorage.setItem('r360-global-earthquakes', JSON.stringify(latest))
+      localStorage.setItem('r360-global-earthquakes-synced-at', syncedAt)
     } catch {
       setGlobalEarthquakeError('Global live earthquake feed is temporarily unavailable. Showing last cached updates if available.')
     } finally {
@@ -2934,6 +2959,9 @@ function App() {
                 {isLoadingGlobalEarthquakes ? '🔄 Syncing...' : '📡 Refresh'}
               </button>
             </div>
+            {globalEarthquakesSyncedAt && (
+              <p className="global-earthquake-sync-meta">Last synced: {new Date(globalEarthquakesSyncedAt).toLocaleString()}</p>
+            )}
             {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
             <div className="global-earthquake-list">
               {globalEarthquakes.length === 0 && <p>No global earthquakes available right now.</p>}

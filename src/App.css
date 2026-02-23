@@ -163,6 +163,12 @@
   margin: 0;
 }
 
+.global-earthquake-sync-meta {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.86rem;
+  color: #4b5563;
+}
+
 .global-earthquake-list {
   margin-top: 0.35rem;
   border-top: 1px solid #e5e7eb;
