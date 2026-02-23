@@ -175,7 +175,7 @@ app.post('/api/guidance/construction', async (req, res) => {
         {
           role: 'user',
           content:
-            `Create location-aware construction guidance for structureType=${structureType} in city=${city}, province=${province}, Pakistan for hazard=${hazard}. Best practice to apply: ${bestPracticeName}. Return strict JSON schema:\n{\n  "summary": string,\n  "materials": string[],\n  "safety": string[],\n  "steps": [\n    {\n      "title": string,\n      "description": string,\n      "keyChecks": string[]\n    }\n  ]\n}. Constraints: 5 steps exactly, each step must be different, practical, and not generic. Every description must include why this step matters for the local city/province hazard context in Pakistan and how it aligns with the named best practice.`,
+            `Create location-aware, deep-research based construction guidance for structureType=${structureType} in city=${city}, province=${province}, Pakistan for hazard=${hazard}. Best practice to apply: ${bestPracticeName}. Use local hazard behavior, likely soil/drainage/site constraints, constructability, and implementation sequencing suitable for Pakistan field context. Return strict JSON schema:\n{\n  "summary": string,\n  "materials": string[],\n  "safety": string[],\n  "steps": [\n    {\n      "title": string,\n      "description": string,\n      "keyChecks": string[]\n    }\n  ]\n}. Constraints: 5 steps exactly, each step must be different, practical, and not generic. Every description must include why this step matters for local city/province hazard context and how it aligns with the named best practice. Include implementation-focused details rather than high-level theory.`,
         },
       ],
     })
@@ -229,7 +229,7 @@ app.post('/api/guidance/step-images', async (req, res) => {
     const hazard = String(req.body.hazard ?? 'flood')
     const structureType = String(req.body.structureType ?? 'Masonry House')
     const bestPracticeName = String(req.body.bestPracticeName ?? 'General Resilient Construction Practice')
-    const steps = safeArray(req.body.steps).slice(0, 4)
+    const steps = safeArray(req.body.steps).slice(0, 5)
 
     if (!openai) {
       const fallbackImages = await generateGuidanceStepImagesMl({
@@ -290,7 +290,7 @@ app.post('/api/guidance/step-images', async (req, res) => {
       const city = String(req.body.city ?? 'Lahore')
       const hazard = String(req.body.hazard ?? 'flood')
       const structureType = String(req.body.structureType ?? 'Masonry House')
-      const steps = safeArray(req.body.steps).slice(0, 4)
+      const steps = safeArray(req.body.steps).slice(0, 5)
 
       const fallbackImages = await generateGuidanceStepImagesMl({
         province,

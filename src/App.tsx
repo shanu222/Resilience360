@@ -1120,9 +1120,6 @@ function App() {
 
   const handleApplyBestPracticeChange = (nextBestPractice: string) => {
     setApplyBestPracticeTitle(nextBestPractice)
-    if (!isGeneratingGuidance) {
-      void generateApplyAreaGuidance(nextBestPractice)
-    }
   }
 
   const downloadApplyGuidanceReport = async () => {
@@ -3599,93 +3596,79 @@ function App() {
                   </select>
                 </label>
               </div>
-            </div>
-
-            <div className="retrofit-model-output">
-              <h3>📍 Live Location for Auto-Fill</h3>
-              <div className="inline-controls">
-                <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
-                  {isDetectingLocation ? '📡 Detecting Live Location...' : '📡 Refresh Live Location'}
-                </button>
+              <div className="retrofit-model-output">
+                <h3>📍 Live Location for Auto-Fill</h3>
+                <div className="inline-controls">
+                  <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
+                    {isDetectingLocation ? '📡 Detecting Live Location...' : '📡 Refresh Live Location'}
+                  </button>
+                </div>
+                {locationAccessMsg && <p>{locationAccessMsg}</p>}
+                {detectedUserLocation && (
+                  <>
+                    <p>
+                      Auto-filled from live location: <strong>{applyCity}, {applyProvince}</strong> | Hazard Focus: <strong>{applyHazard}</strong>
+                    </p>
+                    <UserLocationMiniMap location={detectedUserLocation} />
+                  </>
+                )}
               </div>
-              {locationAccessMsg && <p>{locationAccessMsg}</p>}
-              {detectedUserLocation && (
-                <>
+
+              <button onClick={() => { void generateApplyAreaGuidance() }} disabled={isGeneratingGuidance}>
+                {isGeneratingGuidance ? '⚡ Generating Construction Guidance + Images...' : '🛠️ Construction Guidance'}
+              </button>
+
+              {guidanceError && <p>{guidanceError}</p>}
+
+              {constructionGuidance && (
+                <div className="retrofit-model-output">
+                  <h3>Location-Tailored Construction Guidance — {applyBestPracticeTitle}</h3>
                   <p>
-                    Auto-filled from live location: <strong>{applyCity}, {applyProvince}</strong> | Hazard Focus: <strong>{applyHazard}</strong>
+                    <strong>Area:</strong> {applyCity}, {applyProvince} | <strong>Hazard:</strong> {applyHazard}
                   </p>
-                  <UserLocationMiniMap location={detectedUserLocation} />
-                </>
+                  <p>{constructionGuidance.summary}</p>
+
+                  <h3>Materials</h3>
+                  <ul>
+                    {constructionGuidance.materials.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+
+                  <h3>Safety Checks</h3>
+                  <ul>
+                    {constructionGuidance.safety.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+
+                  <h3>Implementation Steps</h3>
+                  <div className="retrofit-defect-list">
+                    {constructionGuidance.steps.map((step, index) => {
+                      const image = guidanceStepImages.find((item) => item.stepTitle === step.title) ?? guidanceStepImages[index]
+                      return (
+                        <article key={`${step.title}-${index}`} className="retrofit-defect-card">
+                          <h4>
+                            Step {index + 1}: {step.title}
+                          </h4>
+                          <p>{step.description}</p>
+                          {image?.imageDataUrl && (
+                            <img src={image.imageDataUrl} alt={`${step.title} visual guide`} className="retrofit-preview" />
+                          )}
+                          <ul>
+                            {step.keyChecks.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        </article>
+                      )
+                    })}
+                  </div>
+                  <button onClick={downloadApplyGuidanceReport}>📄 Download Professional Guidance Report (PDF)</button>
+                  {isGeneratingStepImages && <p>Generating AI stepwise construction images...</p>}
+                </div>
               )}
             </div>
-
-            <button onClick={() => { void generateApplyAreaGuidance() }} disabled={isGeneratingGuidance}>
-              {isGeneratingGuidance ? '⚡ Generating Construction Guidance + Images...' : '🛠️ Construction Guidance'}
-            </button>
-
-            {guidanceError && <p>{guidanceError}</p>}
-
-            {constructionGuidance && (
-              <div className="retrofit-model-output">
-                <h3>Location-Tailored Construction Guidance — {applyBestPracticeTitle}</h3>
-                <div className="context-split-layout context-split-layout-compact">
-                  <aside className="context-left-panel">
-                    <h3>Guidance Context</h3>
-                    <p>
-                      <strong>Area:</strong> {applyCity}, {applyProvince}
-                    </p>
-                    <p>
-                      <strong>Hazard:</strong> {applyHazard}
-                    </p>
-                    <p>
-                      <strong>Best Practice:</strong> {applyBestPracticeTitle}
-                    </p>
-                  </aside>
-                  <div className="context-main-panel">
-                    <p>{constructionGuidance.summary}</p>
-                  </div>
-                </div>
-
-                <h3>Materials</h3>
-                <ul>
-                  {constructionGuidance.materials.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-
-                <h3>Safety Checks</h3>
-                <ul>
-                  {constructionGuidance.safety.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-
-                <h3>Implementation Steps</h3>
-                <div className="retrofit-defect-list">
-                  {constructionGuidance.steps.map((step, index) => {
-                    const image = guidanceStepImages.find((item) => item.stepTitle === step.title) ?? guidanceStepImages[index]
-                    return (
-                      <article key={`${step.title}-${index}`} className="retrofit-defect-card">
-                        <h4>
-                          Step {index + 1}: {step.title}
-                        </h4>
-                        <p>{step.description}</p>
-                        {image?.imageDataUrl && (
-                          <img src={image.imageDataUrl} alt={`${step.title} visual guide`} className="retrofit-preview" />
-                        )}
-                        <ul>
-                          {step.keyChecks.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      </article>
-                    )
-                  })}
-                </div>
-                <button onClick={downloadApplyGuidanceReport}>📄 Download Professional Guidance Report (PDF)</button>
-                {isGeneratingStepImages && <p>Generating AI stepwise construction images...</p>}
-              </div>
-            )}
           </div>
         </div>
       )

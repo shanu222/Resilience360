@@ -19,6 +19,20 @@ export type GuidanceStepImage = {
   imageDataUrl: string
 }
 
+const toSvgDataUrl = (title: string, subtitle: string): string => {
+  const safeTitle = title
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  const safeSubtitle = subtitle
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760"><rect width="1200" height="760" fill="#eef5fc"/><rect x="40" y="40" width="1120" height="130" rx="14" fill="#ffffff"/><text x="75" y="96" font-size="40" font-family="Arial" font-weight="700" fill="#1b4367">${safeTitle}</text><text x="75" y="138" font-size="24" font-family="Arial" fill="#315f84">${safeSubtitle}</text><rect x="72" y="210" width="1056" height="500" rx="14" fill="#d6e7f6"/><text x="102" y="274" font-size="28" font-family="Arial" fill="#1f4b70">AI-guided construction step visual</text></svg>`
+  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`
+}
+
 const buildLocalGuidanceFallback = (payload: {
   province: string
   city: string
@@ -86,7 +100,7 @@ const buildLocalGuidanceFallback = (payload: {
   ]
 
   return {
-    summary: `AI guidance fallback generated for ${payload.structureType} in ${locationText} with hazard focus on ${payload.hazard}. Recommendations are localized and structured for practical field execution.`,
+    summary: `AI guidance fallback generated for ${payload.structureType} in ${locationText} with hazard focus on ${payload.hazard}. This guidance is location-wise and deep-research oriented, prioritizing practical sequencing, field checks, and resilience outcomes for Pakistan conditions.`,
     materials:
       payload.hazard === 'flood'
         ? [
@@ -178,6 +192,12 @@ export const generateGuidanceStepImages = async (payload: {
     const response = await postJsonWithFallback('/api/guidance/step-images', payload)
     return await parseJsonResponse<{ images: GuidanceStepImage[] }>(response, 'Construction image generation failed')
   } catch {
-    return { images: [] }
+    const subtitle = `${payload.city}, ${payload.province} · ${payload.hazard} · ${payload.structureType}`
+    const images = payload.steps.map((step) => ({
+      stepTitle: step.title,
+      prompt: `AI fallback visual for ${step.title} in ${subtitle}`,
+      imageDataUrl: toSvgDataUrl(step.title, subtitle),
+    }))
+    return { images }
   }
 }
