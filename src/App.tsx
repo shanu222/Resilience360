@@ -14,6 +14,7 @@ import ResponsiveQa from './components/ResponsiveQa'
 import UserLocationMiniMap from './components/UserLocationMiniMap'
 import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
 import { fetchPmdLiveSnapshot, type PmdLiveSnapshot } from './services/pmdLive'
+import { buildApiTargets } from './services/apiBase'
 import { analyzeBuildingWithVision, type VisionAnalysisResult } from './services/vision'
 import { getMlRetrofitEstimate, type MlRetrofitEstimate } from './services/mlRetrofit'
 import {
@@ -2632,7 +2633,8 @@ function App() {
 
     try {
       const fetchLiveFeed = async (feedUrl: string) => {
-        const cacheBustedUrl = `${feedUrl}?_ts=${Date.now()}`
+        const separator = feedUrl.includes('?') ? '&' : '?'
+        const cacheBustedUrl = `${feedUrl}${separator}_ts=${Date.now()}`
         const response = await fetch(cacheBustedUrl, {
           signal: controller.signal,
           cache: 'no-store',
@@ -2662,9 +2664,41 @@ function App() {
         }
       }
 
-      let payload = await fetchLiveFeed(GLOBAL_EARTHQUAKE_FEED_URL)
-      if ((payload.features?.length ?? 0) === 0) {
-        payload = await fetchLiveFeed(GLOBAL_EARTHQUAKE_FEED_URL_BACKUP)
+      const targets = [
+        ...buildApiTargets('/api/global-earthquakes'),
+        GLOBAL_EARTHQUAKE_FEED_URL,
+        GLOBAL_EARTHQUAKE_FEED_URL_BACKUP,
+      ]
+
+      let payload: {
+        features?: Array<{
+          id?: string
+          properties?: {
+            mag?: number | null
+            place?: string
+            time?: number
+            url?: string
+          }
+          geometry?: {
+            coordinates?: number[]
+          }
+        }>
+      } | null = null
+
+      for (const target of [...new Set(targets)]) {
+        try {
+          const candidate = await fetchLiveFeed(target)
+          if ((candidate.features?.length ?? 0) > 0) {
+            payload = candidate
+            break
+          }
+        } catch {
+          // try next target
+        }
+      }
+
+      if (!payload) {
+        throw new Error('No live earthquake targets responded with data.')
       }
 
       const latest = (payload.features ?? [])

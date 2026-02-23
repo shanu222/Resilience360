@@ -19,6 +19,12 @@ const PMD_RSS_URL = process.env.PMD_RSS_URL ?? 'https://cap-sources.s3.amazonaws
 const PMD_HOME_URL = process.env.PMD_HOME_URL ?? 'https://www.pmd.gov.pk/en'
 const PMD_SATELLITE_URL = process.env.PMD_SATELLITE_URL ?? 'https://nwfc.pmd.gov.pk/new/satellite.php'
 const PMD_RADAR_URL = process.env.PMD_RADAR_URL ?? 'https://radar.pmd.gov.pk/login'
+const GLOBAL_EARTHQUAKE_FEED_URL =
+  process.env.GLOBAL_EARTHQUAKE_FEED_URL ??
+  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
+const GLOBAL_EARTHQUAKE_FEED_URL_BACKUP =
+  process.env.GLOBAL_EARTHQUAKE_FEED_URL_BACKUP ??
+  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
 
 const openai = hasKey ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
 
@@ -55,6 +61,11 @@ const fetchRemoteText = async (url, timeoutMs = 14000) => {
   } finally {
     clearTimeout(timer)
   }
+}
+
+const fetchRemoteJson = async (url, timeoutMs = 14000) => {
+  const text = await fetchRemoteText(url, timeoutMs)
+  return JSON.parse(text)
 }
 
 const normalizeWhitespace = (value) => value.replace(/\s+/g, ' ').trim()
@@ -246,6 +257,34 @@ app.get('/api/pmd/live', async (req, res) => {
     const message = error instanceof Error ? error.message : 'Unable to fetch PMD live weather updates.'
     res.status(502).json({ error: message })
   }
+})
+
+app.get('/api/global-earthquakes', async (_req, res) => {
+  const candidates = [GLOBAL_EARTHQUAKE_FEED_URL, GLOBAL_EARTHQUAKE_FEED_URL_BACKUP]
+
+  for (const candidate of candidates) {
+    try {
+      const payload = await fetchRemoteJson(candidate, 22000)
+      const features = safeArray(payload?.features)
+
+      if (features.length === 0) {
+        continue
+      }
+
+      res.setHeader('Cache-Control', 'no-store')
+      res.json({
+        source: 'USGS',
+        feedUrl: candidate,
+        fetchedAt: new Date().toISOString(),
+        features,
+      })
+      return
+    } catch {
+      // try next source
+    }
+  }
+
+  res.status(502).json({ error: 'Unable to fetch global earthquake feed from upstream sources.' })
 })
 
 app.get('/api/ndma/advisories', async (_req, res) => {
