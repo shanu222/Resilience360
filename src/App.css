@@ -40,3 +40,16 @@
 .read-the-docs {
   color: #888;
 }
+
+.live-pmd-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #e6f7ee;
+  color: #0f6b3f;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  vertical-align: middle;
+}

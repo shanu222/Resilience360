@@ -4165,6 +4165,7 @@ function App() {
               return (
                 <p key={alert.id}>
                   <strong>[{alert.source}]</strong>{' '}
+                  {alert.source === 'PMD' && <span className="live-pmd-badge">LIVE PMD</span>}{' '}
                   <a href={alert.link} target="_blank" rel="noreferrer">
                     {alert.title}
                   </a>
