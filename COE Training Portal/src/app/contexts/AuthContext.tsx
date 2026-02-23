@@ -257,7 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        return { ok: false, reason: `api-failed:${response.status}` };
+        const responseText = await response.text();
+        return { ok: false, reason: `api-failed:${response.status}:${responseText.slice(0, 160)}` };
       }
 
       return { ok: true };
@@ -290,7 +291,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const trainee = mapTraineeFromDb(rows[0]);
-      return sendRecoveryEmail(trainee);
+      const sendResult = await sendRecoveryEmail(trainee);
+      if (sendResult.ok) {
+        return sendResult;
+      }
+
+      const subject = encodeURIComponent("COE Portal - Credential Recovery");
+      const body = encodeURIComponent(
+        `Assalam-o-Alaikum,\n\n` +
+          `Your COE portal credentials are:\n` +
+          `Email: ${trainee.email}\n` +
+          `Password/Credential: ${trainee.cnic}\n\n` +
+          `NDMA COE Training Portal`
+      );
+      window.location.href = `mailto:${encodeURIComponent(trainee.email)}?subject=${subject}&body=${body}`;
+
+      return { ok: false, reason: `fallback-opened:${sendResult.reason || 'email-api-failed'}` };
     } catch {
       return { ok: false, reason: "network-error" };
     }

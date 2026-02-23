@@ -145,6 +145,11 @@ export function Auth() {
       return;
     }
 
+    if (String(result.reason || "").startsWith("fallback-opened:")) {
+      toast.error("Automatic email failed. A fallback email draft has been opened with your credentials.");
+      return;
+    }
+
     if (result.reason === "missing-config") {
       toast.error("Recovery email service is not configured.");
       setErrors((prev) => ({ ...prev, recoveryEmail: "Recovery email service not configured" }));

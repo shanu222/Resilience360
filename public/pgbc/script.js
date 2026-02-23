@@ -11,6 +11,11 @@ const DEFAULT_RECOVERY_EMAILJS_CONFIG = {
 
 const SUPABASE_URL = 'https://glbhizmhrwqomcrxsflb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsYmhpem1ocndxb21jcnhzZmxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MzI1ODQsImV4cCI6MjA4NzAwODU4NH0.ZyswE5tt3lFaXgfKDABI25q8u3RNBKGKWJBAilQqvvY';
+const SUPABASE_REST_HEADERS = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json"
+};
 
 let supabaseClientInstance = null;
 
@@ -1052,12 +1057,6 @@ async function handleLogin() {
 }
 
 async function handleForgotCredentials() {
-    const supabaseClient = getSupabaseClient();
-    if (!supabaseClient) {
-        alert("Cloud recovery service is unavailable right now. Please try again shortly.");
-        return;
-    }
-
     const enteredEmail = prompt("Enter your registered email address:");
     if (!enteredEmail || !enteredEmail.trim()) {
         alert("Registered email is required to recover credentials.");
@@ -1067,16 +1066,21 @@ async function handleForgotCredentials() {
     const normalizedEmail = enteredEmail.trim().toLowerCase();
 
     try {
-        const { data: profile, error: profileError } = await supabaseClient
-            .from('portal_profiles')
-            .select('id, username, name, cnic, role, email, password')
-            .eq('email', normalizedEmail)
-            .limit(1)
-            .maybeSingle();
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/portal_profiles?select=id,username,name,cnic,role,email,password&email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`,
+            {
+                method: 'GET',
+                headers: SUPABASE_REST_HEADERS
+            }
+        );
 
-        if (profileError) {
-            throw new Error(profileError.message);
+        if (!response.ok) {
+            const responseText = await response.text();
+            throw new Error(`Profile lookup failed (${response.status}): ${responseText}`);
         }
+
+        const rows = await response.json();
+        const profile = Array.isArray(rows) ? rows[0] : null;
 
         if (!profile || !profile.password) {
             alert('No account found with this registered email.');
@@ -1097,13 +1101,24 @@ async function handleForgotCredentials() {
             return;
         }
 
+        const subject = encodeURIComponent("PGBC Portal - Credential Recovery");
+        const body = encodeURIComponent(
+            `Assalam-o-Alaikum,\n\n` +
+            `Your PGBC portal credentials are:\n` +
+            `Role: ${profile.role}\n` +
+            `Username: ${profile.username}\n` +
+            `Password: ${profile.password}\n\n` +
+            `Pakistan Green Building Codes Portal`
+        );
+        window.location.href = `mailto:${encodeURIComponent(profile.email)}?subject=${subject}&body=${body}`;
+
         if (sendResult.reason === "missing-config") {
             const missingFieldsText = (sendResult.missing || []).join(", ");
-            alert(`Recovery email service is not configured. Missing: ${missingFieldsText}. Please configure recovery email settings in Admin Library page.`);
+            alert(`Recovery email service is not configured. Missing: ${missingFieldsText}. A fallback email draft has been opened.`);
             return;
         }
 
-        alert("Recovery email could not be sent right now. Please try again in a moment.");
+        alert("Recovery email could not be sent right now. A fallback email draft has been opened.");
     } catch (error) {
         alert(`Recovery failed: ${String(error?.message || error)}`);
     }
