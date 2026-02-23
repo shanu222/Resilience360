@@ -3629,87 +3629,97 @@ function App() {
 
               {constructionGuidance && (
                 <div className="retrofit-model-output">
-                  <h3>Location-Tailored Construction Guidance in English — {applyBestPracticeTitle}</h3>
-                  <p>
-                    <strong>Area:</strong> {applyCity}, {applyProvince} | <strong>Hazard:</strong> {applyHazard}
-                  </p>
-                  <p>{constructionGuidance.summary}</p>
+                  {guidanceGenerationLanguage === 'english' ? (
+                    <>
+                      <h3>Location-Tailored Construction Guidance in English — {applyBestPracticeTitle}</h3>
+                      <p>
+                        <strong>Area:</strong> {applyCity}, {applyProvince} | <strong>Hazard:</strong> {applyHazard}
+                      </p>
+                      <p>{constructionGuidance.summary}</p>
 
-                  <h3>Materials</h3>
-                  <ul>
-                    {constructionGuidance.materials.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                      <h3>Materials</h3>
+                      <ul>
+                        {constructionGuidance.materials.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
 
-                  <h3>Safety Checks</h3>
-                  <ul>
-                    {constructionGuidance.safety.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                      <h3>Safety Checks</h3>
+                      <ul>
+                        {constructionGuidance.safety.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
 
-                  <h3>Implementation Steps</h3>
-                  <div className="retrofit-defect-list">
-                    {constructionGuidance.steps.map((step, index) => {
-                      const image = guidanceStepImages.find((item) => item.stepTitle === step.title) ?? guidanceStepImages[index]
-                      return (
-                        <article key={`${step.title}-${index}`} className="retrofit-defect-card">
-                          <h4>
-                            Step {index + 1}: {step.title}
-                          </h4>
-                          <p>{step.description}</p>
-                          {image?.imageDataUrl && (
-                            <img src={image.imageDataUrl} alt={`${step.title} visual guide`} className="retrofit-preview" />
-                          )}
-                          <ul>
-                            {step.keyChecks.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        </article>
-                      )
-                    })}
-                  </div>
-                  <h3>تعمیراتی رہنمائی (اردو)</h3>
-                  <p>{constructionGuidance.summaryUrdu}</p>
+                      <h3>Implementation Steps</h3>
+                      <div className="retrofit-defect-list">
+                        {constructionGuidance.steps.map((step, index) => {
+                          const image = guidanceStepImages.find((item) => item.stepTitle === step.title) ?? guidanceStepImages[index]
+                          return (
+                            <article key={`${step.title}-${index}`} className="retrofit-defect-card">
+                              <h4>
+                                Step {index + 1}: {step.title}
+                              </h4>
+                              <p>{step.description}</p>
+                              {image?.imageDataUrl && (
+                                <img src={image.imageDataUrl} alt={`${step.title} visual guide`} className="retrofit-preview" />
+                              )}
+                              <ul>
+                                {step.keyChecks.map((item) => (
+                                  <li key={item}>{item}</li>
+                                ))}
+                              </ul>
+                            </article>
+                          )
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h3>تعمیراتی رہنمائی (اردو) — {applyBestPracticeTitle}</h3>
+                      <p>
+                        <strong>علاقہ:</strong> {applyCity}, {applyProvince} | <strong>خطرہ:</strong> {applyHazard}
+                      </p>
+                      <p>{constructionGuidance.summaryUrdu}</p>
 
-                  <h3>تجویز کردہ مواد</h3>
-                  <ul>
-                    {constructionGuidance.materialsUrdu.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                      <h3>تجویز کردہ مواد</h3>
+                      <ul>
+                        {constructionGuidance.materialsUrdu.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
 
-                  <h3>حفاظتی ہدایات</h3>
-                  <ul>
-                    {constructionGuidance.safetyUrdu.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                      <h3>حفاظتی ہدایات</h3>
+                      <ul>
+                        {constructionGuidance.safetyUrdu.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
 
-                  <h3>عمل درآمد کے مراحل</h3>
-                  <div className="retrofit-defect-list">
-                    {constructionGuidance.stepsUrdu.map((step, index) => {
-                      const image = guidanceStepImages[index]
-                      return (
-                        <article key={`${step.title}-${index}-urdu`} className="retrofit-defect-card">
-                          <h4>
-                            مرحلہ {index + 1}: {step.title}
-                          </h4>
-                          <p>{step.description}</p>
-                          {image?.imageDataUrl && (
-                            <img src={image.imageDataUrl} alt={`${step.title} visual guide`} className="retrofit-preview" />
-                          )}
-                          <ul>
-                            {step.keyChecks.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        </article>
-                      )
-                    })}
-                  </div>
+                      <h3>عمل درآمد کے مراحل</h3>
+                      <div className="retrofit-defect-list">
+                        {constructionGuidance.stepsUrdu.map((step, index) => {
+                          const image = guidanceStepImages[index]
+                          return (
+                            <article key={`${step.title}-${index}-urdu`} className="retrofit-defect-card">
+                              <h4>
+                                مرحلہ {index + 1}: {step.title}
+                              </h4>
+                              <p>{step.description}</p>
+                              {image?.imageDataUrl && (
+                                <img src={image.imageDataUrl} alt={`${step.title} visual guide`} className="retrofit-preview" />
+                              )}
+                              <ul>
+                                {step.keyChecks.map((item) => (
+                                  <li key={item}>{item}</li>
+                                ))}
+                              </ul>
+                            </article>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
                   <div className="inline-controls">
                     <button onClick={() => { void downloadApplyGuidanceReport('english') }} disabled={isGeneratingStepImages}>
                       {isGeneratingStepImages
