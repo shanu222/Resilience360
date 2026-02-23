@@ -143,34 +143,74 @@
   text-align: left;
 }
 
-.global-earthquake-panel h3 {
-  margin: 0;
+.global-earthquake-panel-fullscreen {
+  padding: 0.5rem;
+}
+
+.global-earthquake-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr);
+  gap: 0.65rem;
+  min-height: 76vh;
 }
 
 .global-earthquake-map-wrap {
   width: 100%;
-  margin: 0.6rem 0;
   border: 1px solid #d9e0e6;
   border-radius: 0.55rem;
   overflow: hidden;
-  background: #f8fafc;
+  background: #05070c;
 }
 
 .global-earthquake-map-wrap iframe {
   display: block;
   width: 100%;
-  min-height: 430px;
+  height: 100%;
+  min-height: 72vh;
   border: 0;
 }
 
-.global-earthquake-list {
-  margin-top: 0.55rem;
+.global-earthquake-alerts-rail {
   border: 1px solid #d9e0e6;
   border-radius: 0.55rem;
   padding: 0.6rem;
   background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 72vh;
+}
+
+.global-earthquake-alerts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.global-earthquake-alerts-head h3 {
+  margin: 0;
+}
+
+.global-earthquake-list {
+  margin-top: 0.35rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.45rem;
+  overflow: auto;
 }
 
 .global-earthquake-list p {
   margin: 0.35rem 0;
+}
+
+@media (max-width: 1024px) {
+  .global-earthquake-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .global-earthquake-map-wrap iframe,
+  .global-earthquake-alerts-rail {
+    min-height: 56vh;
+  }
 }
