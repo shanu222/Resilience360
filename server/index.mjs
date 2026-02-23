@@ -16,6 +16,9 @@ const NDMA_ADVISORIES_URL = process.env.NDMA_ADVISORIES_URL ?? 'https://ndma.gov
 const NDMA_SITREPS_URL = process.env.NDMA_SITREPS_URL ?? 'https://ndma.gov.pk/sitreps'
 const NDMA_PROJECTIONS_URL = process.env.NDMA_PROJECTIONS_URL ?? 'https://ndma.gov.pk/projection-impact-list_new'
 const PMD_RSS_URL = process.env.PMD_RSS_URL ?? 'https://cap-sources.s3.amazonaws.com/pk-pmd-en/rss.xml'
+const PMD_HOME_URL = process.env.PMD_HOME_URL ?? 'https://www.pmd.gov.pk/en'
+const PMD_SATELLITE_URL = process.env.PMD_SATELLITE_URL ?? 'https://nwfc.pmd.gov.pk/new/satellite.php'
+const PMD_RADAR_URL = process.env.PMD_RADAR_URL ?? 'https://radar.pmd.gov.pk/login'
 
 const openai = hasKey ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
 
@@ -52,6 +55,49 @@ const fetchRemoteText = async (url, timeoutMs = 14000) => {
   } finally {
     clearTimeout(timer)
   }
+}
+
+const normalizeWhitespace = (value) => value.replace(/\s+/g, ' ').trim()
+
+const parsePmdCityTemperatures = (html) => {
+  const majorCities = ['ISLAMABAD', 'LAHORE', 'KARACHI', 'PESHAWAR', 'GILGIT', 'MUZAFFARABAD']
+  const text = normalizeWhitespace(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' '),
+  )
+
+  return majorCities
+    .map((city) => {
+      const matcher = new RegExp(`${city}\\s*([0-9]{1,2})\\s*°\\s*C`, 'i')
+      const match = text.match(matcher)
+      if (!match) return null
+
+      return {
+        city,
+        temperatureC: Number(match[1]),
+      }
+    })
+    .filter(Boolean)
+}
+
+const parsePmdSatelliteImage = (html) => {
+  const imageRegexes = [
+    /<img[^>]*src=["']([^"']*FY2G[^"']+\.(?:jpg|jpeg|png))[^>]*>/i,
+    /<img[^>]*src=["']([^"']*satellite[^"']+\.(?:jpg|jpeg|png))[^>]*>/i,
+    /<img[^>]*src=["']([^"']+\.(?:jpg|jpeg|png))[^>]*>/i,
+  ]
+
+  for (const regex of imageRegexes) {
+    const match = html.match(regex)
+    if (!match?.[1]) continue
+    const imageUrl = match[1].startsWith('http') ? match[1] : new URL(match[1], PMD_SATELLITE_URL).toString()
+    return imageUrl
+  }
+
+  return null
 }
 const mapGuidanceSteps = (value) =>
   safeArray(value)
@@ -105,6 +151,41 @@ app.get('/api/pmd/rss', async (_req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to fetch PMD RSS feed.'
     res.status(502).send(message)
+  }
+})
+
+app.get('/api/pmd/live', async (_req, res) => {
+  try {
+    const [homeHtml, satelliteHtml] = await Promise.all([
+      fetchRemoteText(PMD_HOME_URL),
+      fetchRemoteText(PMD_SATELLITE_URL),
+    ])
+
+    const cities = parsePmdCityTemperatures(homeHtml)
+    const satelliteImageUrl = parsePmdSatelliteImage(satelliteHtml)
+
+    res.json({
+      source: 'PMD',
+      updatedAt: new Date().toISOString(),
+      cities,
+      links: {
+        home: PMD_HOME_URL,
+        radar: PMD_RADAR_URL,
+        satellite: PMD_SATELLITE_URL,
+      },
+      satellite: {
+        label: 'Satellite Image (Latest)',
+        imageUrl: satelliteImageUrl,
+      },
+      radar: {
+        label: 'Radar Dashboard',
+        pageUrl: PMD_RADAR_URL,
+        requiresLogin: true,
+      },
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to fetch PMD live weather updates.'
+    res.status(502).json({ error: message })
   }
 })
 

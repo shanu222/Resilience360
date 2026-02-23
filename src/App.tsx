@@ -13,6 +13,7 @@ import RiskMap from './components/RiskMap'
 import ResponsiveQa from './components/ResponsiveQa'
 import UserLocationMiniMap from './components/UserLocationMiniMap'
 import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
+import { fetchPmdLiveSnapshot, type PmdLiveSnapshot } from './services/pmdLive'
 import { analyzeBuildingWithVision, type VisionAnalysisResult } from './services/vision'
 import { getMlRetrofitEstimate, type MlRetrofitEstimate } from './services/mlRetrofit'
 import {
@@ -870,6 +871,12 @@ function App() {
   })
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(false)
   const [alertError, setAlertError] = useState<string | null>(null)
+  const [pmdLiveSnapshot, setPmdLiveSnapshot] = useState<PmdLiveSnapshot | null>(() => {
+    const cached = localStorage.getItem('r360-pmd-live')
+    return cached ? (JSON.parse(cached) as PmdLiveSnapshot) : null
+  })
+  const [isLoadingPmdLive, setIsLoadingPmdLive] = useState(false)
+  const [pmdLiveError, setPmdLiveError] = useState<string | null>(null)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
   const [bestPracticeVisibleCount, setBestPracticeVisibleCount] = useState(2)
   const [applyProvince, setApplyProvince] = useState('Punjab')
@@ -2579,12 +2586,39 @@ function App() {
     }
   }, [])
 
+  const loadPmdLive = useCallback(async () => {
+    setIsLoadingPmdLive(true)
+    setPmdLiveError(null)
+    try {
+      const latest = await fetchPmdLiveSnapshot()
+      setPmdLiveSnapshot(latest)
+      localStorage.setItem('r360-pmd-live', JSON.stringify(latest))
+    } catch {
+      setPmdLiveError('PMD live weather/radar snapshot is temporarily unavailable. Showing last cached snapshot if available.')
+    } finally {
+      setIsLoadingPmdLive(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (activeSection !== 'warning' && activeSection !== 'riskMaps') return
     if (alertLog.length === 0) {
       void loadLiveAlerts()
     }
   }, [activeSection, alertLog.length, loadLiveAlerts])
+
+  useEffect(() => {
+    if (activeSection !== 'warning') return
+    if (!pmdLiveSnapshot?.cities?.length) {
+      void loadPmdLive()
+    }
+
+    const timer = window.setInterval(() => {
+      void loadPmdLive()
+    }, 180000)
+
+    return () => window.clearInterval(timer)
+  }, [activeSection, loadPmdLive, pmdLiveSnapshot?.cities?.length])
 
   useEffect(() => {
     const onHashChange = () => {
@@ -4154,10 +4188,57 @@ function App() {
         <div className="panel section-panel section-warning">
           <h2>{t.sections.warning}</h2>
           <p>Connected Feeds: NDMA advisories/sitreps/projections + PMD CAP RSS.</p>
-          <button onClick={loadLiveAlerts} disabled={isLoadingAlerts}>
-            {isLoadingAlerts ? '🔄 Loading Live Alerts...' : '🚨 Fetch Latest Alert'}
-          </button>
+          <div className="warning-actions-row">
+            <button onClick={loadLiveAlerts} disabled={isLoadingAlerts}>
+              {isLoadingAlerts ? '🔄 Loading Live Alerts...' : '🚨 Fetch Latest Alert'}
+            </button>
+            <button onClick={loadPmdLive} disabled={isLoadingPmdLive}>
+              {isLoadingPmdLive ? '🔄 Syncing PMD Live...' : '📡 Refresh PMD Live'}
+            </button>
+          </div>
           {alertError && <p>{alertError}</p>}
+          {pmdLiveError && <p>{pmdLiveError}</p>}
+
+          {pmdLiveSnapshot?.cities?.length ? (
+            <div className="pmd-live-widget">
+              <h3>PMD Live City Weather</h3>
+              <div className="pmd-city-grid">
+                {pmdLiveSnapshot.cities.map((cityWeather) => (
+                  <article key={cityWeather.city} className="pmd-city-card">
+                    <strong>{cityWeather.city}</strong>
+                    <span>{cityWeather.temperatureC}°C</span>
+                  </article>
+                ))}
+              </div>
+              <p className="pmd-live-meta">Updated: {new Date(pmdLiveSnapshot.updatedAt).toLocaleString()}</p>
+
+              <div className="pmd-media-grid">
+                <article className="pmd-media-card">
+                  <h4>PMD Satellite</h4>
+                  {pmdLiveSnapshot.satellite.imageUrl ? (
+                    <a href={pmdLiveSnapshot.links.satellite} target="_blank" rel="noreferrer">
+                      <img src={pmdLiveSnapshot.satellite.imageUrl} alt="Latest PMD satellite" className="pmd-satellite-img" />
+                    </a>
+                  ) : (
+                    <p>Satellite image preview is not currently available.</p>
+                  )}
+                  <a href={pmdLiveSnapshot.links.satellite} target="_blank" rel="noreferrer">
+                    Open full satellite page
+                  </a>
+                </article>
+
+                <article className="pmd-media-card">
+                  <h4>PMD Radar</h4>
+                  <p>Live radar dashboard from PMD.</p>
+                  <a href={pmdLiveSnapshot.links.radar} target="_blank" rel="noreferrer">
+                    Open PMD radar
+                  </a>
+                  <small>PMD radar may require official login access.</small>
+                </article>
+              </div>
+            </div>
+          ) : null}
+
           <div className="alerts">
             {alertLog.length === 0 && <p>No alerts available yet.</p>}
             {alertLog.map((alert) => {

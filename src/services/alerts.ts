@@ -112,32 +112,39 @@ const parsePmdRss = (xmlString: string): LiveAlert[] => {
 }
 
 export const fetchLiveAlerts = async (): Promise<LiveAlert[]> => {
-  const ndmaCandidates = [
-    ...buildApiTargets('/api/ndma/advisories'),
-    NDMA_ADVISORIES_URL,
-    ...buildApiTargets('/api/ndma/sitreps'),
-    NDMA_SITREPS_URL,
-    ...buildApiTargets('/api/ndma/projections'),
-    NDMA_PROJECTIONS_URL,
-  ]
-
+  const ndmaAdvisoryCandidates = [...buildApiTargets('/api/ndma/advisories'), NDMA_ADVISORIES_URL]
+  const ndmaSitrepCandidates = [...buildApiTargets('/api/ndma/sitreps'), NDMA_SITREPS_URL]
+  const ndmaProjectionCandidates = [...buildApiTargets('/api/ndma/projections'), NDMA_PROJECTIONS_URL]
   const pmdCandidates = [...buildApiTargets('/api/pmd/rss'), PMD_RSS_URL]
 
-  const [ndmaAdvisoryHtml, ndmaSitrepHtml, ndmaProjectionHtml, pmdRssXml] = await Promise.all([
-    fetchTextFromAny(ndmaCandidates.slice(0, 2)),
-    fetchTextFromAny(ndmaCandidates.slice(2, 4)),
-    fetchTextFromAny(ndmaCandidates.slice(4, 6)),
+  const [ndmaAdvisoryResult, ndmaSitrepResult, ndmaProjectionResult, pmdResult] = await Promise.allSettled([
+    fetchTextFromAny(ndmaAdvisoryCandidates),
+    fetchTextFromAny(ndmaSitrepCandidates),
+    fetchTextFromAny(ndmaProjectionCandidates),
     fetchTextFromAny(pmdCandidates),
   ])
 
-  const merged = [
-    ...parseNdmaPage(ndmaAdvisoryHtml, 'Advisory'),
-    ...parseNdmaPage(ndmaSitrepHtml, 'Situation Report'),
-    ...parseNdmaPage(ndmaProjectionHtml, 'Projection & Impact'),
-    ...parsePmdRss(pmdRssXml),
-  ]
+  const merged: LiveAlert[] = []
 
-  return merged
+  if (ndmaAdvisoryResult.status === 'fulfilled') {
+    merged.push(...parseNdmaPage(ndmaAdvisoryResult.value, 'Advisory'))
+  }
+  if (ndmaSitrepResult.status === 'fulfilled') {
+    merged.push(...parseNdmaPage(ndmaSitrepResult.value, 'Situation Report'))
+  }
+  if (ndmaProjectionResult.status === 'fulfilled') {
+    merged.push(...parseNdmaPage(ndmaProjectionResult.value, 'Projection & Impact'))
+  }
+  if (pmdResult.status === 'fulfilled') {
+    merged.push(...parsePmdRss(pmdResult.value))
+  }
+
+  const uniqueAlerts = merged.filter((alert, index, all) => all.findIndex((item) => item.id === alert.id) === index)
+  if (uniqueAlerts.length === 0) {
+    throw new Error('No live alerts available from PMD/NDMA at the moment.')
+  }
+
+  return uniqueAlerts
     .sort((a, b) => {
       const priorityDiff = liveHazardPriority(b) - liveHazardPriority(a)
       if (priorityDiff !== 0) return priorityDiff
