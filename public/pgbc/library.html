@@ -49,13 +49,7 @@
             <p style="text-align: center; color: white; font-size: 0.9rem; margin: 4px 0 10px;">AI summary key is now server-side for security. No manual key entry is required here.</p>
             <hr style="margin: 20px 0; border: 1px solid #ddd;">
 
-            <h3 style="color: #043617; margin-bottom: 15px; text-align: center;">📧 Recovery Email API</h3>
-            <input type="text" id="recoveryServiceId" placeholder="EmailJS Service ID">
-            <input type="text" id="recoveryTemplateId" placeholder="EmailJS Template ID">
-            <input type="text" id="recoveryPublicKey" placeholder="EmailJS Public Key">
-            <input type="text" id="recoveryFromName" placeholder="From Name (optional)">
-            <button onclick="saveRecoveryEmailConfig()" style="width: 100%; background: #026440; color: white; font-weight: bold; padding: 12px;">Save Recovery Email Settings</button>
-            <p style="text-align: center; color: white; font-size: 0.85rem; margin-top: 10px;">Configure these once in admin panel to enable Forgot Password email delivery.</p>
+            <p style="text-align: center; color: white; font-size: 0.9rem; margin-top: 8px;">Recovery email delivery is configured in backend settings.</p>
             <hr style="margin: 20px 0; border: 1px solid #ddd;">
         </div>
 
@@ -137,16 +131,6 @@
         
         if (user.role === "Authority") {
             document.getElementById("uploadSection").classList.remove("hidden");
-            
-            let recoveryServiceId = localStorage.getItem("recovery_emailjs_service_id");
-            let recoveryTemplateId = localStorage.getItem("recovery_emailjs_template_id");
-            let recoveryPublicKey = localStorage.getItem("recovery_emailjs_public_key");
-            let recoveryFromName = localStorage.getItem("recovery_from_name");
-
-            if (recoveryServiceId) document.getElementById("recoveryServiceId").value = recoveryServiceId;
-            if (recoveryTemplateId) document.getElementById("recoveryTemplateId").value = recoveryTemplateId;
-            if (recoveryPublicKey) document.getElementById("recoveryPublicKey").value = recoveryPublicKey;
-            if (recoveryFromName) document.getElementById("recoveryFromName").value = recoveryFromName;
         }
         
         loadCodes();

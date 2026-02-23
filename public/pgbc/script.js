@@ -40,10 +40,10 @@ function getSupabaseClient() {
 }
 
 function getRecoveryEmailConfig() {
-    const serviceId = (localStorage.getItem("recovery_emailjs_service_id") || DEFAULT_RECOVERY_EMAILJS_CONFIG.serviceId).trim();
-    const templateId = (localStorage.getItem("recovery_emailjs_template_id") || DEFAULT_RECOVERY_EMAILJS_CONFIG.templateId).trim();
-    const publicKey = (localStorage.getItem("recovery_emailjs_public_key") || DEFAULT_RECOVERY_EMAILJS_CONFIG.publicKey).trim();
-    const fromName = (localStorage.getItem("recovery_from_name") || DEFAULT_RECOVERY_EMAILJS_CONFIG.fromName).trim();
+    const serviceId = DEFAULT_RECOVERY_EMAILJS_CONFIG.serviceId.trim();
+    const templateId = DEFAULT_RECOVERY_EMAILJS_CONFIG.templateId.trim();
+    const publicKey = DEFAULT_RECOVERY_EMAILJS_CONFIG.publicKey.trim();
+    const fromName = DEFAULT_RECOVERY_EMAILJS_CONFIG.fromName.trim();
 
     return {
         serviceId,
@@ -2153,22 +2153,7 @@ function saveApiKey() {
 }
 
 function saveRecoveryEmailConfig() {
-    const serviceId = document.getElementById("recoveryServiceId")?.value?.trim();
-    const templateId = document.getElementById("recoveryTemplateId")?.value?.trim();
-    const publicKey = document.getElementById("recoveryPublicKey")?.value?.trim();
-    const fromName = document.getElementById("recoveryFromName")?.value?.trim() || "Pakistan Green Building Codes Portal";
-
-    if (!serviceId || !templateId || !publicKey) {
-        alert("Please provide EmailJS Service ID, Template ID, and Public Key.");
-        return;
-    }
-
-    localStorage.setItem("recovery_emailjs_service_id", serviceId);
-    localStorage.setItem("recovery_emailjs_template_id", templateId);
-    localStorage.setItem("recovery_emailjs_public_key", publicKey);
-    localStorage.setItem("recovery_from_name", fromName);
-
-    alert("Recovery email API settings saved successfully.");
+    alert("Recovery email settings are managed in backend configuration.");
 }
 
 function closeAiModal() {

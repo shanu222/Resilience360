@@ -213,10 +213,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getRecoveryEmailConfig = () => {
-    const serviceId = String(localStorage.getItem("recovery_emailjs_service_id") || DEFAULT_RECOVERY_EMAILJS_CONFIG.serviceId).trim();
-    const templateId = String(localStorage.getItem("recovery_emailjs_template_id") || DEFAULT_RECOVERY_EMAILJS_CONFIG.templateId).trim();
-    const publicKey = String(localStorage.getItem("recovery_emailjs_public_key") || DEFAULT_RECOVERY_EMAILJS_CONFIG.publicKey).trim();
-    const fromName = String(localStorage.getItem("recovery_from_name") || DEFAULT_RECOVERY_EMAILJS_CONFIG.fromName).trim();
+    const serviceId = DEFAULT_RECOVERY_EMAILJS_CONFIG.serviceId.trim();
+    const templateId = DEFAULT_RECOVERY_EMAILJS_CONFIG.templateId.trim();
+    const publicKey = DEFAULT_RECOVERY_EMAILJS_CONFIG.publicKey.trim();
+    const fromName = DEFAULT_RECOVERY_EMAILJS_CONFIG.fromName.trim();
 
     return { serviceId, templateId, publicKey, fromName };
   };
