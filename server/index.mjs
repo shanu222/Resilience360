@@ -10,7 +10,7 @@ dotenv.config()
 
 const app = express()
 const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } })
-const port = Number(process.env.VISION_API_PORT ?? 8787)
+const port = Number(process.env.PORT ?? process.env.VISION_API_PORT ?? 8787)
 const model = process.env.OPENAI_VISION_MODEL ?? 'gpt-4.1-mini'
 const hasKey = Boolean(process.env.OPENAI_API_KEY)
 

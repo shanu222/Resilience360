@@ -10,7 +10,7 @@ Because GitHub Pages deploys static frontend only, deploy backend to a Node host
 
 ### 1) Create service
 - Go to Render Dashboard -> New -> Web Service
-- Connect GitHub repo: shanu1998end-afk/Resilience360
+- Connect GitHub repo: shanu222/Resilience360
 - Branch: main
 - Root directory: (leave empty)
 - Runtime: Node
