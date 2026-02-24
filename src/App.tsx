@@ -10,6 +10,7 @@ import {
   TextRun,
 } from 'docx'
 import RiskMap from './components/RiskMap'
+import GlobalEarthquakeGlobe from './components/GlobalEarthquakeGlobe'
 import ResponsiveQa from './components/ResponsiveQa'
 import UserLocationMiniMap from './components/UserLocationMiniMap'
 import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
@@ -3168,6 +3169,10 @@ function App() {
               <p className="global-earthquake-sync-meta">Last synced: {new Date(globalEarthquakesSyncedAt).toLocaleString()}</p>
             )}
             {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
+            <GlobalEarthquakeGlobe
+              earthquakes={globalEarthquakes}
+              focusToken={globalEarthquakeMapFocusToken + globalEarthquakes.length}
+            />
             <div className="global-earthquake-list">
               {globalEarthquakes.length === 0 && <p>No global earthquakes available right now.</p>}
               {globalEarthquakes.length > 0 && (

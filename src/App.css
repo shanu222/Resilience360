@@ -171,6 +171,53 @@
   color: #4b5563;
 }
 
+.earthquake-globe-wrap {
+  margin-top: 0.35rem;
+  border: 1px solid rgba(191, 117, 135, 0.35);
+  border-radius: 0.5rem;
+  background: #fff8f5;
+  padding: 0.4rem;
+}
+
+.earthquake-globe-wrap-fullscreen {
+  width: 100%;
+  height: 100%;
+  padding: 0.7rem;
+  border-radius: 0;
+}
+
+.earthquake-globe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-bottom: 0.3rem;
+}
+
+.earthquake-globe-head h4 {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #5f2f4e;
+}
+
+.earthquake-globe-head button {
+  background: #993a8b;
+  color: #fff;
+  border: none;
+  border-radius: 0.35rem;
+  padding: 0.32rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.earthquake-globe-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 320px;
+}
+
 .global-earthquake-list {
   margin-top: 0.2rem;
   border-top: 1px solid #e5e7eb;
@@ -236,6 +283,10 @@
 }
 
 @media (max-width: 520px) {
+  .earthquake-globe-stage {
+    min-height: 280px;
+  }
+
   .global-earthquake-list {
     max-height: min(42vh, 280px);
   }
