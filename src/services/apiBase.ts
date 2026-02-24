@@ -17,17 +17,19 @@ export const buildApiUrl = (path: string): string => {
 export const buildApiTargets = (path: string): string[] => {
   const preferred = buildApiUrl(path)
   const targets = [preferred]
+  const hostname = window.location.hostname
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
 
   if (preferred !== path) {
     targets.push(path)
   }
 
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  if (isLocalhost) {
     targets.push(`${localBackendFallback}${path}`)
   }
 
-  if (!normalizedApiBase && window.location.hostname.endsWith('github.io')) {
-    targets.unshift(`${productionBackendFallback}${path}`)
+  if (!normalizedApiBase && !isLocalhost) {
+    targets.push(`${productionBackendFallback}${path}`)
   }
 
   return [...new Set(targets)]
