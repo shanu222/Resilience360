@@ -65,11 +65,9 @@ const SUPABASE_HEADERS: HeadersInit = {
 const DEFAULT_RECOVERY_EMAILJS_CONFIG = {
   serviceId: "service_0kiqxra",
   templateId: "template_4uniopo",
-  publicKey: "25iaOSGu9AvtiAydP",
+  publicKey: "X90Cc5FI-rBZC-5Fp",
   fromName: "NDMA COE Training Portal",
 };
-
-const RECOVERY_BACKEND_PROD_BASE = "https://resilience360-backend.onrender.com";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -226,72 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { serviceId, templateId, publicKey, fromName };
   };
 
-  const getRecoveryBackendTargets = () => {
-    const path = "/api/recovery/send-credentials";
-    const hostname = String(window.location.hostname || "").toLowerCase();
-    const targets: string[] = [];
-
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      targets.push(`http://localhost:8787${path}`);
-    }
-
-    if (hostname.endsWith("github.io")) {
-      targets.push(`${RECOVERY_BACKEND_PROD_BASE}${path}`);
-    }
-
-    targets.push(path);
-    return [...new Set(targets)];
-  };
-
-  const sendRecoveryEmailViaBackend = async (trainee: Trainee): Promise<{ ok: boolean; reason?: string }> => {
-    const requestBody = {
-      portal: "NDMA COE Training Portal",
-      fullName: trainee.name || "Trainee",
-      role: trainee.role || "trainee",
-      toEmail: trainee.email,
-      username: trainee.email,
-      credential: trainee.cnic,
-      credentialLabel: "CNIC",
-    };
-
-    let lastFailure: { ok: boolean; reason?: string } = { ok: false, reason: "backend-unavailable" };
-
-    for (const target of getRecoveryBackendTargets()) {
-      try {
-        const response = await fetch(target, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (response.ok) {
-          return { ok: true };
-        }
-
-        const responseText = await response.text();
-        lastFailure = {
-          ok: false,
-          reason:
-            response.status === 503
-              ? `backend-missing-config:${responseText.slice(0, 180)}`
-              : `backend-failed:${response.status}:${responseText.slice(0, 180)}`,
-        };
-      } catch (error) {
-        lastFailure = { ok: false, reason: `backend-network-error:${String(error ?? "unknown")}` };
-      }
-    }
-
-    return lastFailure;
-  };
-
   const sendRecoveryEmail = async (trainee: Trainee): Promise<{ ok: boolean; reason?: string }> => {
-    const backendResult = await sendRecoveryEmailViaBackend(trainee);
-    if (backendResult.ok) {
-      return backendResult;
-    }
-
     const config = getRecoveryEmailConfig();
     if (!config.serviceId || !config.templateId || !config.publicKey) {
       return { ok: false, reason: "missing-config" };
@@ -357,9 +290,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return fallback;
       }
 
-      return { ok: false, reason: `${fallback.reason || "emailjs-failed"}|${backendResult.reason || "backend-failed"}` };
+      return fallback;
     } catch {
-      return { ok: false, reason: `network-error|${backendResult.reason || "backend-failed"}` };
+      return { ok: false, reason: "network-error" };
     }
   };
 
