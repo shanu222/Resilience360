@@ -56,9 +56,10 @@ export default function GlobalEarthquakeGlobe({
   focusToken = 0,
 }: GlobalEarthquakeGlobeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const globeStageRef = useRef<HTMLDivElement | null>(null)
   const globeRef = useRef<any>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [size, setSize] = useState({ width: 1140, height: 640 })
+  const [size, setSize] = useState({ width: 760, height: 460 })
   const [isBlinkOn, setIsBlinkOn] = useState(true)
   const [manualAltitude, setManualAltitude] = useState(1.2)
   const [cameraCenter, setCameraCenter] = useState({ lat: 20, lng: 15 })
@@ -69,19 +70,19 @@ export default function GlobalEarthquakeGlobe({
   )
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const stage = globeStageRef.current
+    if (!stage) return
 
     const updateSize = () => {
-      const width = Math.max(1100, Math.floor(container.clientWidth))
-      const height = Math.max(620, Math.floor(Math.min(760, width * 0.56)))
+      const width = Math.max(560, Math.floor(stage.clientWidth - 12))
+      const height = Math.max(360, Math.floor(stage.clientHeight - 12))
       setSize({ width, height })
     }
 
     updateSize()
 
     const observer = new ResizeObserver(() => updateSize())
-    observer.observe(container)
+    observer.observe(stage)
     return () => observer.disconnect()
   }, [])
 
@@ -249,7 +250,7 @@ export default function GlobalEarthquakeGlobe({
 
   return (
     <div ref={containerRef} className={`earthquake-globe-wrap${isFullscreen ? ' earthquake-globe-wrap-fullscreen' : ''}`}>
-      <div className="earthquake-monitor-canvas" style={{ minWidth: `${size.width}px`, minHeight: `${size.height}px` }}>
+      <div className="earthquake-monitor-canvas">
         <div className="earthquake-monitor-header">
           <div className="earthquake-monitor-title">Earthquake Live Monitor</div>
           <div className="earthquake-monitor-status">
@@ -314,11 +315,11 @@ export default function GlobalEarthquakeGlobe({
           </aside>
 
           <div className="earthquake-monitor-globe-area">
-            <div className="earthquake-globe-stage">
+            <div ref={globeStageRef} className="earthquake-globe-stage">
               <Globe
                 ref={globeRef}
-                width={Math.max(640, size.width - 430)}
-                height={Math.max(440, size.height - 170)}
+                width={size.width}
+                height={size.height}
                 globeImageUrl="https://unpkg.com/three-globe/example/img/earth-night.jpg"
                 bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
                 backgroundColor="rgba(0,0,0,0)"
