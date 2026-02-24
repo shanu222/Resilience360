@@ -307,7 +307,8 @@
       addHistoricalEvents();
 
       const params = new URLSearchParams(window.location.search);
-      if (params.get('autofs') === '1') {
+      const hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash);
+      if (params.get('autofs') === '1' || hashParams.get('autofs') === '1') {
         setTimeout(() => {
           document.documentElement.requestFullscreen().catch(() => {});
         }, 120);
