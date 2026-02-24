@@ -1011,6 +1011,7 @@ function App() {
     localStorage.getItem('r360-global-earthquakes-synced-at'),
   )
   const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(true)
+  const [globalEarthquakeMapFocusToken, setGlobalEarthquakeMapFocusToken] = useState(0)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
   const [bestPracticeVisibleCount, setBestPracticeVisibleCount] = useState(2)
   const [applyProvince, setApplyProvince] = useState('Punjab')
@@ -2881,6 +2882,11 @@ function App() {
       setGlobalEarthquakes(latest)
       localStorage.setItem('r360-global-earthquakes', JSON.stringify(latest))
       localStorage.setItem('r360-global-earthquakes-synced-at', syncedAt)
+
+      if (latest.length > 0) {
+        setShowGlobalEarthquakesOnMap(true)
+        setGlobalEarthquakeMapFocusToken((value) => value + 1)
+      }
     } catch {
       setGlobalEarthquakeError('Global live earthquake feed is temporarily unavailable. Showing last cached updates if available.')
     } finally {
@@ -3133,6 +3139,7 @@ function App() {
             alertMarkers={filteredHazardAlerts}
             globalEarthquakeMarkers={globalEarthquakes}
             showGlobalEarthquakeMarkers={showGlobalEarthquakesOnMap}
+            globalEarthquakeFocusToken={globalEarthquakeMapFocusToken}
             userLocationMarker={detectedUserLocation}
             colorblindFriendly={colorblindFriendlyMap}
             onSelectProvince={setSelectedProvince}
@@ -3147,7 +3154,13 @@ function App() {
           <div className="global-earthquake-panel global-earthquake-alerts-card">
             <div className="global-earthquake-alerts-head">
               <h3>🌍 Live Earthquake Alerts</h3>
-              <button onClick={loadGlobalEarthquakes} disabled={isLoadingGlobalEarthquakes}>
+              <button
+                onClick={() => {
+                  setShowGlobalEarthquakesOnMap(true)
+                  void loadGlobalEarthquakes()
+                }}
+                disabled={isLoadingGlobalEarthquakes}
+              >
                 {isLoadingGlobalEarthquakes ? '🔄 Syncing...' : '📡 Refresh'}
               </button>
             </div>

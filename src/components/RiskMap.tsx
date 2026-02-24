@@ -1,9 +1,9 @@
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
 import centroid from '@turf/centroid'
 import { useEffect, useMemo, useState } from 'react'
-import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, Tooltip } from 'react-leaflet'
+import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import type { Feature, FeatureCollection, Geometry } from 'geojson'
-import type { Layer } from 'leaflet'
+import { latLngBounds, type Layer } from 'leaflet'
 import adm1GeoJsonUrl from '../data/pakistan-adm1.geojson?url'
 import adm2GeoJsonUrl from '../data/pakistan-adm2.geojson?url'
 
@@ -40,6 +40,7 @@ type RiskMapProps = {
   alertMarkers?: HazardAlertMarker[]
   globalEarthquakeMarkers?: GlobalEarthquakeMarker[]
   showGlobalEarthquakeMarkers?: boolean
+  globalEarthquakeFocusToken?: number
   userLocationMarker?: { lat: number; lng: number } | null
   colorblindFriendly?: boolean
   onSelectProvince: (province: string) => void
@@ -92,6 +93,38 @@ const riskColor = (risk: string, colorblindFriendly = false): string => {
   }
 }
 
+function GlobalEarthquakeViewportController({
+  markers,
+  enabled,
+  focusToken,
+  allowAutoFit,
+}: {
+  markers: GlobalEarthquakeMarker[]
+  enabled: boolean
+  focusToken: number
+  allowAutoFit: boolean
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!enabled || !allowAutoFit || markers.length === 0) return
+
+    const points = markers
+      .map((marker) => [marker.lat, marker.lng] as [number, number])
+      .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng))
+
+    if (points.length === 0) return
+
+    map.fitBounds(latLngBounds(points).pad(0.16), {
+      animate: true,
+      duration: 0.8,
+      maxZoom: 5,
+    })
+  }, [enabled, allowAutoFit, markers, focusToken, map])
+
+  return null
+}
+
 function RiskMap({
   layer,
   selectedProvince,
@@ -101,6 +134,7 @@ function RiskMap({
   alertMarkers,
   globalEarthquakeMarkers,
   showGlobalEarthquakeMarkers,
+  globalEarthquakeFocusToken,
   userLocationMarker,
   colorblindFriendly,
   onSelectProvince,
@@ -341,6 +375,13 @@ function RiskMap({
               </CircleMarker>
             )
           })}
+
+        <GlobalEarthquakeViewportController
+          markers={globalEarthquakeMarkers ?? []}
+          enabled={Boolean(showGlobalEarthquakeMarkers)}
+          focusToken={globalEarthquakeFocusToken ?? 0}
+          allowAutoFit={!inDistrictView}
+        />
 
         {userLocationMarker && (
           <CircleMarker
