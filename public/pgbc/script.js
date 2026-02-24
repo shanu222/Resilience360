@@ -1557,18 +1557,27 @@ async function buildCodeContextForQuestion(code, question) {
 function getPgbcQaApiTargets() {
     const path = '/api/pgbc/code-qa';
     const hostname = String(window.location.hostname || '').toLowerCase();
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const targets = [];
 
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (isLocalhost) {
         targets.push(`http://localhost:8787${path}`);
-    }
-
-    if (hostname.endsWith('github.io')) {
+        targets.push(path);
+    } else {
         targets.push(`${PGBC_AI_BACKEND_PROD_BASE}${path}`);
+        targets.push(path);
     }
 
-    targets.push(path);
     return [...new Set(targets)];
+}
+
+function sanitizeApiErrorText(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return '';
+    if (text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('<body')) {
+        return 'Server returned HTML instead of JSON (route unavailable on this host).';
+    }
+    return text.slice(0, 500);
 }
 
 async function askPgbcCodesAi(question, codeContexts, selectedCodeNames, allCodeNames) {
@@ -1593,7 +1602,12 @@ async function askPgbcCodesAi(question, codeContexts, selectedCodeNames, allCode
 
             if (!response.ok) {
                 const errorText = await response.text();
-                lastError = `AI request failed (${response.status}): ${errorText}`;
+                const cleanError = sanitizeApiErrorText(errorText);
+                if (response.status === 429 || /quota|insufficient_quota|billing|rate\s*limit/i.test(cleanError)) {
+                    lastError = 'AI usage limit exceeded (429). Please recharge/increase API quota, then try again.';
+                } else {
+                    lastError = `AI request failed (${response.status}): ${cleanError || 'No details provided by server.'}`;
+                }
                 continue;
             }
 
