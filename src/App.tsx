@@ -1013,6 +1013,7 @@ function App() {
   )
   const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(true)
   const [globalEarthquakeMapFocusToken, setGlobalEarthquakeMapFocusToken] = useState(0)
+  const [selectedGlobalEarthquakeId, setSelectedGlobalEarthquakeId] = useState<string | null>(null)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
   const [bestPracticeVisibleCount, setBestPracticeVisibleCount] = useState(2)
   const [applyProvince, setApplyProvince] = useState('Punjab')
@@ -2885,6 +2886,8 @@ function App() {
       localStorage.setItem('r360-global-earthquakes-synced-at', syncedAt)
 
       if (latest.length > 0) {
+        const stillExists = latest.some((item) => item.id === selectedGlobalEarthquakeId)
+        setSelectedGlobalEarthquakeId(stillExists ? selectedGlobalEarthquakeId : latest[0].id)
         setShowGlobalEarthquakesOnMap(true)
         setGlobalEarthquakeMapFocusToken((value) => value + 1)
       }
@@ -3171,6 +3174,11 @@ function App() {
             {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
             <GlobalEarthquakeGlobe
               earthquakes={globalEarthquakes}
+              selectedEarthquakeId={selectedGlobalEarthquakeId}
+              onSelectEarthquake={(id) => {
+                setSelectedGlobalEarthquakeId(id)
+                setGlobalEarthquakeMapFocusToken((value) => value + 1)
+              }}
               focusToken={globalEarthquakeMapFocusToken + globalEarthquakes.length}
             />
             <div className="global-earthquake-list">
@@ -3188,7 +3196,15 @@ function App() {
                   </thead>
                   <tbody>
                     {globalEarthquakes.slice(0, 20).map((quake) => (
-                      <tr key={quake.id}>
+                      <tr
+                        key={quake.id}
+                        className={selectedGlobalEarthquakeId === quake.id ? 'selected' : ''}
+                        onClick={() => {
+                          setSelectedGlobalEarthquakeId(quake.id)
+                          setShowGlobalEarthquakesOnMap(true)
+                          setGlobalEarthquakeMapFocusToken((value) => value + 1)
+                        }}
+                      >
                         <td>
                           <strong>M {quake.magnitude.toFixed(1)}</strong>
                         </td>

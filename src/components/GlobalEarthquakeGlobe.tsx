@@ -24,6 +24,8 @@ type GlobePoint = {
 
 type GlobalEarthquakeGlobeProps = {
   earthquakes: GlobalEarthquake[]
+  selectedEarthquakeId?: string | null
+  onSelectEarthquake?: (id: string) => void
   focusToken?: number
 }
 
@@ -43,11 +45,22 @@ function formatLabel(quake: GlobalEarthquake): string {
   ].join('<br/>')
 }
 
-export default function GlobalEarthquakeGlobe({ earthquakes, focusToken = 0 }: GlobalEarthquakeGlobeProps) {
+export default function GlobalEarthquakeGlobe({
+  earthquakes,
+  selectedEarthquakeId,
+  onSelectEarthquake,
+  focusToken = 0,
+}: GlobalEarthquakeGlobeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const globeRef = useRef<any>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [size, setSize] = useState({ width: 920, height: 420 })
+  const [isBlinkOn, setIsBlinkOn] = useState(true)
+
+  const selectedEarthquake = useMemo(
+    () => earthquakes.find((quake) => quake.id === selectedEarthquakeId) ?? null,
+    [earthquakes, selectedEarthquakeId],
+  )
 
   useEffect(() => {
     const container = containerRef.current
@@ -84,16 +97,26 @@ export default function GlobalEarthquakeGlobe({ earthquakes, focusToken = 0 }: G
       return
     }
 
-    const latest = earthquakes[0]
+    const target = selectedEarthquake ?? earthquakes[0]
     globeRef.current.pointOfView(
       {
-        lat: latest.lat,
-        lng: latest.lng,
-        altitude: 1.7,
+        lat: target.lat,
+        lng: target.lng,
+        altitude: selectedEarthquake ? 1.05 : 1.7,
       },
       900,
     )
-  }, [earthquakes, focusToken])
+  }, [earthquakes, selectedEarthquake, focusToken])
+
+  useEffect(() => {
+    if (!selectedEarthquake) return
+
+    const timer = window.setInterval(() => {
+      setIsBlinkOn((value) => !value)
+    }, 420)
+
+    return () => window.clearInterval(timer)
+  }, [selectedEarthquake])
 
   const pointsData = useMemo<GlobePoint[]>(() => {
     return earthquakes.map((quake) => {
@@ -109,6 +132,27 @@ export default function GlobalEarthquakeGlobe({ earthquakes, focusToken = 0 }: G
       }
     })
   }, [earthquakes])
+
+  const selectedPointData = useMemo<GlobePoint[]>(() => {
+    if (!selectedEarthquake) return []
+
+    return [
+      {
+        id: `selected-${selectedEarthquake.id}`,
+        lat: selectedEarthquake.lat,
+        lng: selectedEarthquake.lng,
+        altitude: 0.24,
+        radius: 0.42,
+        color: isBlinkOn ? '#ff1f1f' : '#7f1d1d',
+        label: `⚠️ <strong>Selected Earthquake</strong><br/>${formatLabel(selectedEarthquake)}`,
+      },
+    ]
+  }, [isBlinkOn, selectedEarthquake])
+
+  const ringData = useMemo(() => {
+    if (!selectedEarthquake) return []
+    return [selectedEarthquake]
+  }, [selectedEarthquake])
 
   const handleToggleFullscreen = async () => {
     const container = containerRef.current
@@ -139,13 +183,26 @@ export default function GlobalEarthquakeGlobe({ earthquakes, focusToken = 0 }: G
           showAtmosphere
           atmosphereColor="#6aa4ff"
           atmosphereAltitude={0.18}
-          pointsData={pointsData}
+          pointsData={[...pointsData, ...selectedPointData]}
           pointLat="lat"
           pointLng="lng"
           pointAltitude="altitude"
           pointRadius="radius"
           pointColor="color"
           pointLabel="label"
+          onPointClick={(point: { id?: string }) => {
+            const pointId = String(point?.id ?? '')
+            if (!pointId) return
+            const normalizedId = pointId.startsWith('selected-') ? pointId.replace('selected-', '') : pointId
+            if (onSelectEarthquake) onSelectEarthquake(normalizedId)
+          }}
+          ringsData={ringData}
+          ringLat="lat"
+          ringLng="lng"
+          ringColor={() => (isBlinkOn ? '#ff2626' : '#b91c1c')}
+          ringMaxRadius={3.6}
+          ringPropagationSpeed={2.5}
+          ringRepeatPeriod={700}
         />
       </div>
     </div>
