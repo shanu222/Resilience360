@@ -889,12 +889,12 @@ app.post('/api/pgbc/code-qa', async (req, res) => {
         {
           role: 'system',
           content:
-            'You are an expert Pakistan building code assistant. Use only provided selected code context for citations. If question is not explicitly addressed in selected context, set addressedInSelectedCodes=false and do not fabricate requirements. Suggest better code selections from available code names.',
+            'You are an expert Pakistan building code assistant. Use only provided selected code context for citations. If selected context includes citation candidates relevant to the question, treat it as addressed and cite those sections. Do not output contradictory results (e.g., not addressed while citing selected sections). If truly not addressed, set addressedInSelectedCodes=false and suggest better code selections from available code names.',
         },
         {
           role: 'user',
           content:
-            `User question:\n${question}\n\nSelected code names:\n${selectedCodeList}\n\nAll available code names:\n${availableCodeList}\n\nSelected code context:\n${combinedContext}\n\nReturn strict JSON exactly in this schema:\n{\n  "addressedInSelectedCodes": boolean,\n  "directAnswer": string,\n  "points": [\n    {\n      "statement": string,\n      "citations": [\n        {\n          "codeName": string,\n          "chapter": string,\n          "section": string,\n          "evidence": string\n        }\n      ]\n    }\n  ],\n  "assumptions": string[],\n  "checkInPdf": string[],\n  "suggestedCodesIfNotAddressed": [\n    {\n      "codeName": string,\n      "why": string\n    }\n  ]\n}\n\nRules:\n- If not addressed, directAnswer must explicitly include: "Not addressed in the selected code(s)".\n- Every point must include at least one citation when addressedInSelectedCodes=true.\n- Keep chapter/section values concise (e.g., "10", "10.2.3").\n- suggestedCodesIfNotAddressed should be empty when addressedInSelectedCodes=true.`,
+            `User question:\n${question}\n\nSelected code names:\n${selectedCodeList}\n\nAll available code names:\n${availableCodeList}\n\nSelected code context:\n${combinedContext}\n\nReturn strict JSON exactly in this schema:\n{\n  "addressedInSelectedCodes": boolean,\n  "directAnswer": string,\n  "points": [\n    {\n      "statement": string,\n      "citations": [\n        {\n          "codeName": string,\n          "chapter": string,\n          "section": string,\n          "evidence": string\n        }\n      ]\n    }\n  ],\n  "assumptions": string[],\n  "checkInPdf": string[],\n  "suggestedCodesIfNotAddressed": [\n    {\n      "codeName": string,\n      "why": string\n    }\n  ]\n}\n\nRules:\n- If not addressed, directAnswer must explicitly include: "Not addressed in the selected code(s)".\n- If addressedInSelectedCodes=true, provide section-level citations from selected code names.\n- Never mark not addressed when you cite sections from selected codes.\n- Keep chapter/section values concise (e.g., "10", "10.2.3").\n- suggestedCodesIfNotAddressed should be empty when addressedInSelectedCodes=true.`,
         },
       ],
     })
@@ -923,19 +923,57 @@ app.post('/api/pgbc/code-qa', async (req, res) => {
       return
     }
 
+    const selectedNameSet = new Set(selectedCodeNames.map((item) => item.toLowerCase()))
+    const isCitationFromSelected = (citation) => {
+      const citationName = String(citation?.codeName ?? '').trim().toLowerCase()
+      if (!citationName) return false
+      if (selectedNameSet.has(citationName)) return true
+      return [...selectedNameSet].some((name) => citationName.includes(name) || name.includes(citationName))
+    }
+
+    const hasSelectedCitations = points.some((point) =>
+      safeArray(point?.citations).some((citation) => isCitationFromSelected(citation)),
+    )
+
+    const checkInPdfList = safeArray(parsed.checkInPdf)
+      .map((item) => String(item ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 6)
+
+    const hasCheckInPdfFromSelected = checkInPdfList.some((line) => {
+      const lowerLine = line.toLowerCase()
+      return [...selectedNameSet].some((name) => lowerLine.includes(name))
+    })
+
+    let addressedInSelectedCodes = Boolean(parsed.addressedInSelectedCodes)
+    if (!addressedInSelectedCodes && (hasSelectedCitations || hasCheckInPdfFromSelected)) {
+      addressedInSelectedCodes = true
+    }
+
+    const shouldForceNotAddressedText = !addressedInSelectedCodes
+    const normalizedDirectAnswer = shouldForceNotAddressedText
+      ? directAnswer.includes('Not addressed in the selected code(s)')
+        ? directAnswer
+        : `Not addressed in the selected code(s). ${directAnswer}`.trim()
+      : directAnswer.replace(/^Not addressed in the selected code\(s\)\.?\s*/i, '').trim() || directAnswer
+
+    const suggestedCodesIfNotAddressed = shouldForceNotAddressedText
+      ? safeArray(parsed.suggestedCodesIfNotAddressed)
+          .map((item) => ({
+            codeName: String(item?.codeName ?? '').trim(),
+            why: String(item?.why ?? '').trim(),
+          }))
+          .filter((item) => item.codeName)
+          .slice(0, 6)
+      : []
+
     res.json({
-      addressedInSelectedCodes: Boolean(parsed.addressedInSelectedCodes),
-      directAnswer,
+      addressedInSelectedCodes,
+      directAnswer: normalizedDirectAnswer,
       points,
       assumptions: safeArray(parsed.assumptions).map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6),
-      checkInPdf: safeArray(parsed.checkInPdf).map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6),
-      suggestedCodesIfNotAddressed: safeArray(parsed.suggestedCodesIfNotAddressed)
-        .map((item) => ({
-          codeName: String(item?.codeName ?? '').trim(),
-          why: String(item?.why ?? '').trim(),
-        }))
-        .filter((item) => item.codeName)
-        .slice(0, 6),
+      checkInPdf: checkInPdfList,
+      suggestedCodesIfNotAddressed,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PGBC code Q&A failed.'

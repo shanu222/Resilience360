@@ -1396,8 +1396,24 @@ function extractQuestionKeywords(question) {
         .replace(/[^a-z0-9\s]/g, ' ')
         .trim();
 
-    const tokens = cleaned.split(/\s+/).filter(token => token.length >= 4);
-    return [...new Set(tokens)].slice(0, 12);
+    const rawTokens = cleaned.split(/\s+/).filter(Boolean);
+    const tokens = rawTokens
+        .map(token => token.trim())
+        .filter(token => token.length >= 3)
+        .flatMap(token => {
+            if (token.endsWith('s') && token.length > 4) {
+                return [token, token.slice(0, -1)];
+            }
+            return [token];
+        });
+
+    const phrases = [];
+    for (let index = 0; index < rawTokens.length - 1; index++) {
+        const pair = `${rawTokens[index]} ${rawTokens[index + 1]}`.trim();
+        if (pair.length >= 7) phrases.push(pair);
+    }
+
+    return [...new Set([...tokens, ...phrases])].slice(0, 24);
 }
 
 function sliceSnippetAround(text, matchIndex, radius = 240) {
@@ -1432,6 +1448,61 @@ function getKeywordSnippetsFromPdfText(pdfText, keywords) {
     return snippets.slice(0, 3);
 }
 
+function findNearbySectionReference(pdfText, index) {
+    const source = String(pdfText || '');
+    if (!source) return '';
+
+    const start = Math.max(0, index - 900);
+    const end = Math.min(source.length, index + 120);
+    const windowText = source.slice(start, end);
+
+    const sectionPatterns = [
+        /section\s+([0-9]{1,4}(?:\.[0-9]{1,4}){0,4})/gi,
+        /\b([0-9]{1,4}(?:\.[0-9]{1,4}){1,5})\b/g
+    ];
+
+    for (const pattern of sectionPatterns) {
+        const matches = [...windowText.matchAll(pattern)];
+        if (!matches.length) continue;
+        const last = matches[matches.length - 1];
+        const ref = String(last[1] || '').trim();
+        if (ref) return ref;
+    }
+
+    return '';
+}
+
+function extractEvidenceCandidatesFromPdfText(pdfText, question) {
+    const source = String(pdfText || '');
+    if (!source) return [];
+
+    const keywords = extractQuestionKeywords(question);
+    if (!keywords.length) return [];
+
+    const lower = source.toLowerCase();
+    const evidence = [];
+    const usedBuckets = new Set();
+
+    keywords.forEach(keyword => {
+        const foundAt = lower.indexOf(String(keyword).toLowerCase());
+        if (foundAt < 0) return;
+
+        const bucket = Math.floor(foundAt / 220);
+        if (usedBuckets.has(bucket)) return;
+        usedBuckets.add(bucket);
+
+        const snippet = sliceSnippetAround(source, foundAt, 330);
+        if (!snippet) return;
+
+        evidence.push({
+            section: findNearbySectionReference(source, foundAt),
+            snippet
+        });
+    });
+
+    return evidence.slice(0, 6);
+}
+
 async function buildCodeContextForQuestion(code, question) {
     const keywords = extractQuestionKeywords(question);
     const chapters = await getViewerChapters(code.name);
@@ -1458,12 +1529,15 @@ async function buildCodeContextForQuestion(code, question) {
         .join('\n');
 
     let keywordSnippets = [];
+    let evidenceCandidates = [];
     if (code.pdfPath) {
         try {
             const pdfText = await extractPdfText(code.pdfPath);
             keywordSnippets = getKeywordSnippetsFromPdfText(pdfText, keywords);
+            evidenceCandidates = extractEvidenceCandidatesFromPdfText(pdfText, question);
         } catch (_) {
             keywordSnippets = [];
+            evidenceCandidates = [];
         }
     }
 
@@ -1471,7 +1545,13 @@ async function buildCodeContextForQuestion(code, question) {
         ? `\n\nExtracted code text snippets:\n${keywordSnippets.map((snippet, idx) => `${idx + 1}) ${snippet}`).join('\n\n')}`
         : '';
 
-    return `Code: ${code.name}\n\nOutline:\n${chapterLines || '- No chapter outline available.'}${snippetBlock}`;
+    const evidenceBlock = evidenceCandidates.length
+        ? `\n\nEvidence snippets found: ${evidenceCandidates.length}\n${evidenceCandidates
+            .map((item, idx) => `[Citation Candidate ${idx + 1}] Section: ${item.section || 'not-labeled'} | Text: ${item.snippet}`)
+            .join('\n\n')}`
+        : `\n\nEvidence snippets found: 0`;
+
+    return `Code: ${code.name}\n\nOutline:\n${chapterLines || '- No chapter outline available.'}${snippetBlock}${evidenceBlock}`;
 }
 
 function getPgbcQaApiTargets() {
