@@ -859,6 +859,14 @@ app.post('/api/pgbc/code-qa', async (req, res) => {
       .map((item) => String(item ?? '').trim())
       .filter(Boolean)
       .slice(0, 8)
+    const selectedCodeNames = safeArray(req.body?.selectedCodeNames)
+      .map((item) => String(item ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 50)
+    const allCodeNames = safeArray(req.body?.allCodeNames)
+      .map((item) => String(item ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 100)
 
     if (!question) {
       res.status(400).json({ error: 'question is required.' })
@@ -871,6 +879,8 @@ app.post('/api/pgbc/code-qa', async (req, res) => {
     }
 
     const combinedContext = codeContexts.join('\n\n-----\n\n').slice(0, 120000)
+    const selectedCodeList = selectedCodeNames.length ? selectedCodeNames.join(' | ') : 'Not provided'
+    const availableCodeList = allCodeNames.length ? allCodeNames.join(' | ') : selectedCodeList
 
     const completion = await openai.chat.completions.create({
       model,
@@ -879,23 +889,54 @@ app.post('/api/pgbc/code-qa', async (req, res) => {
         {
           role: 'system',
           content:
-            'You are an expert Pakistan building code assistant. Answer only from provided code context. If data is missing, clearly say it is not explicitly found in selected codes. Provide practical, compliance-focused guidance with concise bullet points.',
+            'You are an expert Pakistan building code assistant. Use only provided selected code context for citations. If question is not explicitly addressed in selected context, set addressedInSelectedCodes=false and do not fabricate requirements. Suggest better code selections from available code names.',
         },
         {
           role: 'user',
           content:
-            `User question:\n${question}\n\nSelected code context:\n${combinedContext}\n\nResponse format requirements:\n1) Start with a short direct answer.\n2) Then provide a detailed compliance explanation.\n3) Add assumptions clearly where needed.\n4) Add a final "Check in PDF" note with important verification points.`,
+            `User question:\n${question}\n\nSelected code names:\n${selectedCodeList}\n\nAll available code names:\n${availableCodeList}\n\nSelected code context:\n${combinedContext}\n\nReturn strict JSON exactly in this schema:\n{\n  "addressedInSelectedCodes": boolean,\n  "directAnswer": string,\n  "points": [\n    {\n      "statement": string,\n      "citations": [\n        {\n          "codeName": string,\n          "chapter": string,\n          "section": string,\n          "evidence": string\n        }\n      ]\n    }\n  ],\n  "assumptions": string[],\n  "checkInPdf": string[],\n  "suggestedCodesIfNotAddressed": [\n    {\n      "codeName": string,\n      "why": string\n    }\n  ]\n}\n\nRules:\n- If not addressed, directAnswer must explicitly include: "Not addressed in the selected code(s)".\n- Every point must include at least one citation when addressedInSelectedCodes=true.\n- Keep chapter/section values concise (e.g., "10", "10.2.3").\n- suggestedCodesIfNotAddressed should be empty when addressedInSelectedCodes=true.`,
         },
       ],
     })
 
-    const answer = completion.choices[0]?.message?.content?.trim() ?? ''
-    if (!answer) {
+    const raw = completion.choices[0]?.message?.content ?? ''
+    const parsed = extractJson(raw)
+
+    const points = safeArray(parsed.points)
+      .map((point) => ({
+        statement: String(point?.statement ?? '').trim(),
+        citations: safeArray(point?.citations)
+          .map((citation) => ({
+            codeName: String(citation?.codeName ?? '').trim(),
+            chapter: String(citation?.chapter ?? '').trim(),
+            section: String(citation?.section ?? '').trim(),
+            evidence: String(citation?.evidence ?? '').trim(),
+          }))
+          .filter((citation) => citation.codeName || citation.chapter || citation.section || citation.evidence),
+      }))
+      .filter((point) => point.statement)
+      .slice(0, 8)
+
+    const directAnswer = String(parsed.directAnswer ?? '').trim()
+    if (!directAnswer && points.length === 0) {
       res.status(500).json({ error: 'AI returned empty answer.' })
       return
     }
 
-    res.json({ answer })
+    res.json({
+      addressedInSelectedCodes: Boolean(parsed.addressedInSelectedCodes),
+      directAnswer,
+      points,
+      assumptions: safeArray(parsed.assumptions).map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6),
+      checkInPdf: safeArray(parsed.checkInPdf).map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6),
+      suggestedCodesIfNotAddressed: safeArray(parsed.suggestedCodesIfNotAddressed)
+        .map((item) => ({
+          codeName: String(item?.codeName ?? '').trim(),
+          why: String(item?.why ?? '').trim(),
+        }))
+        .filter((item) => item.codeName)
+        .slice(0, 6),
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PGBC code Q&A failed.'
     res.status(500).json({ error: message })

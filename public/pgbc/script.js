@@ -1366,6 +1366,31 @@ function getSelectedCodesForQa() {
     return selected;
 }
 
+function getAllAvailableCodesForQa() {
+    const allCodes = [];
+
+    predefinedCodes.forEach((code, index) => {
+        if (deletedPredefinedCodes.includes(index)) return;
+        allCodes.push({
+            source: 'predefined',
+            index,
+            name: code.name,
+            pdfPath: code.pdfPath || code.pdf
+        });
+    });
+
+    codes.forEach((code, index) => {
+        allCodes.push({
+            source: 'uploaded',
+            index,
+            name: code.name,
+            pdfPath: code.pdfPath || code.pdf
+        });
+    });
+
+    return allCodes;
+}
+
 function extractQuestionKeywords(question) {
     const cleaned = normalizeSearchText(question)
         .replace(/[^a-z0-9\s]/g, ' ')
@@ -1466,10 +1491,12 @@ function getPgbcQaApiTargets() {
     return [...new Set(targets)];
 }
 
-async function askPgbcCodesAi(question, codeContexts) {
+async function askPgbcCodesAi(question, codeContexts, selectedCodeNames, allCodeNames) {
     const payload = {
         question,
-        codeContexts
+        codeContexts,
+        selectedCodeNames,
+        allCodeNames
     };
 
     let lastError = 'AI service unavailable.';
@@ -1491,9 +1518,23 @@ async function askPgbcCodesAi(question, codeContexts) {
             }
 
             const data = await response.json();
-            const answer = String(data?.answer || '').trim();
-            if (answer) {
-                return { ok: true, answer };
+            const directAnswer = String(data?.directAnswer || '').trim();
+            const points = Array.isArray(data?.points) ? data.points : [];
+            const addressedInSelectedCodes = Boolean(data?.addressedInSelectedCodes);
+            const suggestedCodesIfNotAddressed = Array.isArray(data?.suggestedCodesIfNotAddressed)
+                ? data.suggestedCodesIfNotAddressed
+                : [];
+
+            if (directAnswer || points.length || typeof data?.answer === 'string') {
+                return {
+                    ok: true,
+                    directAnswer: directAnswer || String(data?.answer || '').trim(),
+                    points,
+                    assumptions: Array.isArray(data?.assumptions) ? data.assumptions : [],
+                    checkInPdf: Array.isArray(data?.checkInPdf) ? data.checkInPdf : [],
+                    addressedInSelectedCodes,
+                    suggestedCodesIfNotAddressed
+                };
             }
 
             lastError = 'AI returned empty answer.';
@@ -1503,6 +1544,84 @@ async function askPgbcCodesAi(question, codeContexts) {
     }
 
     return { ok: false, error: lastError };
+}
+
+function formatCitationLine(citation) {
+    const codeName = String(citation?.codeName || 'Code');
+    const chapter = String(citation?.chapter || '').trim();
+    const section = String(citation?.section || '').trim();
+    const evidence = String(citation?.evidence || '').trim();
+
+    const refs = [codeName];
+    if (chapter) refs.push(`Chapter ${chapter}`);
+    if (section) refs.push(`Section ${section}`);
+
+    if (!evidence) return `- ${refs.join(' | ')}`;
+    return `- ${refs.join(' | ')} — ${evidence}`;
+}
+
+function formatPgbcQaOutput(result, selectedCodes) {
+    const lines = [];
+    const selectedSourceList = selectedCodes.map(code => `• ${code.name}`);
+
+    if (!result.addressedInSelectedCodes) {
+        lines.push('Not addressed in the currently selected code(s).');
+        lines.push('');
+    }
+
+    if (result.directAnswer) {
+        lines.push('Direct answer:');
+        lines.push(result.directAnswer);
+        lines.push('');
+    }
+
+    if (Array.isArray(result.points) && result.points.length) {
+        lines.push('Detailed points with citations:');
+        result.points.forEach((point, idx) => {
+            lines.push(`${idx + 1}) ${String(point?.statement || '').trim()}`);
+            const citations = Array.isArray(point?.citations) ? point.citations : [];
+            if (!citations.length) {
+                lines.push('- Citation: Not explicitly cited');
+            } else {
+                citations.forEach(citation => lines.push(formatCitationLine(citation)));
+            }
+            lines.push('');
+        });
+    }
+
+    if (!result.addressedInSelectedCodes) {
+        const suggestions = Array.isArray(result.suggestedCodesIfNotAddressed)
+            ? result.suggestedCodesIfNotAddressed
+            : [];
+
+        if (suggestions.length) {
+            lines.push('Suggested code(s) to select:');
+            suggestions.forEach(item => {
+                const codeName = String(item?.codeName || '').trim();
+                const why = String(item?.why || '').trim();
+                if (!codeName) return;
+                lines.push(`- ${codeName}${why ? ` — ${why}` : ''}`);
+            });
+            lines.push('');
+        }
+    }
+
+    if (Array.isArray(result.assumptions) && result.assumptions.length) {
+        lines.push('Assumptions:');
+        result.assumptions.forEach(item => lines.push(`- ${String(item || '')}`));
+        lines.push('');
+    }
+
+    if (Array.isArray(result.checkInPdf) && result.checkInPdf.length) {
+        lines.push('Check in PDF:');
+        result.checkInPdf.forEach(item => lines.push(`- ${String(item || '')}`));
+        lines.push('');
+    }
+
+    lines.push('Selected sources:');
+    lines.push(...selectedSourceList);
+
+    return lines.join('\n').trim();
 }
 
 async function answerQuestionFromSelectedCodes() {
@@ -1517,6 +1636,7 @@ async function answerQuestionFromSelectedCodes() {
     }
 
     const selectedCodes = getSelectedCodesForQa();
+    const allCodes = getAllAvailableCodesForQa();
     if (!selectedCodes.length) {
         setCodeQaStatus('Select at least one code first.', true);
         return;
@@ -1533,18 +1653,27 @@ async function answerQuestionFromSelectedCodes() {
             codeContexts.push(context);
         }
 
-        const aiResult = await askPgbcCodesAi(question, codeContexts);
+        const aiResult = await askPgbcCodesAi(
+            question,
+            codeContexts,
+            selectedCodes.map(code => code.name),
+            allCodes.map(code => code.name)
+        );
         if (!aiResult.ok) {
             setCodeQaStatus('Unable to generate answer right now.', true);
             if (resultEl) resultEl.textContent = `Error: ${aiResult.error}`;
             return;
         }
 
-        const sourceList = selectedCodes.map(code => `• ${code.name}`).join('\n');
         if (resultEl) {
-            resultEl.textContent = `${aiResult.answer}\n\nSources used:\n${sourceList}`;
+            resultEl.textContent = formatPgbcQaOutput(aiResult, selectedCodes);
         }
-        setCodeQaStatus(`Answer generated using ${selectedCodes.length} selected code(s).`);
+
+        if (!aiResult.addressedInSelectedCodes) {
+            setCodeQaStatus(`Question not addressed in ${selectedCodes.length} selected code(s). Suggested code selections are listed below.`, true);
+        } else {
+            setCodeQaStatus(`Answer generated using ${selectedCodes.length} selected code(s).`);
+        }
     } catch (error) {
         setCodeQaStatus('Unexpected error while generating answer.', true);
         if (resultEl) resultEl.textContent = `Error: ${String(error?.message || error)}`;
