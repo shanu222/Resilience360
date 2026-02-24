@@ -112,6 +112,42 @@ type HistoricalDisasterEvent = {
   source: string
 }
 
+type CommunityIssueCategory =
+  | 'Broken roads'
+  | 'Drainage blockage'
+  | 'Flooding spots'
+  | 'Damaged bridges'
+  | 'Streetlight issues'
+  | 'Unsafe buildings'
+
+type CommunityIssueReport = {
+  id: string
+  submittedAt: string
+  category: CommunityIssueCategory
+  notes: string
+  photoName: string
+  status: 'Submitted'
+  lat: number | null
+  lng: number | null
+}
+
+const communityIssueCategories: CommunityIssueCategory[] = [
+  'Broken roads',
+  'Drainage blockage',
+  'Flooding spots',
+  'Damaged bridges',
+  'Streetlight issues',
+  'Unsafe buildings',
+]
+
+const emergencyKitChecklistItems = [
+  'Drinking water (3-day supply)',
+  'First aid kit and basic medicines',
+  'Battery torch + power bank',
+  'Important documents in waterproof pouch',
+  'Emergency contacts list',
+]
+
 const pakistanHistoricalDisasterEvents: HistoricalDisasterEvent[] = [
   {
     id: 'pk-eq-2005-kashmir',
@@ -1043,6 +1079,14 @@ const districtContacts: Record<string, string[]> = {
   Karachi: ['PDMA Sindh: 1700', 'Rescue 1122 Karachi: 1122', 'Commissioner Karachi Emergency Cell: 021-99203443'],
 }
 
+const nearestHospitalsByProvince: Record<string, string[]> = {
+  Punjab: ['Mayo Hospital Lahore', 'DHQ Hospital Rawalpindi', 'Nishtar Hospital Multan'],
+  Sindh: ['Jinnah Postgraduate Medical Centre Karachi', 'Civil Hospital Karachi', 'Liaquat University Hospital Hyderabad'],
+  Balochistan: ['Civil Hospital Quetta', 'Bolan Medical Complex', 'DHQ Hospital Khuzdar'],
+  KP: ['Lady Reading Hospital Peshawar', 'Hayatabad Medical Complex', 'Saidu Teaching Hospital Swat'],
+  GB: ['DHQ Hospital Gilgit', 'DHQ Hospital Skardu', 'RHC Astore'],
+}
+
 const evacuationAssetsByDistrict: Record<
   string,
   Array<{ name: string; kind: 'Safe Shelter' | 'Raised Road' | 'Health Post'; lat: number; lng: number }>
@@ -1076,6 +1120,25 @@ function App() {
   const [districtReportLanguage, setDistrictReportLanguage] = useState<'English' | 'Urdu'>('English')
   const [districtUiLanguage, setDistrictUiLanguage] = useState<'English' | 'Urdu'>('English')
   const [alertFilterWindow, setAlertFilterWindow] = useState<AlertFilterWindow>('24h')
+  const [communityIssueCategory, setCommunityIssueCategory] = useState<CommunityIssueCategory>('Broken roads')
+  const [communityIssueNotes, setCommunityIssueNotes] = useState('')
+  const [communityIssuePhoto, setCommunityIssuePhoto] = useState<File | null>(null)
+  const [communityIssueReports, setCommunityIssueReports] = useState<CommunityIssueReport[]>(() => {
+    const cached = localStorage.getItem('r360-community-issues')
+    return cached ? (JSON.parse(cached) as CommunityIssueReport[]) : []
+  })
+  const [isSubmittingCommunityIssue, setIsSubmittingCommunityIssue] = useState(false)
+  const [climateLocationInput, setClimateLocationInput] = useState('')
+  const [selfAssessmentYearBuilt, setSelfAssessmentYearBuilt] = useState(2000)
+  const [selfAssessmentConstruction, setSelfAssessmentConstruction] = useState('Reinforced Concrete')
+  const [selfAssessmentDrainage, setSelfAssessmentDrainage] = useState<'Good' | 'Average' | 'Poor'>('Average')
+  const [selfAssessmentSeismicZone, setSelfAssessmentSeismicZone] = useState<'Low' | 'Medium' | 'High'>('Medium')
+  const [selfAssessmentFoundation, setSelfAssessmentFoundation] = useState<'Isolated Footing' | 'Raft' | 'Stone Masonry' | 'Unknown'>('Isolated Footing')
+  const [emergencyKitChecks, setEmergencyKitChecks] = useState<Record<string, boolean>>(() => {
+    const cached = localStorage.getItem('r360-emergency-kit-checks')
+    return cached ? (JSON.parse(cached) as Record<string, boolean>) : {}
+  })
+  const [smartDrainageStatus, setSmartDrainageStatus] = useState<string | null>(null)
   const [colorblindFriendlyMap, setColorblindFriendlyMap] = useState(false)
   const [districtProfileSavedMsg, setDistrictProfileSavedMsg] = useState<string | null>(null)
   const [locationAccessMsg, setLocationAccessMsg] = useState<string | null>(null)
@@ -1254,6 +1317,14 @@ function App() {
       setIsLearnVideoVisible(false)
     }
   }, [activeSection, activeLearnVideoFile])
+
+  useEffect(() => {
+    localStorage.setItem('r360-community-issues', JSON.stringify(communityIssueReports))
+  }, [communityIssueReports])
+
+  useEffect(() => {
+    localStorage.setItem('r360-emergency-kit-checks', JSON.stringify(emergencyKitChecks))
+  }, [emergencyKitChecks])
   const districtRiskLookup = useMemo(() => districtRiskLookupByName(), [])
   const availableMapDistricts = useMemo(() => listDistrictsByProvince(selectedProvince), [selectedProvince])
   const selectedDistrictProfile = useMemo<DistrictRiskProfile | null>(
@@ -1354,6 +1425,62 @@ function App() {
       return alertFilterWindow === '24h' ? ageHours <= 24 : ageHours <= 24 * 7
     })
   }, [alertFilterWindow, hazardAlertOverlay])
+  const nearbyShelters = useMemo(
+    () => evacuationAssets.filter((asset) => asset.kind === 'Safe Shelter'),
+    [evacuationAssets],
+  )
+  const climateRiskScore = useMemo(() => {
+    const floodScore = riskValue === 'Very High' ? 92 : riskValue === 'High' ? 78 : riskValue === 'Medium' ? 62 : 45
+    const heatwaveScore = selectedProvince === 'Sindh' || selectedProvince === 'Punjab' ? 74 : 61
+    const earthquakeScore =
+      (selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'Very High'
+        ? 88
+        : (selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'High'
+          ? 74
+          : (selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'Medium'
+            ? 58
+            : 42
+    const airQualityScore = selectedProvince === 'Punjab' ? 68 : selectedProvince === 'Sindh' ? 64 : 54
+    return Math.round((floodScore + heatwaveScore + earthquakeScore + airQualityScore) / 4)
+  }, [riskValue, selectedDistrictProfile?.earthquake, selectedProvince])
+  const climatePrecautions = useMemo(() => {
+    const precautions = ['Keep go-bag ready with water, torch, and essential medicines.']
+    if (riskValue === 'High' || riskValue === 'Very High') {
+      precautions.push('Move valuables and electrical points above likely flood level.')
+      precautions.push('Avoid low-lying underpasses and blocked drainage corridors during rain.')
+    }
+    if ((selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'High') {
+      precautions.push('Secure heavy furniture/water tanks and identify safe drop-cover-hold points.')
+    }
+    precautions.push('Store district emergency numbers and nearest shelter routes offline.')
+    return precautions
+  }, [riskValue, selectedDistrictProfile?.earthquake, selectedProvince])
+
+  const buildingSafetyAssessment = useMemo(() => {
+    let score = 78
+    if (selfAssessmentYearBuilt < 1990) score -= 18
+    else if (selfAssessmentYearBuilt < 2005) score -= 9
+    if (selfAssessmentConstruction === 'Unreinforced Masonry') score -= 20
+    if (selfAssessmentDrainage === 'Poor') score -= 16
+    if (selfAssessmentSeismicZone === 'High') score -= 12
+    if (selfAssessmentFoundation === 'Unknown') score -= 10
+    if (selfAssessmentFoundation === 'Stone Masonry') score -= 6
+    const normalized = Math.max(10, Math.min(95, score))
+    const rating = normalized >= 75 ? 'Good' : normalized >= 55 ? 'Moderate' : 'High Risk'
+    const recommendation =
+      rating === 'Good'
+        ? 'Maintain drainage and perform annual structural checks.'
+        : rating === 'Moderate'
+          ? 'Plan retrofit screening and improve drainage/foundation detailing.'
+          : 'Request professional structural inspection urgently and limit occupancy in vulnerable zones.'
+    return { score: normalized, rating, recommendation }
+  }, [
+    selfAssessmentConstruction,
+    selfAssessmentDrainage,
+    selfAssessmentFoundation,
+    selfAssessmentSeismicZone,
+    selfAssessmentYearBuilt,
+  ])
   const availableRetrofitCities = useMemo(() => pakistanCitiesByProvince[selectedProvince] ?? [], [selectedProvince])
   const availableApplyCities = useMemo(() => pakistanCitiesByProvince[applyProvince] ?? [], [applyProvince])
   const availableApplyBestPractices = useMemo(() => globalPracticeLibrary[applyHazard], [applyHazard])
@@ -2966,6 +3093,69 @@ function App() {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank', 'noopener,noreferrer')
   }
 
+  const submitCommunityIssueReport = async () => {
+    if (!communityIssuePhoto) {
+      setDistrictProfileSavedMsg('Please upload issue photo before submitting report.')
+      return
+    }
+
+    setIsSubmittingCommunityIssue(true)
+    try {
+      let lat: number | null = detectedUserLocation?.lat ?? null
+      let lng: number | null = detectedUserLocation?.lng ?? null
+
+      if (!lat || !lng) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            })
+          })
+          lat = position.coords.latitude
+          lng = position.coords.longitude
+          setDetectedUserLocation({ lat, lng })
+        } catch {
+          lat = null
+          lng = null
+        }
+      }
+
+      const report: CommunityIssueReport = {
+        id: `issue-${Date.now()}`,
+        submittedAt: new Date().toISOString(),
+        category: communityIssueCategory,
+        notes: communityIssueNotes.trim() || 'No additional notes provided.',
+        photoName: communityIssuePhoto.name,
+        status: 'Submitted',
+        lat,
+        lng,
+      }
+
+      setCommunityIssueReports((previous) => [report, ...previous].slice(0, 25))
+      setCommunityIssueNotes('')
+      setCommunityIssuePhoto(null)
+      setDistrictProfileSavedMsg('Issue submitted successfully. Status: Submitted')
+      window.setTimeout(() => setDistrictProfileSavedMsg(null), 3000)
+    } finally {
+      setIsSubmittingCommunityIssue(false)
+    }
+  }
+
+  const runSmartDrainageAlertCheck = () => {
+    const hasRainSignals =
+      filteredHazardAlerts.some((item) => item.type === 'Flood Warning' || item.type === 'Heavy Rain') ||
+      Boolean(pmdLiveSnapshot?.warning)
+    if (hasRainSignals && (riskValue === 'High' || riskValue === 'Very High')) {
+      setSmartDrainageStatus(
+        'Heavy rain risk detected for your zone. Avoid low-lying routes, use raised roads, and monitor PMD radar every 30 minutes.',
+      )
+      return
+    }
+    setSmartDrainageStatus('No high-severity rain blockage signal right now. Keep monitoring PMD updates.')
+  }
+
   const submitStructureRiskReview = async () => {
     if (!structureReviewFile) {
       setStructureReviewError('Please upload a structure image for review.')
@@ -3415,6 +3605,60 @@ function App() {
             Selected Risk: <strong>{selectedProvince}</strong> - <strong>{mapLayer}</strong> ={' '}
             <strong>{riskValue}</strong>
           </p>
+          <div className="retrofit-model-output">
+            <h3>🌦️ Flood & Climate Risk Explorer</h3>
+            <div className="inline-controls">
+              <label>
+                Enter Location
+                <input
+                  value={climateLocationInput}
+                  onChange={(event) => setClimateLocationInput(event.target.value)}
+                  placeholder="City / Area"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (climateLocationInput.trim()) {
+                    setLocationText(climateLocationInput.trim())
+                  }
+                }}
+              >
+                Apply Location
+              </button>
+            </div>
+            <p>
+              Risk Score: <strong>{climateRiskScore}/100</strong>
+            </p>
+            <p>
+              Heatwave Risk Zone: <strong>{selectedProvince === 'Sindh' || selectedProvince === 'Punjab' ? 'High' : 'Moderate'}</strong>
+            </p>
+            <p>
+              Air Quality Level: <strong>{selectedProvince === 'Punjab' ? 'Moderate-Unhealthy' : 'Moderate'}</strong>
+            </p>
+            <p>
+              Safe Shelters Nearby: <strong>{nearbyShelters.length || 'No mapped shelter in current district'}</strong>
+            </p>
+            {nearbyShelters.length > 0 && (
+              <ul>
+                {nearbyShelters.slice(0, 3).map((asset) => (
+                  <li key={asset.name}>{asset.name}</li>
+                ))}
+              </ul>
+            )}
+            <h4>Precautions</h4>
+            <ul>
+              {climatePrecautions.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <h4>Emergency Contacts</h4>
+            <ul>
+              {selectedDistrictContacts.map((contact) => (
+                <li key={contact}>{contact}</li>
+              ))}
+            </ul>
+          </div>
           <div className="global-earthquake-panel global-earthquake-alerts-card">
             <div className="global-earthquake-alerts-head">
               <h3>🌍 Live Earthquake Alerts</h3>
@@ -4496,6 +4740,116 @@ function App() {
             Risk Score: <strong>{readinessScore}/100</strong>
           </p>
           <p>Custom Recommendation: Add plinth freeboard, tie beams, and emergency response drills.</p>
+          <div className="retrofit-model-output">
+            <h3>🏠 Is My Building Safe? (Self-Assessment)</h3>
+            <div className="inline-controls">
+              <label>
+                Year Built
+                <input
+                  type="number"
+                  min={1950}
+                  max={new Date().getFullYear()}
+                  value={selfAssessmentYearBuilt}
+                  onChange={(event) => setSelfAssessmentYearBuilt(Number(event.target.value) || 2000)}
+                />
+              </label>
+              <label>
+                Construction Type
+                <select value={selfAssessmentConstruction} onChange={(event) => setSelfAssessmentConstruction(event.target.value)}>
+                  <option>Reinforced Concrete</option>
+                  <option>Steel Frame</option>
+                  <option>Unreinforced Masonry</option>
+                </select>
+              </label>
+              <label>
+                Nearby Drainage
+                <select
+                  value={selfAssessmentDrainage}
+                  onChange={(event) => setSelfAssessmentDrainage(event.target.value as 'Good' | 'Average' | 'Poor')}
+                >
+                  <option>Good</option>
+                  <option>Average</option>
+                  <option>Poor</option>
+                </select>
+              </label>
+              <label>
+                Seismic Zone
+                <select
+                  value={selfAssessmentSeismicZone}
+                  onChange={(event) => setSelfAssessmentSeismicZone(event.target.value as 'Low' | 'Medium' | 'High')}
+                >
+                  <option>Low</option>
+                  <option>Medium</option>
+                  <option>High</option>
+                </select>
+              </label>
+              <label>
+                Foundation Type
+                <select
+                  value={selfAssessmentFoundation}
+                  onChange={(event) =>
+                    setSelfAssessmentFoundation(event.target.value as 'Isolated Footing' | 'Raft' | 'Stone Masonry' | 'Unknown')
+                  }
+                >
+                  <option>Isolated Footing</option>
+                  <option>Raft</option>
+                  <option>Stone Masonry</option>
+                  <option>Unknown</option>
+                </select>
+              </label>
+            </div>
+            <p>
+              Structural Safety Rating: <strong>{buildingSafetyAssessment.rating}</strong> ({buildingSafetyAssessment.score}/100)
+            </p>
+            <p>{buildingSafetyAssessment.recommendation}</p>
+            <p>
+              Professional inspection advice:{' '}
+              <strong>{buildingSafetyAssessment.score < 70 ? 'Strongly recommended' : 'Recommended as preventive practice'}</strong>
+            </p>
+          </div>
+
+          <div className="retrofit-model-output">
+            <h3>🛠️ Community Infrastructure Issue Reporting</h3>
+            <div className="inline-controls">
+              <label>
+                Issue Category
+                <select
+                  value={communityIssueCategory}
+                  onChange={(event) => setCommunityIssueCategory(event.target.value as CommunityIssueCategory)}
+                >
+                  {communityIssueCategories.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Upload Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setCommunityIssuePhoto(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              <label>
+                Notes
+                <input value={communityIssueNotes} onChange={(event) => setCommunityIssueNotes(event.target.value)} placeholder="Describe issue" />
+              </label>
+              <button onClick={() => void submitCommunityIssueReport()} disabled={isSubmittingCommunityIssue}>
+                {isSubmittingCommunityIssue ? '🔄 Submitting...' : '📤 Submit Issue'}
+              </button>
+            </div>
+            <p>GPS Location: {detectedUserLocation ? `${detectedUserLocation.lat.toFixed(4)}, ${detectedUserLocation.lng.toFixed(4)}` : 'Auto capture on submit'}</p>
+            {communityIssueReports.length > 0 && (
+              <div className="alerts">
+                {communityIssueReports.slice(0, 5).map((report) => (
+                  <p key={report.id}>
+                    <strong>{report.category}</strong> • {new Date(report.submittedAt).toLocaleString()} • Status:{' '}
+                    <strong>{report.status}</strong>
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={downloadReport}>📄 Download PDF Report</button>
         </div>
       )
@@ -4920,6 +5274,65 @@ function App() {
             <li>Follow district evacuation routes and keep emergency kits ready.</li>
             <li>Use SMS-style alert channel for last-mile communication.</li>
           </ul>
+
+          <div className="retrofit-model-output">
+            <h3>🌧️ Smart Drainage & Rain Alert Notification</h3>
+            <p>Reference source: Pakistan Meteorological Department (PMD) live weather + CAP alerts.</p>
+            <div className="inline-controls">
+              <button type="button" onClick={runSmartDrainageAlertCheck}>
+                Check Smart Drainage Alert
+              </button>
+              <button type="button" onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
+                {isDetectingLocation ? 'Detecting GPS...' : 'Use My Location for Alerts'}
+              </button>
+            </div>
+            {smartDrainageStatus && <p>{smartDrainageStatus}</p>}
+            <ul>
+              <li>Alternative route suggestion: prioritize raised roads and avoid low underpasses.</li>
+              <li>Flooded road warning: do not cross standing water above wheel level.</li>
+              <li>High-risk users receive recommended shelter move advice before severe rain.</li>
+            </ul>
+          </div>
+
+          <div className="retrofit-model-output">
+            <h3>🧰 Emergency Resilience Toolkit</h3>
+            <h4>Emergency Kit Checklist</h4>
+            <ul>
+              {emergencyKitChecklistItems.map((item) => (
+                <li key={item}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(emergencyKitChecks[item])}
+                      onChange={(event) =>
+                        setEmergencyKitChecks((previous) => ({
+                          ...previous,
+                          [item]: event.target.checked,
+                        }))
+                      }
+                    />{' '}
+                    {item}
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <h4>What To Do During Flood</h4>
+            <ul>
+              <li>Switch off electricity at main board and move to higher floor/safe shelter.</li>
+              <li>Avoid drainage channels and fast-flowing water crossings.</li>
+            </ul>
+            <h4>What To Do During Earthquake</h4>
+            <ul>
+              <li>Drop, cover, and hold under sturdy furniture.</li>
+              <li>After shaking stops, evacuate through safe stairs and avoid damaged walls.</li>
+            </ul>
+            <h4>Nearest Hospitals</h4>
+            <ul>
+              {(nearestHospitalsByProvince[selectedProvince] ?? nearestHospitalsByProvince.Punjab).map((hospital) => (
+                <li key={hospital}>{hospital}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       )
     }
