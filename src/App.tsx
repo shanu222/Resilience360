@@ -19,6 +19,13 @@ import { analyzeBuildingWithVision, type VisionAnalysisResult } from './services
 import { getMlRetrofitEstimate, type MlRetrofitEstimate } from './services/mlRetrofit'
 import { retrainRetrofitModel, uploadRetrofitTrainingData } from './services/retrofitTraining'
 import {
+  fetchCommunityIssues,
+  submitCommunityIssue,
+  updateCommunityIssueStatus,
+  type CommunityIssueRecord,
+  type CommunityIssueStatus,
+} from './services/communityIssues'
+import {
   generateConstructionGuidance,
   generateGuidanceStepImages,
   type ConstructionGuidanceResult,
@@ -120,16 +127,7 @@ type CommunityIssueCategory =
   | 'Streetlight issues'
   | 'Unsafe buildings'
 
-type CommunityIssueReport = {
-  id: string
-  submittedAt: string
-  category: CommunityIssueCategory
-  notes: string
-  photoName: string
-  status: 'Submitted'
-  lat: number | null
-  lng: number | null
-}
+type CommunityIssueReport = CommunityIssueRecord
 
 const communityIssueCategories: CommunityIssueCategory[] = [
   'Broken roads',
@@ -146,6 +144,14 @@ const emergencyKitChecklistItems = [
   'Battery torch + power bank',
   'Important documents in waterproof pouch',
   'Emergency contacts list',
+]
+
+const communityIssueStatusOptions: CommunityIssueStatus[] = [
+  'Submitted',
+  'In Review',
+  'In Progress',
+  'Resolved',
+  'Rejected',
 ]
 
 const pakistanHistoricalDisasterEvents: HistoricalDisasterEvent[] = [
@@ -1123,10 +1129,10 @@ function App() {
   const [communityIssueCategory, setCommunityIssueCategory] = useState<CommunityIssueCategory>('Broken roads')
   const [communityIssueNotes, setCommunityIssueNotes] = useState('')
   const [communityIssuePhoto, setCommunityIssuePhoto] = useState<File | null>(null)
-  const [communityIssueReports, setCommunityIssueReports] = useState<CommunityIssueReport[]>(() => {
-    const cached = localStorage.getItem('r360-community-issues')
-    return cached ? (JSON.parse(cached) as CommunityIssueReport[]) : []
-  })
+  const [communityIssueReports, setCommunityIssueReports] = useState<CommunityIssueReport[]>([])
+  const [communityIssueStatusDrafts, setCommunityIssueStatusDrafts] = useState<Record<string, CommunityIssueStatus>>({})
+  const [isLoadingCommunityIssues, setIsLoadingCommunityIssues] = useState(false)
+  const [isUpdatingCommunityIssueId, setIsUpdatingCommunityIssueId] = useState<string | null>(null)
   const [isSubmittingCommunityIssue, setIsSubmittingCommunityIssue] = useState(false)
   const [climateLocationInput, setClimateLocationInput] = useState('')
   const [selfAssessmentYearBuilt, setSelfAssessmentYearBuilt] = useState(2000)
@@ -1319,12 +1325,20 @@ function App() {
   }, [activeSection, activeLearnVideoFile])
 
   useEffect(() => {
-    localStorage.setItem('r360-community-issues', JSON.stringify(communityIssueReports))
-  }, [communityIssueReports])
-
-  useEffect(() => {
     localStorage.setItem('r360-emergency-kit-checks', JSON.stringify(emergencyKitChecks))
   }, [emergencyKitChecks])
+
+  useEffect(() => {
+    setCommunityIssueStatusDrafts((previous) => {
+      const next = { ...previous }
+      communityIssueReports.forEach((issue) => {
+        if (!next[issue.id]) {
+          next[issue.id] = (issue.status as CommunityIssueStatus) ?? 'Submitted'
+        }
+      })
+      return next
+    })
+  }, [communityIssueReports])
   const districtRiskLookup = useMemo(() => districtRiskLookupByName(), [])
   const availableMapDistricts = useMemo(() => listDistrictsByProvince(selectedProvince), [selectedProvince])
   const selectedDistrictProfile = useMemo<DistrictRiskProfile | null>(
@@ -3093,6 +3107,25 @@ function App() {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank', 'noopener,noreferrer')
   }
 
+  const loadCommunityIssueReports = useCallback(async () => {
+    setIsLoadingCommunityIssues(true)
+    try {
+      const issues = await fetchCommunityIssues()
+      setCommunityIssueReports(issues)
+    } catch (error) {
+      setDistrictProfileSavedMsg(error instanceof Error ? error.message : 'Unable to load community issues right now.')
+      window.setTimeout(() => setDistrictProfileSavedMsg(null), 3200)
+    } finally {
+      setIsLoadingCommunityIssues(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeSection === 'readiness' || activeSection === 'settings') {
+      void loadCommunityIssueReports()
+    }
+  }, [activeSection, loadCommunityIssueReports])
+
   const submitCommunityIssueReport = async () => {
     if (!communityIssuePhoto) {
       setDistrictProfileSavedMsg('Please upload issue photo before submitting report.')
@@ -3122,24 +3155,46 @@ function App() {
         }
       }
 
-      const report: CommunityIssueReport = {
-        id: `issue-${Date.now()}`,
-        submittedAt: new Date().toISOString(),
+      const createdIssue = await submitCommunityIssue({
+        image: communityIssuePhoto,
         category: communityIssueCategory,
         notes: communityIssueNotes.trim() || 'No additional notes provided.',
-        photoName: communityIssuePhoto.name,
-        status: 'Submitted',
         lat,
         lng,
-      }
+        province: selectedProvince,
+        district: selectedDistrict,
+      })
 
-      setCommunityIssueReports((previous) => [report, ...previous].slice(0, 25))
+      setCommunityIssueReports((previous) => [createdIssue, ...previous].slice(0, 50))
+      setCommunityIssueStatusDrafts((previous) => ({
+        ...previous,
+        [createdIssue.id]: (createdIssue.status as CommunityIssueStatus) ?? 'Submitted',
+      }))
       setCommunityIssueNotes('')
       setCommunityIssuePhoto(null)
       setDistrictProfileSavedMsg('Issue submitted successfully. Status: Submitted')
       window.setTimeout(() => setDistrictProfileSavedMsg(null), 3000)
+    } catch (error) {
+      setDistrictProfileSavedMsg(error instanceof Error ? error.message : 'Issue submission failed.')
+      window.setTimeout(() => setDistrictProfileSavedMsg(null), 3200)
     } finally {
       setIsSubmittingCommunityIssue(false)
+    }
+  }
+
+  const saveCommunityIssueStatusUpdate = async (issueId: string) => {
+    const nextStatus = communityIssueStatusDrafts[issueId] ?? 'Submitted'
+    setIsUpdatingCommunityIssueId(issueId)
+    try {
+      const updated = await updateCommunityIssueStatus(issueId, nextStatus)
+      setCommunityIssueReports((previous) => previous.map((issue) => (issue.id === issueId ? updated : issue)))
+      setDistrictProfileSavedMsg(`Issue ${issueId} updated to ${updated.status}.`)
+      window.setTimeout(() => setDistrictProfileSavedMsg(null), 2600)
+    } catch (error) {
+      setDistrictProfileSavedMsg(error instanceof Error ? error.message : 'Status update failed.')
+      window.setTimeout(() => setDistrictProfileSavedMsg(null), 3200)
+    } finally {
+      setIsUpdatingCommunityIssueId(null)
     }
   }
 
@@ -4837,6 +4892,9 @@ function App() {
               <button onClick={() => void submitCommunityIssueReport()} disabled={isSubmittingCommunityIssue}>
                 {isSubmittingCommunityIssue ? '🔄 Submitting...' : '📤 Submit Issue'}
               </button>
+              <button onClick={() => void loadCommunityIssueReports()} disabled={isLoadingCommunityIssues}>
+                {isLoadingCommunityIssues ? '🔄 Refreshing...' : '🔄 Refresh Reports'}
+              </button>
             </div>
             <p>GPS Location: {detectedUserLocation ? `${detectedUserLocation.lat.toFixed(4)}, ${detectedUserLocation.lng.toFixed(4)}` : 'Auto capture on submit'}</p>
             {communityIssueReports.length > 0 && (
@@ -4845,6 +4903,16 @@ function App() {
                   <p key={report.id}>
                     <strong>{report.category}</strong> • {new Date(report.submittedAt).toLocaleString()} • Status:{' '}
                     <strong>{report.status}</strong>
+                    {report.district ? ` • ${report.district}` : ''}
+                    {report.imageUrl ? (
+                      <>
+                        {' '}
+                        •{' '}
+                        <a href={report.imageUrl} target="_blank" rel="noreferrer">
+                          Photo
+                        </a>
+                      </>
+                    ) : null}
                   </p>
                 ))}
               </div>
@@ -5460,6 +5528,61 @@ function App() {
         </label>
         <p>Backend Mode: Firebase / Node or Django REST API compatible interface.</p>
         <p>Kiosk Mode: Solar-ready simplified layout for rural centers and field offices.</p>
+        <div className="retrofit-model-output">
+          <h3>🗂️ Community Issues Admin Dashboard</h3>
+          <div className="inline-controls">
+            <button type="button" onClick={() => void loadCommunityIssueReports()} disabled={isLoadingCommunityIssues}>
+              {isLoadingCommunityIssues ? '🔄 Loading Issues...' : '🔄 Reload Issues'}
+            </button>
+          </div>
+          {communityIssueReports.length === 0 ? (
+            <p>No community issue submissions yet.</p>
+          ) : (
+            <div className="alerts">
+              {communityIssueReports.slice(0, 25).map((issue) => (
+                <div key={issue.id} style={{ marginBottom: 12 }}>
+                  <p>
+                    <strong>{issue.category}</strong> • {new Date(issue.submittedAt).toLocaleString()} •{' '}
+                    {issue.province ?? 'Pakistan'}{issue.district ? ` / ${issue.district}` : ''}
+                  </p>
+                  <p>{issue.notes}</p>
+                  <div className="inline-controls">
+                    <label>
+                      Status
+                      <select
+                        value={communityIssueStatusDrafts[issue.id] ?? (issue.status as CommunityIssueStatus) ?? 'Submitted'}
+                        onChange={(event) =>
+                          setCommunityIssueStatusDrafts((previous) => ({
+                            ...previous,
+                            [issue.id]: event.target.value as CommunityIssueStatus,
+                          }))
+                        }
+                      >
+                        {communityIssueStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void saveCommunityIssueStatusUpdate(issue.id)}
+                      disabled={isUpdatingCommunityIssueId === issue.id}
+                    >
+                      {isUpdatingCommunityIssueId === issue.id ? '🔄 Updating...' : '✅ Update Status'}
+                    </button>
+                    {issue.imageUrl ? (
+                      <a href={issue.imageUrl} target="_blank" rel="noreferrer">
+                        View Photo
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     )
   }

@@ -41,11 +41,16 @@ const recoveryRateLimitStore = new Map()
 const retrofitTrainingDir = path.join(__dirname, 'ml', 'training')
 const retrofitTrainingImagesDir = path.join(retrofitTrainingDir, 'images')
 const retrofitTrainingDataFile = path.join(retrofitTrainingDir, 'userRetrofitTrainingData.json')
+const communityIssuesDir = path.join(__dirname, 'data', 'community-issues')
+const communityIssueImagesDir = path.join(communityIssuesDir, 'images')
+const communityIssuesDataFile = path.join(communityIssuesDir, 'issues.json')
+const allowedCommunityIssueStatuses = new Set(['Submitted', 'In Review', 'In Progress', 'Resolved', 'Rejected'])
 
 const openai = hasKey ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
 
 app.use(cors())
 app.use(express.json({ limit: '2mb' }))
+app.use('/uploads/community-issues', express.static(communityIssueImagesDir))
 
 const extractJson = (rawText) => {
   if (!rawText) {
@@ -174,6 +179,33 @@ const readRetrofitTrainingData = async () => {
 const writeRetrofitTrainingData = async (rows) => {
   await ensureRetrofitTrainingStorage()
   await fs.writeFile(retrofitTrainingDataFile, JSON.stringify(rows, null, 2), 'utf8')
+}
+
+const ensureCommunityIssuesStorage = async () => {
+  await fs.mkdir(communityIssueImagesDir, { recursive: true })
+}
+
+const readCommunityIssues = async () => {
+  try {
+    const raw = await fs.readFile(communityIssuesDataFile, 'utf8')
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const writeCommunityIssues = async (rows) => {
+  await ensureCommunityIssuesStorage()
+  await fs.writeFile(communityIssuesDataFile, JSON.stringify(rows, null, 2), 'utf8')
+}
+
+const buildCommunityIssueImageUrl = (req, imageName) => {
+  if (!imageName) return null
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString().split(',')[0].trim()
+  const host = req.get('host')
+  if (!host) return `/uploads/community-issues/${encodeURIComponent(imageName)}`
+  return `${proto}://${host}/uploads/community-issues/${encodeURIComponent(imageName)}`
 }
 
 const sendViaResend = async ({ toEmail, toName, subject, text, html }) => {
@@ -767,6 +799,108 @@ app.post('/api/ml/retrain', async (_req, res) => {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to retrain ML model.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.post('/api/community/issues', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: 'Issue photo is required.' })
+    return
+  }
+
+  try {
+    const issueId = `issue-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const extension = req.file.mimetype.includes('png') ? 'png' : req.file.mimetype.includes('webp') ? 'webp' : 'jpg'
+    const imageName = `${issueId}.${extension}`
+
+    await ensureCommunityIssuesStorage()
+    await fs.writeFile(path.join(communityIssueImagesDir, imageName), req.file.buffer)
+
+    const issue = {
+      id: issueId,
+      submittedAt: new Date().toISOString(),
+      category: String(req.body.category ?? 'Broken roads'),
+      notes: String(req.body.notes ?? '').trim() || 'No additional notes provided.',
+      photoName: req.file.originalname || imageName,
+      imageName,
+      status: 'Submitted',
+      lat: req.body.lat !== undefined && String(req.body.lat).trim() !== '' ? Number(req.body.lat) : null,
+      lng: req.body.lng !== undefined && String(req.body.lng).trim() !== '' ? Number(req.body.lng) : null,
+      province: String(req.body.province ?? '').trim() || null,
+      district: String(req.body.district ?? '').trim() || null,
+    }
+
+    const issues = await readCommunityIssues()
+    issues.unshift(issue)
+    await writeCommunityIssues(issues)
+
+    res.json({
+      ...issue,
+      imageUrl: buildCommunityIssueImageUrl(req, issue.imageName),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to submit community issue.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.get('/api/community/issues', async (req, res) => {
+  try {
+    const statusFilter = String(req.query.status ?? '').trim()
+    const allIssues = await readCommunityIssues()
+    const filtered = statusFilter
+      ? allIssues.filter((item) => String(item.status).toLowerCase() === statusFilter.toLowerCase())
+      : allIssues
+
+    res.json(
+      filtered.map((issue) => ({
+        ...issue,
+        imageUrl: buildCommunityIssueImageUrl(req, issue.imageName),
+      })),
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load community issues.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.patch('/api/community/issues/:id/status', async (req, res) => {
+  try {
+    const issueId = String(req.params.id ?? '').trim()
+    const status = String(req.body.status ?? '').trim()
+
+    if (!issueId) {
+      res.status(400).json({ error: 'Issue id is required.' })
+      return
+    }
+
+    if (!allowedCommunityIssueStatuses.has(status)) {
+      res.status(400).json({ error: 'Invalid status.' })
+      return
+    }
+
+    const issues = await readCommunityIssues()
+    const index = issues.findIndex((item) => item.id === issueId)
+    if (index < 0) {
+      res.status(404).json({ error: 'Issue not found.' })
+      return
+    }
+
+    issues[index] = {
+      ...issues[index],
+      status,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await writeCommunityIssues(issues)
+
+    res.json({
+      ...issues[index],
+      imageUrl: buildCommunityIssueImageUrl(req, issues[index].imageName),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update community issue status.'
     res.status(500).json({ error: message })
   }
 })
