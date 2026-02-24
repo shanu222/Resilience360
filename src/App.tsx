@@ -10,7 +10,6 @@ import {
   TextRun,
 } from 'docx'
 import RiskMap from './components/RiskMap'
-import GlobalEarthquakeGlobe from './components/GlobalEarthquakeGlobe'
 import ResponsiveQa from './components/ResponsiveQa'
 import UserLocationMiniMap from './components/UserLocationMiniMap'
 import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
@@ -1006,9 +1005,9 @@ function App() {
     const cached = localStorage.getItem('r360-global-earthquakes')
     return cached ? (JSON.parse(cached) as GlobalEarthquake[]) : []
   })
-  const [isLoadingGlobalEarthquakes, setIsLoadingGlobalEarthquakes] = useState(false)
-  const [globalEarthquakeError, setGlobalEarthquakeError] = useState<string | null>(null)
-  const [globalEarthquakesSyncedAt, setGlobalEarthquakesSyncedAt] = useState<string | null>(() =>
+  const [, setIsLoadingGlobalEarthquakes] = useState(false)
+  const [, setGlobalEarthquakeError] = useState<string | null>(null)
+  const [, setGlobalEarthquakesSyncedAt] = useState<string | null>(() =>
     localStorage.getItem('r360-global-earthquakes-synced-at'),
   )
   const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(true)
@@ -3159,25 +3158,16 @@ function App() {
             <div className="global-earthquake-alerts-head">
               <h3>🌍 Live Earthquake Alerts</h3>
             </div>
-            {globalEarthquakesSyncedAt && (
-              <p className="global-earthquake-sync-meta">Last synced: {new Date(globalEarthquakesSyncedAt).toLocaleString()}</p>
-            )}
-            {globalEarthquakeError && <p>{globalEarthquakeError}</p>}
-            <GlobalEarthquakeGlobe
-              earthquakes={globalEarthquakes}
-              selectedEarthquakeId={selectedGlobalEarthquakeId}
-              onSelectEarthquake={(id) => {
-                setSelectedGlobalEarthquakeId(id)
-                setShowGlobalEarthquakesOnMap(true)
-                setGlobalEarthquakeMapFocusToken((value) => value + 1)
+            <button
+              type="button"
+              className="global-earthquake-launch-btn"
+              onClick={() => {
+                const liveAlertsUrl = `${import.meta.env.BASE_URL}live-earthquake-alerts.html`
+                window.open(liveAlertsUrl, '_blank', 'noopener,noreferrer')
               }}
-              onRefreshEarthquakes={() => {
-                setShowGlobalEarthquakesOnMap(true)
-                void loadGlobalEarthquakes()
-              }}
-              isRefreshing={isLoadingGlobalEarthquakes}
-              focusToken={globalEarthquakeMapFocusToken + globalEarthquakes.length}
-            />
+            >
+              live earthquake Alerts
+            </button>
           </div>
           {selectedDistrict && (
             <div className="retrofit-model-output">

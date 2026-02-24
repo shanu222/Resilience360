@@ -504,6 +504,21 @@
   background: #fbeee9;
 }
 
+.global-earthquake-launch-btn {
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: linear-gradient(180deg, #1d4ed8, #1e3a8a);
+  color: #ffffff;
+  border-radius: 0.55rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.global-earthquake-launch-btn:hover {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+}
+
 /* Earthquake monitor layout override (reference-style) */
 .global-earthquake-panel.global-earthquake-alerts-card {
   border: 1px solid rgba(51, 93, 162, 0.4);

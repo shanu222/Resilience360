@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Earthquake Alerts</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, Segoe UI, Arial, sans-serif;
+        background: #0b1220;
+        color: #eef5ff;
+      }
+
+      .page {
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 70% 42%, rgba(34, 95, 210, 0.28), rgba(4, 10, 24, 0.95) 45%),
+          linear-gradient(160deg, #0a1327 0%, #040814 100%);
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(110, 162, 255, 0.25);
+        background: rgba(5, 15, 36, 0.65);
+      }
+
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 34px;
+        font-weight: 800;
+      }
+
+      .title-icon {
+        color: #4cc6ff;
+        font-size: 28px;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #8ff7b7;
+        font-weight: 700;
+        background: rgba(14, 41, 97, 0.65);
+        border: 1px solid rgba(102, 176, 255, 0.33);
+        border-radius: 999px;
+        padding: 6px 12px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #46ff87;
+        box-shadow: 0 0 8px rgba(70, 255, 135, 0.9);
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn {
+        border: 1px solid rgba(141, 193, 255, 0.3);
+        background: linear-gradient(180deg, #194aa6, #10316f);
+        color: #f5f9ff;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        background: linear-gradient(180deg, #2b9cff, #1b6cdd);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 370px 1fr;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .card {
+        border: 1px solid rgba(106, 165, 255, 0.35);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(8, 21, 52, 0.92), rgba(4, 11, 29, 0.92));
+      }
+
+      .left {
+        padding: 10px;
+      }
+
+      .left h2 {
+        margin: 4px 2px 8px;
+        font-size: 30px;
+      }
+
+      .left-head {
+        display: flex;
+        justify-content: space-between;
+        color: #9cb5de;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 0 8px 8px;
+      }
+
+      .events {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .event {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        border: 1px solid rgba(124, 173, 255, 0.25);
+        border-radius: 10px;
+        padding: 8px;
+        margin-bottom: 6px;
+        background: rgba(6, 17, 41, 0.92);
+      }
+
+      .event .meta {
+        display: flex;
+        gap: 10px;
+      }
+
+      .flag {
+        font-size: 22px;
+      }
+
+      .country {
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      .place {
+        color: #b0c4e3;
+        font-size: 13px;
+        max-width: 165px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .mag {
+        text-align: right;
+        min-width: 92px;
+      }
+
+      .mag-badge {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 2px 10px;
+        font-weight: 800;
+      }
+
+      .m-veryhigh { background: linear-gradient(180deg, #cf1f35, #8c0d1d); }
+      .m-high { background: linear-gradient(180deg, #ef7f1f, #b3470e); }
+      .m-medium { background: linear-gradient(180deg, #d4bc18, #9c8308); }
+      .m-low { background: linear-gradient(180deg, #2f96ef, #1a69bf); }
+
+      .time {
+        font-size: 12px;
+        color: #b4c7e7;
+        margin-top: 3px;
+      }
+
+      .right {
+        position: relative;
+        min-height: 500px;
+      }
+
+      .globe-wrap {
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+      }
+
+      .globe {
+        width: min(100%, 820px);
+        height: 100%;
+        border-radius: 12px;
+        background:
+          radial-gradient(circle at 30% 25%, rgba(58, 145, 255, 0.3), rgba(2, 8, 23, 0.97) 52%),
+          url('https://unpkg.com/three-globe/example/img/earth-night.jpg') center/cover no-repeat;
+        box-shadow: 0 0 40px rgba(94, 140, 255, 0.25);
+      }
+
+      .tools {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .tool {
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(119, 174, 255, 0.45);
+        border-radius: 7px;
+        background: rgba(5, 23, 54, 0.9);
+        color: #eff6ff;
+        font-weight: 800;
+      }
+
+      .mini {
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+        width: 134px;
+        height: 82px;
+        border-radius: 8px;
+        border: 1px solid rgba(112, 176, 255, 0.42);
+        background: linear-gradient(180deg, rgba(4, 15, 42, 0.75), rgba(3, 9, 27, 0.78)), url('https://unpkg.com/three-globe/example/img/earth-dark.jpg') center/cover no-repeat;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        color: #dde9ff;
+        font-size: 11px;
+        padding-bottom: 4px;
+      }
+
+      .footer {
+        display: grid;
+        grid-template-columns: 370px 1fr;
+        gap: 14px;
+        padding: 0 14px 14px;
+      }
+
+      .legend,
+      .stats {
+        padding: 10px;
+      }
+
+      .legend h3,
+      .stats h3 {
+        margin: 0 0 8px;
+      }
+
+      .legend-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        color: #c5dbff;
+        font-size: 14px;
+      }
+
+      .dot-s { font-size: 20px; line-height: 1; }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(110px, 1fr));
+        gap: 8px;
+      }
+
+      .stats-item {
+        border: 1px solid rgba(117, 172, 255, 0.33);
+        border-radius: 8px;
+        background: rgba(8, 22, 52, 0.8);
+        padding: 8px;
+      }
+
+      .stats-item small {
+        color: #9db6dd;
+        font-size: 12px;
+      }
+
+      .stats-item strong {
+        display: block;
+        margin-top: 2px;
+        font-size: 24px;
+      }
+
+      @media (max-width: 1200px) {
+        .layout,
+        .footer {
+          grid-template-columns: 1fr;
+        }
+
+        .globe-wrap {
+          height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="header">
+        <div class="title"><span class="title-icon">📡</span> Earthquake Live Monitor</div>
+        <div class="status"><span class="dot"></span> Live Data <small id="updatedAt">Last Updated: Just Now</small></div>
+        <div class="actions">
+          <button class="btn" type="button">Fullscreen</button>
+          <button class="btn primary" id="refreshBtn" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <aside class="left card">
+          <h2>Recent Activity</h2>
+          <div class="left-head"><span>Country</span><span>Magnitude</span></div>
+          <div class="events" id="events"></div>
+        </aside>
+
+        <section class="right card">
+          <div class="globe-wrap">
+            <div class="globe"></div>
+          </div>
+          <div class="tools">
+            <button class="tool">+</button>
+            <button class="tool">−</button>
+            <button class="tool">⊗</button>
+          </div>
+          <div class="mini">World View</div>
+        </section>
+      </div>
+
+      <div class="footer">
+        <section class="legend card">
+          <h3>Magnitude Scale</h3>
+          <div class="legend-row">
+            <span class="dot-s" style="color:#49aefe">•</span><span>M &lt; 4.0</span>
+            <span class="dot-s" style="color:#e7d73b">•</span><span>4.0 - 5.0</span>
+            <span class="dot-s" style="color:#ff972a">•</span><span>5.0 - 6.0</span>
+            <span class="dot-s" style="color:#ff3553">•</span><span>&gt; 6.0</span>
+          </div>
+        </section>
+
+        <section class="stats card">
+          <h3>Global Statistics (24h)</h3>
+          <div class="stats-grid" id="statsGrid"></div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const feed = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
+
+      function tierClass(m) {
+        if (m >= 6) return 'm-veryhigh';
+        if (m >= 5) return 'm-high';
+        if (m >= 4) return 'm-medium';
+        return 'm-low';
+      }
+
+      function countryFromPlace(place) {
+        const parts = String(place || '').split(',');
+        return (parts[parts.length - 1] || 'Global').trim();
+      }
+
+      function flagFor(country) {
+        const x = country.toLowerCase();
+        if (x.includes('usa') || x.includes('united states')) return '🇺🇸';
+        if (x.includes('mexico')) return '🇲🇽';
+        if (x.includes('japan')) return '🇯🇵';
+        if (x.includes('indonesia')) return '🇮🇩';
+        if (x.includes('pakistan')) return '🇵🇰';
+        return '🌍';
+      }
+
+      function render(data) {
+        const eventsEl = document.getElementById('events');
+        const statsGrid = document.getElementById('statsGrid');
+        const updatedAt = document.getElementById('updatedAt');
+
+        const items = data.slice(0, 8);
+        eventsEl.innerHTML = items.map((e) => {
+          const country = countryFromPlace(e.properties.place);
+          const mag = Number(e.properties.mag || 0);
+          const t = new Date(e.properties.time);
+          return `
+            <div class="event">
+              <div class="meta">
+                <div class="flag">${flagFor(country)}</div>
+                <div>
+                  <div class="country">${country}</div>
+                  <div class="place">${e.properties.place || ''}</div>
+                </div>
+              </div>
+              <div class="mag">
+                <span class="mag-badge ${tierClass(mag)}">M ${mag.toFixed(1)}</span>
+                <div class="time">${t.toLocaleTimeString()}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const mags = data.map((x) => Number(x.properties.mag || 0));
+        const avg = mags.length ? mags.reduce((a, b) => a + b, 0) / mags.length : 0;
+        const max = mags.length ? Math.max(...mags) : 0;
+        const countries = new Set(data.map((x) => countryFromPlace(x.properties.place))).size;
+
+        statsGrid.innerHTML = `
+          <div class="stats-item"><small>Total Events</small><strong>${data.length}</strong></div>
+          <div class="stats-item"><small>Avg. Magnitude</small><strong>${avg.toFixed(1)}</strong></div>
+          <div class="stats-item"><small>Largest</small><strong>M ${max.toFixed(1)}</strong></div>
+          <div class="stats-item"><small>Locations</small><strong>${countries} Countries</strong></div>
+        `;
+
+        updatedAt.textContent = `Last Updated: ${new Date().toLocaleTimeString()}`;
+      }
+
+      async function load() {
+        try {
+          const res = await fetch(feed, { cache: 'no-store' });
+          const json = await res.json();
+          const features = Array.isArray(json.features) ? json.features : [];
+          render(features);
+        } catch {
+          render([]);
+        }
+      }
+
+      document.getElementById('refreshBtn').addEventListener('click', load);
+      load();
+    </script>
+  </body>
+</html>
