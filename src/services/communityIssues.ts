@@ -62,7 +62,12 @@ const postFormDataWithFallback = async <T>(path: string, formData: FormData): Pr
   throw lastError ?? new Error('Community issues request failed')
 }
 
-const sendJsonWithFallback = async <T>(path: string, method: 'GET' | 'PATCH', payload?: object): Promise<T> => {
+const sendJsonWithFallback = async <T>(
+  path: string,
+  method: 'GET' | 'PATCH',
+  payload?: object,
+  extraHeaders?: Record<string, string>,
+): Promise<T> => {
   const targets = buildApiTargets(path)
   let lastError: Error | null = null
 
@@ -70,7 +75,10 @@ const sendJsonWithFallback = async <T>(path: string, method: 'GET' | 'PATCH', pa
     try {
       const response = await fetch(target, {
         method,
-        headers: payload ? { 'Content-Type': 'application/json' } : undefined,
+        headers: {
+          ...(payload ? { 'Content-Type': 'application/json' } : {}),
+          ...(extraHeaders ?? {}),
+        },
         body: payload ? JSON.stringify(payload) : undefined,
       })
 
@@ -135,4 +143,14 @@ export const fetchCommunityIssues = async (): Promise<CommunityIssueRecord[]> =>
 export const updateCommunityIssueStatus = async (
   issueId: string,
   status: CommunityIssueStatus,
-): Promise<CommunityIssueRecord> => sendJsonWithFallback<CommunityIssueRecord>(`/api/community/issues/${encodeURIComponent(issueId)}/status`, 'PATCH', { status })
+  adminToken: string,
+): Promise<CommunityIssueRecord> =>
+  sendJsonWithFallback<CommunityIssueRecord>(
+    `/api/community/issues/${encodeURIComponent(issueId)}/status`,
+    'PATCH',
+    { status },
+    {
+      Authorization: `Bearer ${adminToken}`,
+      'x-admin-token': adminToken,
+    },
+  )

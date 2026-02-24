@@ -35,6 +35,7 @@ const RECOVERY_FROM_EMAIL = String(process.env.RECOVERY_FROM_EMAIL ?? '').trim()
 const RECOVERY_FROM_NAME = String(process.env.RECOVERY_FROM_NAME ?? 'Resilience360 Recovery').trim()
 const RESEND_API_KEY = String(process.env.RESEND_API_KEY ?? '').trim()
 const BREVO_API_KEY = String(process.env.BREVO_API_KEY ?? '').trim()
+const COMMUNITY_ISSUES_ADMIN_TOKEN = String(process.env.COMMUNITY_ISSUES_ADMIN_TOKEN ?? '').trim()
 const RECOVERY_RATE_LIMIT_WINDOW_MS = Math.max(60_000, Number(process.env.RECOVERY_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000) || 15 * 60 * 1000)
 const RECOVERY_RATE_LIMIT_MAX_REQUESTS = Math.max(1, Number(process.env.RECOVERY_RATE_LIMIT_MAX_REQUESTS ?? 6) || 6)
 const recoveryRateLimitStore = new Map()
@@ -206,6 +207,14 @@ const buildCommunityIssueImageUrl = (req, imageName) => {
   const host = req.get('host')
   if (!host) return `/uploads/community-issues/${encodeURIComponent(imageName)}`
   return `${proto}://${host}/uploads/community-issues/${encodeURIComponent(imageName)}`
+}
+
+const readAdminTokenFromRequest = (req) => {
+  const bearer = String(req.headers.authorization ?? '').trim()
+  if (bearer.toLowerCase().startsWith('bearer ')) {
+    return bearer.slice(7).trim()
+  }
+  return String(req.headers['x-admin-token'] ?? '').trim()
 }
 
 const sendViaResend = async ({ toEmail, toName, subject, text, html }) => {
@@ -867,6 +876,17 @@ app.get('/api/community/issues', async (req, res) => {
 
 app.patch('/api/community/issues/:id/status', async (req, res) => {
   try {
+    if (!COMMUNITY_ISSUES_ADMIN_TOKEN) {
+      res.status(503).json({ error: 'Admin status gate is not configured on server.' })
+      return
+    }
+
+    const providedToken = readAdminTokenFromRequest(req)
+    if (!providedToken || providedToken !== COMMUNITY_ISSUES_ADMIN_TOKEN) {
+      res.status(401).json({ error: 'Unauthorized: valid admin token is required to update issue status.' })
+      return
+    }
+
     const issueId = String(req.params.id ?? '').trim()
     const status = String(req.body.status ?? '').trim()
 

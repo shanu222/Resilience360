@@ -1131,6 +1131,7 @@ function App() {
   const [communityIssuePhoto, setCommunityIssuePhoto] = useState<File | null>(null)
   const [communityIssueReports, setCommunityIssueReports] = useState<CommunityIssueReport[]>([])
   const [communityIssueStatusDrafts, setCommunityIssueStatusDrafts] = useState<Record<string, CommunityIssueStatus>>({})
+  const [communityAdminToken, setCommunityAdminToken] = useState(() => localStorage.getItem('r360-community-admin-token') ?? '')
   const [isLoadingCommunityIssues, setIsLoadingCommunityIssues] = useState(false)
   const [isUpdatingCommunityIssueId, setIsUpdatingCommunityIssueId] = useState<string | null>(null)
   const [isSubmittingCommunityIssue, setIsSubmittingCommunityIssue] = useState(false)
@@ -1327,6 +1328,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('r360-emergency-kit-checks', JSON.stringify(emergencyKitChecks))
   }, [emergencyKitChecks])
+
+  useEffect(() => {
+    localStorage.setItem('r360-community-admin-token', communityAdminToken)
+  }, [communityAdminToken])
 
   useEffect(() => {
     setCommunityIssueStatusDrafts((previous) => {
@@ -3183,10 +3188,17 @@ function App() {
   }
 
   const saveCommunityIssueStatusUpdate = async (issueId: string) => {
+    const adminToken = communityAdminToken.trim()
+    if (!adminToken) {
+      setDistrictProfileSavedMsg('Admin token required to update issue status.')
+      window.setTimeout(() => setDistrictProfileSavedMsg(null), 2600)
+      return
+    }
+
     const nextStatus = communityIssueStatusDrafts[issueId] ?? 'Submitted'
     setIsUpdatingCommunityIssueId(issueId)
     try {
-      const updated = await updateCommunityIssueStatus(issueId, nextStatus)
+      const updated = await updateCommunityIssueStatus(issueId, nextStatus, adminToken)
       setCommunityIssueReports((previous) => previous.map((issue) => (issue.id === issueId ? updated : issue)))
       setDistrictProfileSavedMsg(`Issue ${issueId} updated to ${updated.status}.`)
       window.setTimeout(() => setDistrictProfileSavedMsg(null), 2600)
@@ -5531,10 +5543,20 @@ function App() {
         <div className="retrofit-model-output">
           <h3>🗂️ Community Issues Admin Dashboard</h3>
           <div className="inline-controls">
+            <label>
+              Admin Token
+              <input
+                type="password"
+                value={communityAdminToken}
+                onChange={(event) => setCommunityAdminToken(event.target.value)}
+                placeholder="Enter shared admin token"
+              />
+            </label>
             <button type="button" onClick={() => void loadCommunityIssueReports()} disabled={isLoadingCommunityIssues}>
               {isLoadingCommunityIssues ? '🔄 Loading Issues...' : '🔄 Reload Issues'}
             </button>
           </div>
+          <p>Status updates are admin-protected and require a valid shared token.</p>
           {communityIssueReports.length === 0 ? (
             <p>No community issue submissions yet.</p>
           ) : (
@@ -5568,7 +5590,7 @@ function App() {
                     <button
                       type="button"
                       onClick={() => void saveCommunityIssueStatusUpdate(issue.id)}
-                      disabled={isUpdatingCommunityIssueId === issue.id}
+                      disabled={isUpdatingCommunityIssueId === issue.id || !communityAdminToken.trim()}
                     >
                       {isUpdatingCommunityIssueId === issue.id ? '🔄 Updating...' : '✅ Update Status'}
                     </button>

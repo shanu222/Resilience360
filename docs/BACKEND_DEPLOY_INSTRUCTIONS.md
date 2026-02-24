@@ -32,6 +32,9 @@ For portal credential recovery email (PGBC + COE), add:
 - RESEND_API_KEY=<required if provider is resend>
 - BREVO_API_KEY=<required if provider is brevo>
 
+For community issue admin status updates, add:
+- COMMUNITY_ISSUES_ADMIN_TOKEN=<shared secret token used by admin dashboard>
+
 Notes:
 - At least one provider key must be configured.
 - This backend mail path avoids browser-side EmailJS provider token expiry issues.
