@@ -86,6 +86,10 @@
         cursor: pointer;
       }
 
+      .btn.back {
+        background: linear-gradient(180deg, #64748b, #334155);
+      }
+
       .btn.primary {
         background: linear-gradient(180deg, #2b9cff, #1b6cdd);
       }
@@ -127,6 +131,8 @@
       }
 
       .event {
+        width: 100%;
+        text-align: left;
         display: flex;
         justify-content: space-between;
         gap: 8px;
@@ -135,6 +141,12 @@
         padding: 8px;
         margin-bottom: 6px;
         background: rgba(6, 17, 41, 0.92);
+        cursor: pointer;
+      }
+
+      .event.selected {
+        border-color: rgba(255, 89, 89, 0.8);
+        box-shadow: 0 0 0 1px rgba(255, 89, 89, 0.25);
       }
 
       .event .meta {
@@ -223,6 +235,13 @@
         background: rgba(5, 23, 54, 0.9);
         color: #eff6ff;
         font-weight: 800;
+        cursor: pointer;
+      }
+
+      .source-meta {
+        color: #9db5dd;
+        font-size: 12px;
+        margin-top: 8px;
       }
 
       .mini {
@@ -312,7 +331,8 @@
         <div class="title"><span class="title-icon">📡</span> Earthquake Live Monitor</div>
         <div class="status"><span class="dot"></span> Live Data <small id="updatedAt">Last Updated: Just Now</small></div>
         <div class="actions">
-          <button class="btn" type="button">Fullscreen</button>
+          <button class="btn back" id="backBtn" type="button">Back</button>
+          <button class="btn" id="fullscreenBtn" type="button">Fullscreen</button>
           <button class="btn primary" id="refreshBtn" type="button">Refresh</button>
         </div>
       </div>
@@ -322,16 +342,17 @@
           <h2>Recent Activity</h2>
           <div class="left-head"><span>Country</span><span>Magnitude</span></div>
           <div class="events" id="events"></div>
+          <div id="sourceMeta" class="source-meta">Source: loading…</div>
         </aside>
 
         <section class="right card">
           <div class="globe-wrap">
-            <div class="globe"></div>
+            <div id="globeViz" class="globe"></div>
           </div>
           <div class="tools">
-            <button class="tool">+</button>
-            <button class="tool">−</button>
-            <button class="tool">⊗</button>
+            <button class="tool" id="zoomInBtn">+</button>
+            <button class="tool" id="zoomOutBtn">−</button>
+            <button class="tool" id="resetViewBtn">⊗</button>
           </div>
           <div class="mini">World View</div>
         </section>
@@ -355,8 +376,22 @@
       </div>
     </div>
 
+    <script src="https://unpkg.com/three"></script>
+    <script src="https://unpkg.com/globe.gl"></script>
     <script>
-      const feed = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
+      const EARTH3D_SCENE_ID = 'b9f8d30d65cd487d8302b6b55aa094c7';
+      const USGS_FEEDS = [
+        'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson',
+        'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
+      ];
+      const ALL_ORIGINS = 'https://api.allorigins.win/raw?url=';
+
+      let globe = null;
+      let quakeRows = [];
+      let selectedId = null;
+      let currentAltitude = 1.7;
+      let eventsData = [];
+      const defaultCenter = { lat: 20, lng: 15 };
 
       function tierClass(m) {
         if (m >= 6) return 'm-veryhigh';
@@ -380,18 +415,143 @@
         return '🌍';
       }
 
+      function toPointColor(m) {
+        if (m >= 6.5) return '#ff3656';
+        if (m >= 5.5) return '#ff982c';
+        if (m >= 4.5) return '#e7d63a';
+        return '#4aaefe';
+      }
+
+      async function fetchEarth3DArcGisSource() {
+        const itemDataUrl = `https://www.arcgis.com/sharing/rest/content/items/${EARTH3D_SCENE_ID}/data?f=json`;
+        const itemDataRes = await fetch(itemDataUrl, { cache: 'no-store' });
+        if (!itemDataRes.ok) throw new Error('ArcGIS scene metadata unavailable');
+        const itemData = await itemDataRes.json();
+        const layers = itemData?.operationalLayers || [];
+        const candidateLayer = layers.find((layer) => {
+          const label = `${layer?.title || ''} ${layer?.url || ''}`.toLowerCase();
+          return label.includes('quake') || label.includes('earthquake') || label.includes('usgs');
+        }) || layers.find((layer) => String(layer?.url || '').includes('FeatureServer'));
+
+        const baseUrl = candidateLayer?.url;
+        if (!baseUrl || !baseUrl.includes('FeatureServer')) throw new Error('No ArcGIS earthquake layer found');
+
+        const queryUrl = `${baseUrl}/query?where=1%3D1&outFields=*&f=json&returnGeometry=true&orderByFields=time%20DESC&resultRecordCount=200`;
+        const queryRes = await fetch(queryUrl, { cache: 'no-store' });
+        if (!queryRes.ok) throw new Error('ArcGIS earthquake query failed');
+        const queryJson = await queryRes.json();
+        const features = Array.isArray(queryJson?.features) ? queryJson.features : [];
+
+        const normalized = features
+          .map((item) => {
+            const attr = item?.attributes || {};
+            const geom = item?.geometry || {};
+            const mag = Number(attr.mag ?? attr.magnitude ?? attr.Magnitude ?? 0);
+            const lat = Number(geom.y ?? attr.latitude ?? attr.lat);
+            const lng = Number(geom.x ?? attr.longitude ?? attr.lon ?? attr.lng);
+            const time = Number(attr.time ?? attr.updated ?? Date.now());
+            const place = String(attr.place ?? attr.title ?? attr.location ?? 'Unknown location');
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            return {
+              id: String(attr.id ?? attr.objectid ?? attr.OBJECTID ?? `${lat}-${lng}-${time}`),
+              properties: {
+                mag: Number.isFinite(mag) ? mag : 0,
+                place,
+                time,
+                url: String(attr.url ?? attr.link ?? 'https://earth3dmap.com/earthquake-live-map/')
+              },
+              geometry: {
+                coordinates: [lng, lat, Number(attr.depth ?? attr.depth_km ?? 0)]
+              }
+            };
+          })
+          .filter(Boolean);
+
+        if (!normalized.length) throw new Error('ArcGIS returned no usable points');
+        return { features: normalized, sourceLabel: 'Source: Earth3DMap (ArcGIS live layer)' };
+      }
+
+      async function fetchUsgsFallback() {
+        for (const feed of USGS_FEEDS) {
+          try {
+            const res = await fetch(feed, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const json = await res.json();
+            const features = Array.isArray(json.features) ? json.features : [];
+            if (features.length) {
+              return { features, sourceLabel: 'Source: Earth3DMap route + USGS live feed' };
+            }
+          } catch {}
+        }
+        throw new Error('USGS fallback unavailable');
+      }
+
+      async function fetchLiveEarthquakes() {
+        try {
+          return await fetchEarth3DArcGisSource();
+        } catch {
+          try {
+            const proxiedScene = await fetch(`${ALL_ORIGINS}${encodeURIComponent('https://earth3dmap.com/earthquake-live-map/')}`, { cache: 'no-store' });
+            if (proxiedScene.ok) {
+              return await fetchUsgsFallback();
+            }
+          } catch {}
+          return await fetchUsgsFallback();
+        }
+      }
+
+      function ensureGlobe() {
+        if (globe) return globe;
+        const el = document.getElementById('globeViz');
+        globe = Globe()(el)
+          .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+          .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+          .backgroundColor('rgba(0,0,0,0)')
+          .showAtmosphere(true)
+          .atmosphereColor('#5ca8ff')
+          .atmosphereAltitude(0.18)
+          .pointLabel((d) => d.label)
+          .onPointClick((d) => selectEvent(d.id));
+
+        const controls = globe.controls();
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.35;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        return globe;
+      }
+
+      function focusOn(id) {
+        if (!globe || !eventsData.length) return;
+        const selected = eventsData.find((item) => item.id === id);
+        const target = selected || eventsData[0];
+        if (!target) return;
+        globe.pointOfView({ lat: target.lat, lng: target.lng, altitude: selected ? 1.05 : 1.7 }, 900);
+      }
+
+      function selectEvent(id) {
+        selectedId = id;
+        for (const row of quakeRows) {
+          row.classList.toggle('selected', row.dataset.id === id);
+        }
+        focusOn(id);
+      }
+
       function render(data) {
         const eventsEl = document.getElementById('events');
         const statsGrid = document.getElementById('statsGrid');
         const updatedAt = document.getElementById('updatedAt');
+        const sourceMeta = document.getElementById('sourceMeta');
+        const glb = ensureGlobe();
 
         const items = data.slice(0, 8);
         eventsEl.innerHTML = items.map((e) => {
           const country = countryFromPlace(e.properties.place);
           const mag = Number(e.properties.mag || 0);
           const t = new Date(e.properties.time);
+          const id = String(e.id ?? `${e.geometry.coordinates[1]}-${e.geometry.coordinates[0]}-${e.properties.time}`);
           return `
-            <div class="event">
+            <button class="event" data-id="${id}">
               <div class="meta">
                 <div class="flag">${flagFor(country)}</div>
                 <div>
@@ -403,9 +563,37 @@
                 <span class="mag-badge ${tierClass(mag)}">M ${mag.toFixed(1)}</span>
                 <div class="time">${t.toLocaleTimeString()}</div>
               </div>
-            </div>
+            </button>
           `;
         }).join('');
+
+        quakeRows = Array.from(eventsEl.querySelectorAll('.event'));
+        quakeRows.forEach((row) => row.addEventListener('click', () => selectEvent(row.dataset.id)));
+
+        eventsData = items.map((e) => {
+          const mag = Number(e.properties.mag || 0);
+          const lat = Number(e.geometry.coordinates?.[1]);
+          const lng = Number(e.geometry.coordinates?.[0]);
+          return {
+            id: String(e.id ?? `${lat}-${lng}-${e.properties.time}`),
+            mag,
+            lat,
+            lng,
+            label: `<strong>M ${mag.toFixed(1)}</strong><br/>${e.properties.place || 'Unknown'}<br/>${new Date(e.properties.time).toLocaleString()}`,
+          };
+        }).filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lng));
+
+        glb
+          .pointsData(eventsData)
+          .pointLat('lat')
+          .pointLng('lng')
+          .pointAltitude((d) => Math.max(0.01, Math.min(0.22, 0.02 + d.mag * 0.02)))
+          .pointRadius((d) => Math.max(0.08, Math.min(0.28, 0.08 + d.mag * 0.03)))
+          .pointColor((d) => d.id === selectedId ? '#ff3553' : toPointColor(d.mag));
+
+        if (sourceMeta) {
+          sourceMeta.textContent = window.__sourceLabel || 'Source: live feed';
+        }
 
         const mags = data.map((x) => Number(x.properties.mag || 0));
         const avg = mags.length ? mags.reduce((a, b) => a + b, 0) / mags.length : 0;
@@ -420,21 +608,76 @@
         `;
 
         updatedAt.textContent = `Last Updated: ${new Date().toLocaleTimeString()}`;
+
+        if (items.length) {
+          const firstId = String(items[0].id ?? `${items[0].geometry.coordinates[1]}-${items[0].geometry.coordinates[0]}-${items[0].properties.time}`);
+          selectEvent(selectedId || firstId);
+        }
       }
 
       async function load() {
         try {
-          const res = await fetch(feed, { cache: 'no-store' });
-          const json = await res.json();
-          const features = Array.isArray(json.features) ? json.features : [];
+          const { features, sourceLabel } = await fetchLiveEarthquakes();
+          window.__sourceLabel = sourceLabel;
           render(features);
         } catch {
+          window.__sourceLabel = 'Source: unavailable';
           render([]);
         }
       }
 
-      document.getElementById('refreshBtn').addEventListener('click', load);
+      function bindControls() {
+        const backBtn = document.getElementById('backBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const resetViewBtn = document.getElementById('resetViewBtn');
+
+        backBtn.addEventListener('click', () => {
+          if (window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+          window.location.href = './';
+        });
+
+        refreshBtn.addEventListener('click', () => {
+          load();
+        });
+
+        fullscreenBtn.addEventListener('click', async () => {
+          if (document.fullscreenElement) {
+            await document.exitFullscreen();
+          } else {
+            await document.documentElement.requestFullscreen();
+          }
+        });
+
+        zoomInBtn.addEventListener('click', () => {
+          const glb = ensureGlobe();
+          currentAltitude = Math.max(0.85, currentAltitude - 0.18);
+          glb.pointOfView({ ...defaultCenter, altitude: currentAltitude }, 320);
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+          const glb = ensureGlobe();
+          currentAltitude = Math.min(2.8, currentAltitude + 0.18);
+          glb.pointOfView({ ...defaultCenter, altitude: currentAltitude }, 320);
+        });
+
+        resetViewBtn.addEventListener('click', () => {
+          const glb = ensureGlobe();
+          currentAltitude = 1.7;
+          selectedId = null;
+          glb.pointOfView({ ...defaultCenter, altitude: currentAltitude }, 600);
+          for (const row of quakeRows) row.classList.remove('selected');
+        });
+      }
+
+      bindControls();
       load();
+      window.setInterval(load, 120000);
     </script>
   </body>
 </html>
