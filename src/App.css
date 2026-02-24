@@ -19,185 +19,365 @@
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  margin-top: 0.45rem;
+  border: 1px solid rgba(67, 123, 255, 0.35);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 68% 40%, rgba(28, 84, 200, 0.32), rgba(5, 10, 28, 0.94) 46%),
+    linear-gradient(160deg, #091126 0%, #030814 100%);
+  padding: 0.65rem;
+  min-height: 560px;
+  color: #dbe9ff;
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
-  }
+  padding: 0.8rem;
 }
 
 .card {
-  padding: 2em;
+.earthquake-monitor-header {
 }
 
 .read-the-docs {
-  color: #888;
-}
+  gap: 0.7rem;
+  margin-bottom: 0.62rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(90deg, rgba(10, 28, 63, 0.88), rgba(5, 15, 38, 0.72));
+  border: 1px solid rgba(85, 152, 255, 0.32);
 
 .live-pmd-badge {
-  display: inline-block;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  background: #e6f7ee;
+.earthquake-monitor-title {
+  font-size: 1.65rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #f2f7ff;
   color: #0f6b3f;
   font-size: 0.68rem;
+.earthquake-monitor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  border-radius: 999px;
+  padding: 0.26rem 0.62rem;
+  background: rgba(15, 43, 99, 0.62);
+  border: 1px solid rgba(72, 167, 255, 0.35);
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  line-height: 1.2;
-  vertical-align: middle;
+  color: #7ef4ae;
 }
 
-.warning-actions-row {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.8rem;
+.earthquake-live-dot {
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 50%;
+  background: #4eff84;
+  box-shadow: 0 0 8px rgba(78, 255, 132, 0.95);
 }
 
-.pmd-live-widget {
-  margin: 0.8rem 0 1rem;
-  padding: 0.75rem;
-  border: 1px solid #d9e0e6;
-  border-radius: 0.6rem;
-  text-align: left;
+.earthquake-monitor-status small {
+  color: #bdd6ff;
+  font-size: 0.78rem;
+  margin-left: 0.35rem;
 }
 
-.pmd-city-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+.earthquake-monitor-actions {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
+.earthquake-monitor-actions button {
+  background: linear-gradient(180deg, #1748a3, #0b2f76);
+  color: #f7fbff;
+  vertical-align: middle;
+  border-radius: 0.5rem;
+  padding: 0.42rem 0.82rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  display: flex;
+  box-shadow: inset 0 0 0 1px rgba(150, 200, 255, 0.25);
+  gap: 0.6rem;
+  flex-wrap: wrap;
+.earthquake-refresh-btn {
+  background: linear-gradient(180deg, #2496ff, #1763d4) !important;
+  border: 1px solid #d9e0e6;
+  border-radius: 0.6rem;
+.earthquake-monitor-actions button:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
 .pmd-city-card {
   border: 1px solid #d9e0e6;
-  border-radius: 0.55rem;
-  padding: 0.5rem 0.6rem;
+.earthquake-monitor-body {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 0.8rem;
+  min-height: 430px;
   background: #f8fafc;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.pmd-city-card strong {
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-}
-
-.pmd-city-card span {
+.earthquake-monitor-left {
+  border: 1px solid rgba(90, 153, 255, 0.36);
+  border-radius: 0.78rem;
+  background: linear-gradient(180deg, rgba(8, 19, 44, 0.85), rgba(4, 10, 28, 0.9));
+  padding: 0.56rem;
+  box-shadow: inset 0 0 0 1px rgba(106, 167, 255, 0.13);
   font-size: 1.2rem;
   font-weight: 700;
-  color: #0b8f3a;
-}
+.earthquake-activity-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.44rem;
+  color: #f4f8ff;
 
 .pmd-live-meta {
-  margin: 0.55rem 0 0.75rem;
-  font-size: 0.85rem;
+.earthquake-activity-head {
+  display: flex;
+  justify-content: space-between;
+  color: #9fb6dd;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0 0.38rem 0.32rem;
+}
+
+.earthquake-activity-list {
+  max-height: 392px;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.earthquake-activity-row {
+  width: 100%;
+  border: 1px solid rgba(122, 163, 255, 0.26);
+  background: linear-gradient(180deg, rgba(10, 21, 48, 0.92), rgba(4, 11, 29, 0.92));
+  color: #e6f0ff;
+  border-radius: 0.62rem;
+  padding: 0.38rem 0.5rem;
+  margin-bottom: 0.38rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.earthquake-activity-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(10, 58, 151, 0.35);
+}
+
+.earthquake-activity-row.selected {
+  outline: 1px solid #ff4a4a;
+  box-shadow: 0 0 0 1px rgba(255, 74, 74, 0.35), 0 0 22px rgba(255, 38, 38, 0.28);
+}
+
+.earthquake-activity-left {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.earthquake-activity-left strong {
+  display: block;
+  font-size: 1.04rem;
+}
+
+.earthquake-activity-left small {
+  display: block;
+  font-size: 0.82rem;
+  color: #afc2df;
+  max-width: 172px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.earthquake-flag {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.earthquake-activity-mag {
+  text-align: right;
+  min-width: 92px;
+}
+
+.earthquake-activity-mag strong {
+  display: block;
+  border-radius: 0.46rem;
+  padding: 0.12rem 0.46rem;
+  background: linear-gradient(180deg, #ac1526, #7c0b1a);
+  color: #fff2f2;
+  font-size: 1.2rem;
+  letter-spacing: 0.02em;
+}
+
+.earthquake-activity-mag small {
+  font-size: 0.8rem;
+  color: #b6caea;
+}
+
+.earthquake-monitor-globe-area {
+  position: relative;
+  border: 1px solid rgba(72, 145, 255, 0.34);
+  border-radius: 0.82rem;
+  background: radial-gradient(circle at 48% 38%, rgba(13, 36, 94, 0.45), rgba(2, 8, 26, 0.9));
+  padding: 0.25rem;
   color: #4b5563;
 }
-
-.pmd-media-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.65rem;
-}
-
-.pmd-media-card {
-  border: 1px solid #d9e0e6;
+.earthquake-globe-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 420px;
   border-radius: 0.55rem;
   padding: 0.6rem;
-  background: #ffffff;
+.earthquake-globe-tools {
+  position: absolute;
+  right: 0.65rem;
+  top: 0.95rem;
   display: flex;
   flex-direction: column;
+  gap: 0.32rem;
   gap: 0.4rem;
 }
-
-.pmd-media-card h4 {
-  margin: 0;
-}
+.earthquake-globe-tools button {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(119, 174, 255, 0.45);
+  background: rgba(5, 23, 54, 0.9);
+  color: #eff6ff;
+  font-size: 1.22rem;
+  font-weight: 700;
+  cursor: pointer;
 
 .pmd-media-card p,
 .pmd-media-card small {
-  margin: 0;
-}
-
+  margin: 0.45rem;
+  font-size: 0.86rem;
+  color: #bfd6ff;
 .pmd-satellite-img {
   width: 100%;
-  max-height: 200px;
-  object-fit: cover;
-  border-radius: 0.45rem;
-  border: 1px solid #d9e0e6;
+.earthquake-mini-map {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  width: 126px;
+  height: 76px;
+  border-radius: 0.58rem;
+  border: 1px solid rgba(112, 176, 255, 0.42);
+  background:
+    linear-gradient(180deg, rgba(4, 15, 42, 0.75), rgba(3, 9, 27, 0.78)),
+    url('https://unpkg.com/three-globe/example/img/earth-dark.jpg') center/cover no-repeat;
+  color: #dce9ff;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.25rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.global-earthquake-panel {
-  margin: 0.6rem 0 0.8rem;
-  padding: 0.55rem;
-  border: 1px solid #d5e5f3;
-  border-radius: 0.5rem;
+.earthquake-monitor-foot {
+  margin-top: 0.62rem;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0.65rem;
   text-align: left;
   background: #fbfdff;
-}
-
-.global-earthquake-panel-fullscreen {
-  padding: 0.5rem;
-}
-
+.earthquake-legend-card,
+.earthquake-stats-card {
+  border: 1px solid rgba(106, 165, 255, 0.35);
+  border-radius: 0.76rem;
+  background: linear-gradient(180deg, rgba(8, 23, 55, 0.92), rgba(4, 12, 31, 0.9));
+  padding: 0.48rem 0.62rem;
 .global-earthquake-alerts-card {
   padding: 0.5rem;
-}
-
+.earthquake-legend-card h5,
+.earthquake-stats-card h5 {
+  margin: 0 0 0.34rem;
+  font-size: 1.18rem;
+  color: #f1f7ff;
 .global-earthquake-alerts-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
-  margin-bottom: 0.3rem;
-}
-
-.global-earthquake-alerts-head h3 {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.global-earthquake-sync-meta {
-  margin: 0.2rem 0 0.35rem;
-  font-size: 0.78rem;
-  color: #4b5563;
-}
-
-.earthquake-globe-wrap {
-  position: relative;
-  margin-top: 0.35rem;
-  border: 1px solid rgba(191, 117, 135, 0.35);
-  border-radius: 0.5rem;
-  background: #fff8f5;
-  padding: 0.4rem;
-  min-height: 360px;
-}
-
-.earthquake-globe-wrap-fullscreen {
-  width: 100%;
-  height: 100%;
-  padding: 0.7rem;
-  border-radius: 0;
-}
-
-.earthquake-globe-head {
+.earthquake-legend-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  color: #c7dcff;
+  font-size: 1rem;
   margin-bottom: 0.3rem;
 }
+.earthquake-legend-dot {
+  display: inline-block;
+  width: 0.9rem;
+  text-align: center;
+  font-size: 1.3rem;
+  line-height: 1;
+  font-size: 0.95rem;
+}
+.earthquake-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 0.46rem;
+  font-size: 0.78rem;
+  color: #4b5563;
+.earthquake-stats-grid > div {
+  border: 1px solid rgba(117, 172, 255, 0.33);
+  border-radius: 0.5rem;
+  background: rgba(8, 22, 52, 0.8);
+  padding: 0.38rem 0.44rem;
+  margin-top: 0.35rem;
+  border: 1px solid rgba(191, 117, 135, 0.35);
+.earthquake-stats-grid small {
+  display: block;
+  color: #9ab4da;
+  font-size: 0.83rem;
+  min-height: 360px;
+}
+.earthquake-stats-grid strong {
+  display: block;
+  font-size: 1.54rem;
+  color: #f5f9ff;
+  line-height: 1.15;
+  width: 100%;
+  height: 100%;
+.earthquake-foot-sync {
+  display: block;
+  margin-top: 0.26rem;
+  color: #9eb8dd;
+  font-size: 0.77rem;
+}
 
-.earthquake-globe-head h4 {
-  margin: 0;
+.earthquake-activity-row.quake-entry-tier-veryhigh .earthquake-activity-mag strong,
+.earthquake-legend-dot.quake-entry-tier-veryhigh {
+  background: linear-gradient(180deg, #c8182b, #810b18);
+  color: #ffeaee;
+}
+
+.earthquake-activity-row.quake-entry-tier-high .earthquake-activity-mag strong,
+.earthquake-legend-dot.quake-entry-tier-high {
+  background: linear-gradient(180deg, #e56f16, #a73a09);
+  color: #fff6ea;
+}
+
+.earthquake-activity-row.quake-entry-tier-medium .earthquake-activity-mag strong,
+.earthquake-legend-dot.quake-entry-tier-medium {
+  background: linear-gradient(180deg, #c9ad11, #8e7708);
+  color: #fffce7;
+}
+
+.earthquake-activity-row.quake-entry-tier-low .earthquake-activity-mag strong,
+.earthquake-legend-dot.quake-entry-tier-low {
+  background: linear-gradient(180deg, #1f83da, #0f4f9f);
+  color: #eaf5ff;
   font-size: 0.86rem;
   color: #5f2f4e;
 }
@@ -463,16 +643,51 @@
 }
 
 @media (max-width: 520px) {
+  .earthquake-monitor-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .earthquake-monitor-title {
+    font-size: 1.35rem;
+  }
+
+  .earthquake-monitor-status {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .earthquake-monitor-actions {
+    width: 100%;
+  }
+
+  .earthquake-monitor-actions button {
+    flex: 1;
+  }
+
+  .earthquake-monitor-body {
+    grid-template-columns: 1fr;
+  }
+
+  .earthquake-monitor-left {
+    order: 2;
+  }
+
+  .earthquake-monitor-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .earthquake-stats-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
   .earthquake-globe-stage {
-    min-height: 280px;
+    min-height: 320px;
   }
 
-  .earthquake-floating-table {
-    width: calc(100% - 16px);
-  }
-
-  .global-earthquake-list {
-    max-height: min(42vh, 280px);
+  .earthquake-mini-map {
+    display: none;
   }
 }
 
