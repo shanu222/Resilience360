@@ -1182,6 +1182,7 @@ function App() {
   const [retrofitFinalEstimate, setRetrofitFinalEstimate] = useState<RetrofitFinalEstimate | null>(null)
   const [visionAnalysis, setVisionAnalysis] = useState<VisionAnalysisResult | null>(null)
   const [mlEstimate, setMlEstimate] = useState<MlRetrofitEstimate | null>(null)
+  const [isGeneratingRetrofitGuidance, setIsGeneratingRetrofitGuidance] = useState(false)
   const [isCalculatingRetrofitEstimate, setIsCalculatingRetrofitEstimate] = useState(false)
   const [retrofitError, setRetrofitError] = useState<string | null>(null)
   const [alertLog, setAlertLog] = useState<LiveAlert[]>(() => {
@@ -2219,6 +2220,7 @@ function App() {
       const defectProfileTotals: Partial<
         Record<'crack' | 'spalling' | 'corrosion' | 'moisture' | 'deformation' | 'other', number>
       > = {}
+      const practicalGuidance = new Set<string>()
       const imageResults: RetrofitImageSeriesResult[] = []
       let severityAccumulator = 0
       let affectedAccumulator = 0
@@ -2244,6 +2246,19 @@ function App() {
           const defects = analysis.defects ?? []
           defects.forEach((defect) => {
             defectProfileTotals[defect.type] = (defectProfileTotals[defect.type] ?? 0) + 1
+          })
+
+          analysis.priorityActions.forEach((action) => {
+            practicalGuidance.add(action)
+          })
+          analysis.retrofitPlan.immediate.forEach((item) => {
+            practicalGuidance.add(`Immediate: ${item}`)
+          })
+          analysis.retrofitPlan.shortTerm.forEach((item) => {
+            practicalGuidance.add(`Short-term: ${item}`)
+          })
+          analysis.retrofitPlan.longTerm.forEach((item) => {
+            practicalGuidance.add(`Long-term: ${item}`)
           })
 
           const inferredSeverityScore = defects.length
@@ -2474,7 +2489,12 @@ function App() {
         severityScore: avgSeverityScore,
         mlModel: ml?.model,
         mlConfidence: ml?.confidence,
-        guidance: ml?.guidance ?? imageResults.flatMap((item) => [`${item.fileName}: ${item.summary}`]),
+        guidance:
+          ml?.guidance && ml.guidance.length > 0
+            ? ml.guidance
+            : Array.from(practicalGuidance).length > 0
+              ? Array.from(practicalGuidance)
+              : imageResults.flatMap((item) => [`${item.fileName}: ${item.summary}`]),
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Retrofit estimate calculation failed.'
@@ -2483,6 +2503,15 @@ function App() {
       setRetrofitFinalEstimate(null)
     } finally {
       setIsCalculatingRetrofitEstimate(false)
+    }
+  }
+
+  const generateRetrofitGuidanceFromSeries = async () => {
+    setIsGeneratingRetrofitGuidance(true)
+    try {
+      await calculateRetrofitEstimateFromSeries()
+    } finally {
+      setIsGeneratingRetrofitGuidance(false)
     }
   }
 
@@ -4820,6 +4849,14 @@ function App() {
           )}
 
           <div className="retrofit-action-row" role="group" aria-label="Retrofit estimate actions">
+            <button
+              onClick={() => void generateRetrofitGuidanceFromSeries()}
+              disabled={isGeneratingRetrofitGuidance || isCalculatingRetrofitEstimate}
+            >
+              {isGeneratingRetrofitGuidance
+                ? '🔄 Analyzing Cracks + Generating Comprehensive Retrofit Guidance...'
+                : '🛠️ Retrofit Guidance'}
+            </button>
             <button onClick={() => void calculateRetrofitEstimateFromSeries()} disabled={isCalculatingRetrofitEstimate}>
               {isCalculatingRetrofitEstimate
                 ? '🔄 Analyzing Images + Running ML Cost Estimator...'
