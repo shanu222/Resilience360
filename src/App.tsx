@@ -612,7 +612,7 @@ const homeCardMeta: Record<
   pgbc: {
     icon: '🏛️',
     title: 'PGBC',
-    subtitle: 'Open PGBC Login Portal',
+    subtitle: 'Green Building Codes',
     tone: 'tone-c',
   },
   applyRegion: {
