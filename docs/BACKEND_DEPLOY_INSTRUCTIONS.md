@@ -21,12 +21,12 @@ Because GitHub Pages deploys static frontend only, deploy backend to a Node host
 
 ### 3) Environment variables
 Set these in Render -> Environment:
-- AI_PROVIDER=openai (or huggingface)
-- If AI_PROVIDER=openai:
-	- OPENAI_API_KEY=<your production key>
-	- OPENAI_VISION_MODEL=gpt-4.1-mini (optional)
-- If AI_PROVIDER=huggingface:
-	- HUGGINGFACE_API_KEY=<your production key>
+- AI_PROVIDER=openai
+- OPENAI_API_KEY=<your production key>
+- OPENAI_VISION_MODEL=gpt-4.1-mini (optional)
+- OPENAI_FALLBACK_TO_HUGGINGFACE=true (optional, default true)
+- Optional fallback when OpenAI limit/quota is exceeded:
+	- HUGGINGFACE_API_KEY=<fallback key>
 	- HUGGINGFACE_BASE_URL=https://router.huggingface.co/v1 (optional)
 	- HUGGINGFACE_CHAT_MODEL=<chat model id>
 	- HUGGINGFACE_VISION_MODEL=<vision model id>
@@ -68,7 +68,7 @@ Notes:
 - Install command: npm install (default)
 
 ### 3) Environment
-- Add AI_PROVIDER and the matching provider key/model vars from .env.example
+- Add OpenAI env vars, plus optional Hugging Face fallback vars from .env.example
 
 ### 4) Auto-deploy
 - Railway redeploys automatically on main branch pushes

@@ -17,6 +17,7 @@ const __dirname = path.dirname(__filename)
 const port = Number(process.env.PORT ?? process.env.VISION_API_PORT ?? 8787)
 const AI_PROVIDER = String(process.env.AI_PROVIDER ?? 'openai').trim().toLowerCase()
 const selectedAiProvider = AI_PROVIDER === 'huggingface' ? 'huggingface' : 'openai'
+const OPENAI_FALLBACK_TO_HUGGINGFACE = String(process.env.OPENAI_FALLBACK_TO_HUGGINGFACE ?? 'true').trim().toLowerCase() !== 'false'
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY ?? '').trim()
 const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4.1-mini').trim()
 const HUGGINGFACE_API_KEY = String(process.env.HUGGINGFACE_API_KEY ?? '').trim()
@@ -26,6 +27,7 @@ const HUGGINGFACE_VISION_MODEL = String(process.env.HUGGINGFACE_VISION_MODEL ?? 
 const HUGGINGFACE_IMAGE_MODEL = String(process.env.HUGGINGFACE_IMAGE_MODEL ?? 'black-forest-labs/FLUX.1-dev').trim()
 const model = selectedAiProvider === 'huggingface' ? HUGGINGFACE_CHAT_MODEL : OPENAI_MODEL
 const hasKey = selectedAiProvider === 'huggingface' ? Boolean(HUGGINGFACE_API_KEY) : Boolean(OPENAI_API_KEY)
+const hasHuggingFaceFallback = OPENAI_FALLBACK_TO_HUGGINGFACE && Boolean(HUGGINGFACE_API_KEY)
 const NDMA_ADVISORIES_URL = process.env.NDMA_ADVISORIES_URL ?? 'https://ndma.gov.pk/advisories'
 const NDMA_SITREPS_URL = process.env.NDMA_SITREPS_URL ?? 'https://ndma.gov.pk/sitreps'
 const NDMA_PROJECTIONS_URL = process.env.NDMA_PROJECTIONS_URL ?? 'https://ndma.gov.pk/projection-impact-list_new'
@@ -58,7 +60,7 @@ const allowedCommunityIssueStatuses = new Set(['Submitted', 'In Review', 'In Pro
 
 const openai = selectedAiProvider === 'openai' && OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
 const huggingFaceRouterClient =
-  selectedAiProvider === 'huggingface' && HUGGINGFACE_API_KEY
+  HUGGINGFACE_API_KEY
     ? new OpenAI({ apiKey: HUGGINGFACE_API_KEY, baseURL: HUGGINGFACE_BASE_URL })
     : null
 
@@ -85,24 +87,57 @@ const extractJson = (rawText) => {
 
 const safeArray = (value) => (Array.isArray(value) ? value : [])
 
-const getAiMissingConfigMessage = (feature) =>
-  selectedAiProvider === 'huggingface'
-    ? `Hugging Face key missing. Set HUGGINGFACE_API_KEY for ${feature}.`
-    : `OpenAI key missing. Set OPENAI_API_KEY for ${feature}.`
+const getAiMissingConfigMessage = (feature) => {
+  if (selectedAiProvider === 'huggingface') {
+    return `Hugging Face key missing. Set HUGGINGFACE_API_KEY for ${feature}.`
+  }
+  return `OpenAI key missing. Set OPENAI_API_KEY for ${feature}.`
+}
 
-const getActiveChatClient = () => (selectedAiProvider === 'huggingface' ? huggingFaceRouterClient : openai)
+const getErrorStatus = (error) =>
+  typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number'
+    ? error.status
+    : undefined
 
-const createChatCompletion = async ({ messages, temperature = 0.2, modelName }) => {
-  const client = getActiveChatClient()
-  if (!client) {
+const isOpenAiLimitError = (error) => {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  const status = getErrorStatus(error)
+  return status === 429 || /quota|insufficient_quota|rate\s*limit|billing|too\s*many\s*requests/i.test(message)
+}
+
+const createChatCompletion = async ({ messages, temperature = 0.2, openaiModel = OPENAI_MODEL, huggingFaceModel = HUGGINGFACE_CHAT_MODEL }) => {
+  if (selectedAiProvider === 'huggingface') {
+    if (!huggingFaceRouterClient) {
+      throw new Error(getAiMissingConfigMessage('AI chat requests'))
+    }
+    return huggingFaceRouterClient.chat.completions.create({
+      model: huggingFaceModel,
+      temperature,
+      messages,
+    })
+  }
+
+  if (!openai) {
     throw new Error(getAiMissingConfigMessage('AI chat requests'))
   }
 
-  return client.chat.completions.create({
-    model: modelName || model,
-    temperature,
-    messages,
-  })
+  try {
+    return await openai.chat.completions.create({
+      model: openaiModel,
+      temperature,
+      messages,
+    })
+  } catch (error) {
+    if (!hasHuggingFaceFallback || !huggingFaceRouterClient || !isOpenAiLimitError(error)) {
+      throw error
+    }
+
+    return huggingFaceRouterClient.chat.completions.create({
+      model: huggingFaceModel,
+      temperature,
+      messages,
+    })
+  }
 }
 
 const parseImageSize = (size) => {
@@ -117,9 +152,9 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
-  if (selectedAiProvider === 'huggingface') {
+  const generateWithHuggingFace = async () => {
     if (!HUGGINGFACE_API_KEY) {
-      throw new Error(getAiMissingConfigMessage('AI image generation'))
+      throw new Error('Hugging Face key missing. Set HUGGINGFACE_API_KEY for AI image generation.')
     }
 
     const { width, height } = parseImageSize(size)
@@ -155,17 +190,28 @@ const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
     return Buffer.from(buffer).toString('base64')
   }
 
+  if (selectedAiProvider === 'huggingface') {
+    return generateWithHuggingFace()
+  }
+
   if (!openai) {
     throw new Error(getAiMissingConfigMessage('AI image generation'))
   }
 
-  const generated = await openai.images.generate({
-    model: 'gpt-image-1',
-    prompt,
-    size,
-  })
+  try {
+    const generated = await openai.images.generate({
+      model: 'gpt-image-1',
+      prompt,
+      size,
+    })
 
-  return generated.data?.[0]?.b64_json ?? null
+    return generated.data?.[0]?.b64_json ?? null
+  } catch (error) {
+    if (!hasHuggingFaceFallback || !isOpenAiLimitError(error)) {
+      throw error
+    }
+    return generateWithHuggingFace()
+  }
 }
 
 const fetchRemoteText = async (url, timeoutMs = 14000) => {
@@ -502,7 +548,8 @@ const mapGuidanceSteps = (value) =>
 
 const translateGuidanceToUrdu = async (guidance) => {
   const translationCompletion = await createChatCompletion({
-    modelName: model,
+    openaiModel: OPENAI_MODEL,
+    huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
     temperature: 0,
     messages: [
       {
@@ -530,7 +577,13 @@ const translateGuidanceToUrdu = async (guidance) => {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, hasVisionKey: hasKey, provider: selectedAiProvider, model })
+  res.json({
+    ok: true,
+    hasVisionKey: hasKey,
+    provider: selectedAiProvider,
+    model,
+    openAiFallbackToHuggingFace: hasHuggingFaceFallback,
+  })
 })
 
 app.post('/api/recovery/send-credentials', async (req, res) => {
@@ -764,7 +817,8 @@ app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {
     const imageDataUrl = `data:${req.file.mimetype};base64,${imageBase64}`
 
     const completion = await createChatCompletion({
-      modelName: selectedAiProvider === 'huggingface' ? HUGGINGFACE_VISION_MODEL : model,
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_VISION_MODEL,
       temperature: 0.2,
       messages: [
         {
@@ -1035,7 +1089,8 @@ app.post('/api/guidance/construction', async (req, res) => {
     const bestPracticeName = String(req.body.bestPracticeName ?? 'General Resilient Construction Practice')
 
     const completion = await createChatCompletion({
-      modelName: model,
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
       temperature: 0.15,
       messages: [
         {
@@ -1159,7 +1214,8 @@ app.post('/api/advisory/ask', async (req, res) => {
     const responseLanguage = language === 'Urdu' ? 'Urdu' : 'English'
 
     const completion = await createChatCompletion({
-      modelName: model,
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
       temperature: 0.3,
       messages: [
         {
@@ -1224,7 +1280,8 @@ app.post('/api/pgbc/code-qa', async (req, res) => {
     const availableCodeList = allCodeNames.length ? allCodeNames.join(' | ') : selectedCodeList
 
     const completion = await createChatCompletion({
-      modelName: model,
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
       temperature: 0.1,
       messages: [
         {
@@ -1439,7 +1496,8 @@ app.post('/api/models/research', async (req, res) => {
     }
 
     const completion = await createChatCompletion({
-      modelName: model,
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
       temperature: 0.2,
       messages: [
         {
@@ -1585,7 +1643,8 @@ app.post('/api/models/structural-design-report', async (req, res) => {
     }
 
     const completion = await createChatCompletion({
-      modelName: model,
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
       temperature: 0.2,
       messages: [
         {
