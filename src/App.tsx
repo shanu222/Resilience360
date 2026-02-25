@@ -578,8 +578,6 @@ const getHazardOverlay = (province: string, city: string) => {
 
 const roleOptions = ['General Public', 'Engineer / Planner', 'Government Officer'] as const
 const BUILD_VERSION_LABEL = String(import.meta.env.VITE_BUILD_VERSION ?? 'local').slice(0, 7)
-const MATERIAL_HUBS_PORTAL_URL =
-  'https://www.figma.com/make/GCLNXTTRfhfEMjziUBvt4X/Material-Hub-Digital-Portal?t=X0Eph49SSE2a0nNW-1&preview-route=%2Ftraining'
 
 const homeSectionKeys: SectionKey[] = [
   'bestPractices',
@@ -5600,14 +5598,11 @@ function App() {
             <button type="button" onClick={() => navigateToSection(null)}>
               ⬅ Back to Resilience Home
             </button>
-            <a href={MATERIAL_HUBS_PORTAL_URL} target="_blank" rel="noreferrer">
-              Open Material Hubs in new tab
-            </a>
           </div>
           <iframe
             title="Material Hubs Portal"
             className="pgbc-portal-frame"
-            src={MATERIAL_HUBS_PORTAL_URL}
+            src={`${import.meta.env.BASE_URL}material-hubs/index.html`}
             loading="lazy"
             referrerPolicy="no-referrer"
           />
