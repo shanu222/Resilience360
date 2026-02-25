@@ -32,6 +32,11 @@ import {
 } from './services/constructionGuidance'
 import { fetchResilienceInfraModels, type InfraModel } from './services/infraModels'
 import {
+  fetchSharedGeneratedInfraModels,
+  saveSharedGeneratedInfraModels,
+  syncSharedInfraModelsToGitHub,
+} from './services/infraModelsShared'
+import {
   generateInfraModelResearchImages,
   generateStructuralDesignReport,
   researchInfraModel,
@@ -68,6 +73,7 @@ type RetrofitImageSeriesResult = {
   previewUrl: string
   summary: string
   defectCount: number
+  inferredAreaSqft: number
   severityScore: number
   affectedAreaPercent: number
   estimatedCost: number
@@ -81,7 +87,6 @@ type RetrofitFinalEstimate = {
   estimateSource: 'ML Model' | 'Image-driven'
   province: string
   city: string
-  stories: number
   imageCount: number
   totalAreaSqft: number
   durationWeeks: number
@@ -937,6 +942,116 @@ const preloadedInfraModels: InfraModel[] = preloadedInfraModelSpecs.map((item) =
   imageDataUrl: getInfraModelImage(item.id),
 }))
 
+const INFRA_MODELS_CACHE_KEY = 'r360-infra-models-cache-v1'
+const INFRA_MODELS_CACHE_LIMIT = 80
+
+const normalizeInfraText = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim()
+
+const getInfraModelSignature = (model: Pick<InfraModel, 'title' | 'description' | 'features' | 'advantagesPakistan'>) =>
+  [
+    normalizeInfraText(model.title),
+    normalizeInfraText(model.description),
+    model.features.map((item) => normalizeInfraText(item)).sort().join('|'),
+    model.advantagesPakistan.map((item) => normalizeInfraText(item)).sort().join('|'),
+  ].join('::')
+
+const preloadedInfraModelSignatureSet = new Set(preloadedInfraModels.map((model) => getInfraModelSignature(model)))
+
+const asTextArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
+const sanitizeCachedInfraModel = (value: unknown): InfraModel | null => {
+  if (!value || typeof value !== 'object') return null
+
+  const candidate = value as Partial<InfraModel>
+  if (
+    typeof candidate.id !== 'string' ||
+    typeof candidate.title !== 'string' ||
+    typeof candidate.description !== 'string' ||
+    typeof candidate.imageDataUrl !== 'string'
+  ) {
+    return null
+  }
+
+  const features = asTextArray(candidate.features)
+  const advantagesPakistan = asTextArray(candidate.advantagesPakistan)
+
+  if (features.length === 0 || advantagesPakistan.length === 0) {
+    return null
+  }
+
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    description: candidate.description,
+    imageDataUrl: candidate.imageDataUrl,
+    features,
+    advantagesPakistan,
+  }
+}
+
+const loadCachedInfraModels = (): InfraModel[] => {
+  try {
+    const cached = localStorage.getItem(INFRA_MODELS_CACHE_KEY)
+    if (!cached) return []
+    const parsed = JSON.parse(cached) as unknown
+    if (!Array.isArray(parsed)) return []
+
+    const uniqueBySignature = new Map<string, InfraModel>()
+    for (const entry of parsed) {
+      const model = sanitizeCachedInfraModel(entry)
+      if (!model) continue
+      const signature = getInfraModelSignature(model)
+      if (preloadedInfraModelSignatureSet.has(signature) || uniqueBySignature.has(signature)) continue
+      uniqueBySignature.set(signature, model)
+    }
+
+    return Array.from(uniqueBySignature.values())
+  } catch {
+    return []
+  }
+}
+
+const buildInitialInfraModels = (): InfraModel[] => {
+  const cached = loadCachedInfraModels()
+  if (cached.length === 0) return preloadedInfraModels
+  return [...preloadedInfraModels, ...cached]
+}
+
+const mergeInfraModelsBySignature = (existing: InfraModel[], incoming: InfraModel[]) => {
+  const deduped = new Map<string, InfraModel>()
+  const usedIds = new Set<string>()
+
+  const pushModel = (model: InfraModel, preferredId?: string) => {
+    const signature = getInfraModelSignature(model)
+    if (!signature || deduped.has(signature)) return
+
+    const baseId = preferredId || model.id || `infra-model-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    let id = baseId
+    while (usedIds.has(id)) {
+      id = `${baseId}-${Math.random().toString(36).slice(2, 8)}`
+    }
+    usedIds.add(id)
+
+    deduped.set(signature, {
+      ...model,
+      id,
+    })
+  }
+
+  for (const model of existing) {
+    pushModel(model, model.id)
+  }
+
+  for (const model of incoming) {
+    pushModel(model, model.id)
+  }
+
+  return Array.from(deduped.values())
+}
+
 const provinceCenters: Record<string, { lat: number; lng: number }> = {
   Punjab: { lat: 31.17, lng: 72.71 },
   Sindh: { lat: 26.87, lng: 68.37 },
@@ -1170,9 +1285,7 @@ function App() {
   const [locationText, setLocationText] = useState('Lahore, Punjab')
   const [lifeline, setLifeline] = useState('No')
   const [structureType, setStructureType] = useState('Masonry House')
-  const [retrofitAreaSqft, setRetrofitAreaSqft] = useState(1200)
   const [retrofitCity, setRetrofitCity] = useState('Lahore')
-  const [retrofitStories, setRetrofitStories] = useState(1)
   const [retrofitLocationMode, setRetrofitLocationMode] = useState<'auto' | 'manual'>('auto')
   const [retrofitManualProvince, setRetrofitManualProvince] = useState('Punjab')
   const [retrofitManualCity, setRetrofitManualCity] = useState('Lahore')
@@ -1223,8 +1336,12 @@ function App() {
   const [guidanceGenerationLanguage, setGuidanceGenerationLanguage] = useState<'english' | 'urdu'>('english')
   const [isPreparingWordReport, setIsPreparingWordReport] = useState(false)
   const [wordReportLanguage, setWordReportLanguage] = useState<'english' | 'urdu'>('english')
-  const [infraModels, setInfraModels] = useState<InfraModel[]>(() => preloadedInfraModels)
+  const retrofitUploadInputRef = useRef<HTMLInputElement | null>(null)
+  const [infraModels, setInfraModels] = useState<InfraModel[]>(() => buildInitialInfraModels())
   const [isLoadingInfraModels, setIsLoadingInfraModels] = useState(false)
+  const [isLoadingSharedInfraModels, setIsLoadingSharedInfraModels] = useState(false)
+  const [isSyncingInfraModels, setIsSyncingInfraModels] = useState(false)
+  const [infraModelsSyncMessage, setInfraModelsSyncMessage] = useState<string | null>(null)
   const [infraModelsError, setInfraModelsError] = useState<string | null>(null)
   const [infraResearchName, setInfraResearchName] = useState('')
   const [isResearchingInfra, setIsResearchingInfra] = useState(false)
@@ -1293,10 +1410,6 @@ function App() {
     if (videoElement.webkitEnterFullscreen) {
       videoElement.webkitEnterFullscreen()
     }
-  }, [])
-
-  const openPgbcPortalHome = useCallback(() => {
-    window.location.href = `${import.meta.env.BASE_URL}pgbc/index.html`
   }, [])
 
   const navigateToSection = useCallback(
@@ -1543,6 +1656,45 @@ function App() {
       setDesignCity(availableDesignCities[0] ?? '')
     }
   }, [availableDesignCities, designCity])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSharedInfraModels = async () => {
+      setIsLoadingSharedInfraModels(true)
+      try {
+        const sharedModels = await fetchSharedGeneratedInfraModels()
+        if (!isMounted || sharedModels.length === 0) return
+
+        setInfraModels((existing) => mergeInfraModelsBySignature(existing, sharedModels))
+      } catch {
+        if (isMounted) {
+          setInfraModelsError((previous) => previous ?? 'Shared infra models could not be loaded from server.')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSharedInfraModels(false)
+        }
+      }
+    }
+
+    void loadSharedInfraModels()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const generatedModels = infraModels.filter((model) => !preloadedInfraModelSignatureSet.has(getInfraModelSignature(model)))
+    const payload = generatedModels.slice(-INFRA_MODELS_CACHE_LIMIT)
+
+    try {
+      localStorage.setItem(INFRA_MODELS_CACHE_KEY, JSON.stringify(payload))
+    } catch {
+      localStorage.removeItem(INFRA_MODELS_CACHE_KEY)
+    }
+  }, [infraModels])
 
   useEffect(() => {
     if (!selectedDistrict) return
@@ -1985,34 +2137,88 @@ function App() {
 
   const loadResilienceInfraModels = async () => {
     setInfraModelsError(null)
+    setInfraModelsSyncMessage(null)
     setIsLoadingInfraModels(true)
 
     try {
-      const result = await fetchResilienceInfraModels({
-        country: 'Pakistan',
-        province: selectedProvince,
-      })
-      setInfraModels((existing) => {
-        const deduped = new Map<string, InfraModel>()
-        for (const model of existing) {
-          deduped.set(model.id, model)
-        }
-        for (const [index, model] of result.models.entries()) {
-          let key = model.id
-          while (deduped.has(key)) {
-            key = `${model.id}-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`
+      const existingSignatures = new Set(infraModels.map((model) => getInfraModelSignature(model)))
+      const existingIds = new Set(infraModels.map((model) => model.id))
+      const uniqueNewModels: InfraModel[] = []
+
+      for (let attempt = 0; attempt < 3 && uniqueNewModels.length < 4; attempt += 1) {
+        const result = await fetchResilienceInfraModels({
+          country: 'Pakistan',
+          province: selectedProvince,
+        })
+
+        for (const model of result.models) {
+          const signature = getInfraModelSignature(model)
+          if (existingSignatures.has(signature)) {
+            continue
           }
-          deduped.set(key, {
+
+          existingSignatures.add(signature)
+
+          const baseId = model.id || `infra-model-${Date.now()}-${attempt}`
+          let key = baseId
+          while (existingIds.has(key)) {
+            key = `${baseId}-${Math.random().toString(36).slice(2, 8)}`
+          }
+          existingIds.add(key)
+
+          uniqueNewModels.push({
             ...model,
             id: key,
           })
+
+          if (uniqueNewModels.length >= 4) {
+            break
+          }
         }
-        return Array.from(deduped.values())
-      })
+      }
+
+      if (uniqueNewModels.length === 0) {
+        setInfraModelsError('No new unique infra models were generated. Click again to try another batch.')
+        return
+      }
+
+      setInfraModels((existing) => mergeInfraModelsBySignature(existing, uniqueNewModels))
+
+      try {
+        const sharedSaveResult = await saveSharedGeneratedInfraModels(uniqueNewModels)
+        setInfraModels((existing) => mergeInfraModelsBySignature(existing, sharedSaveResult.models))
+        setInfraModelsSyncMessage(
+          sharedSaveResult.added > 0
+            ? `Saved ${sharedSaveResult.added} newly generated model(s) to shared server storage.`
+            : 'Generated models were already available in shared server storage.',
+        )
+      } catch {
+        setInfraModelsSyncMessage('Generated models are available on this device, but shared server save failed.')
+      }
     } catch (error) {
       setInfraModelsError(error instanceof Error ? error.message : 'Infra model loading failed.')
     } finally {
       setIsLoadingInfraModels(false)
+    }
+  }
+
+  const syncInfraModelsGitHubNow = async () => {
+    const adminToken = communityAdminToken.trim()
+    if (!adminToken) {
+      setInfraModelsSyncMessage('Admin token is required to sync shared infra models to GitHub.')
+      return
+    }
+
+    setIsSyncingInfraModels(true)
+    setInfraModelsSyncMessage(null)
+
+    try {
+      const syncResult = await syncSharedInfraModelsToGitHub(adminToken)
+      setInfraModelsSyncMessage(syncResult.message)
+    } catch (error) {
+      setInfraModelsSyncMessage(error instanceof Error ? error.message : 'Failed to sync shared infra models to GitHub.')
+    } finally {
+      setIsSyncingInfraModels(false)
     }
   }
 
@@ -2109,17 +2315,17 @@ function App() {
 
   const handleRetrofitSeriesUpload = (files: FileList | null) => {
     if (!files || files.length === 0) {
-      setRetrofitImageSeriesFiles([])
-      setRetrofitImageSeriesPreviewUrls([])
-      setRetrofitImageSeriesResults([])
-      setRetrofitFinalEstimate(null)
       return
     }
 
-    const nextFiles = Array.from(files)
-    const nextPreviews = nextFiles.map((file) => URL.createObjectURL(file))
+    const incomingFiles = Array.from(files).filter((file) => file.type.startsWith('image/'))
+    if (incomingFiles.length === 0) {
+      return
+    }
 
-    retrofitImageSeriesPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
+    const nextFiles = [...retrofitImageSeriesFiles, ...incomingFiles]
+    const nextPreviews = [...retrofitImageSeriesPreviewUrls, ...incomingFiles.map((file) => URL.createObjectURL(file))]
+
     setRetrofitImageSeriesFiles(nextFiles)
     setRetrofitImageSeriesPreviewUrls(nextPreviews)
     setRetrofitImageSeriesResults([])
@@ -2130,11 +2336,6 @@ function App() {
   const calculateRetrofitEstimateFromSeries = async () => {
     if (retrofitImageSeriesFiles.length === 0) {
       setRetrofitError('Upload one or more building defect photos before calculating.')
-      return
-    }
-
-    if (!Number.isFinite(retrofitAreaSqft) || retrofitAreaSqft < 300) {
-      setRetrofitError('Enter a valid construction area (minimum 300 sq ft).')
       return
     }
 
@@ -2167,12 +2368,6 @@ function App() {
       const equipmentIndex = deriveEquipmentIndex(cityRates)
       const laborFactor = cityRates.laborDaily / 2600
       const locationFactor = laborFactor * 0.45 + cityRates.materialIndex * 0.45 + cityRates.logisticsIndex * 0.1
-
-      const storyFactor = Math.max(1, 1 + (Math.max(1, Math.round(retrofitStories)) - 1) * 0.18)
-      const totalAreaSqft = Math.round(
-        Math.max(300, Math.min(50000, retrofitAreaSqft)) * Math.max(1, Math.round(retrofitStories)),
-      )
-      const perImageAreaSqft = Math.max(220, Math.round(totalAreaSqft / retrofitImageSeriesFiles.length))
 
       const structureFactor: Record<string, number> = {
         'Masonry House': 1,
@@ -2220,6 +2415,12 @@ function App() {
       const defectProfileTotals: Partial<
         Record<'crack' | 'spalling' | 'corrosion' | 'moisture' | 'deformation' | 'other', number>
       > = {}
+      const structureBaseAreaSqft: Record<string, number> = {
+        'Masonry House': 520,
+        'RC Frame': 760,
+        'School Block': 980,
+        'Bridge Approach': 1200,
+      }
       const practicalGuidance = new Set<string>()
       const imageResults: RetrofitImageSeriesResult[] = []
       let severityAccumulator = 0
@@ -2300,6 +2501,19 @@ function App() {
                 ? 'priority'
                 : 'routine'
 
+          const inferredAreaSqft = Math.max(
+            220,
+            Math.min(
+              2400,
+              Math.round(
+                (structureBaseAreaSqft[structureType] ?? 520) *
+                  (0.75 + affectedAreaPercent / 135) *
+                  (0.82 + severityScore / 180) *
+                  (0.9 + Math.min(8, defects.length) * 0.045),
+              ),
+            ),
+          )
+
           const urgencyBoost: Record<'routine' | 'priority' | 'critical', number> = {
             routine: 1,
             priority: 1.08,
@@ -2307,15 +2521,14 @@ function App() {
           }
 
           const baseCost =
-            perImageAreaSqft *
+            inferredAreaSqft *
             scopeRate[recommendedScope] *
             (structureFactor[structureType] ?? 1) *
             damageFactor[damageLevel] *
             (0.92 + (severityScore / 100) * 0.34) *
             Math.max(0.45, Math.min(1.2, affectedAreaPercent / 100 + 0.25)) *
             urgencyBoost[urgencyLevel] *
-            locationFactor *
-            storyFactor
+            locationFactor
 
           const estimatedCost = baseCost * hazardFactor * 1.12
 
@@ -2325,6 +2538,7 @@ function App() {
             previewUrl,
             summary: analysis.summary,
             defectCount: defects.length,
+            inferredAreaSqft,
             severityScore,
             affectedAreaPercent,
             estimatedCost,
@@ -2352,13 +2566,17 @@ function App() {
             visibility: 'good' as const,
           }
 
+          const fallbackAreaSqft = Math.max(
+            220,
+            Math.min(2200, Math.round((structureBaseAreaSqft[structureType] ?? 520) * 0.95)),
+          )
+
           const fallbackBase =
-            perImageAreaSqft *
+            fallbackAreaSqft *
             scopeRate[fallbackSignals.recommendedScope] *
             (structureFactor[structureType] ?? 1) *
             damageFactor[fallbackSignals.damageLevel] *
-            locationFactor *
-            storyFactor
+            locationFactor
           const fallbackCost = fallbackBase * hazardFactor * 1.12
 
           imageResults.push({
@@ -2367,6 +2585,7 @@ function App() {
             previewUrl,
             summary: 'AI unavailable for this image. ML-ready fallback assumptions applied.',
             defectCount: 0,
+            inferredAreaSqft: fallbackAreaSqft,
             severityScore: fallbackSignals.severityScore,
             affectedAreaPercent: fallbackSignals.affectedAreaPercent,
             estimatedCost: fallbackCost,
@@ -2387,6 +2606,11 @@ function App() {
       }
 
       setRetrofitImageSeriesResults(imageResults)
+
+      const totalAreaSqft = Math.max(
+        220,
+        imageResults.reduce((sum, item) => sum + item.inferredAreaSqft, 0),
+      )
 
       const avgSeverityScore = Math.round(severityAccumulator / imageResults.length)
       const avgAffectedAreaPercent = Math.round(affectedAccumulator / imageResults.length)
@@ -2447,7 +2671,10 @@ function App() {
 
       const estimatedDuration = ml?.predictedDurationWeeks
         ? ml.predictedDurationWeeks
-        : Math.max(2, Math.round((totalAreaSqft / 470) * storyFactor * (aggregateScope === 'Comprehensive' ? 1.4 : aggregateScope === 'Standard' ? 1.1 : 0.9)))
+        : Math.max(
+            2,
+            Math.round((totalAreaSqft / 540) * (aggregateScope === 'Comprehensive' ? 1.4 : aggregateScope === 'Standard' ? 1.1 : 0.9)),
+          )
 
       const finalScope: 'Basic' | 'Standard' | 'Comprehensive' = ml
         ? ml.predictedScope === 'comprehensive'
@@ -2469,7 +2696,6 @@ function App() {
         estimateSource: ml ? 'ML Model' : 'Image-driven',
         province: locationProvince,
         city: locationCity,
-        stories: Math.max(1, Math.round(retrofitStories)),
         imageCount: imageResults.length,
         totalAreaSqft,
         durationWeeks: estimatedDuration,
@@ -2558,33 +2784,32 @@ function App() {
     doc.text(`Estimate Source: ${retrofitFinalEstimate.estimateSource}`, 14, 60)
     doc.text(`Retrofit Scope: ${retrofitFinalEstimate.scope}`, 14, 68)
     doc.text(`Defect Severity: ${retrofitFinalEstimate.damageLevel}`, 14, 76)
-    doc.text(`Stories: ${retrofitFinalEstimate.stories}`, 14, 84)
-    doc.text(`Analyzed Photos: ${retrofitFinalEstimate.imageCount}`, 14, 92)
-    doc.text(`Area: ${retrofitFinalEstimate.totalAreaSqft.toLocaleString()} sq ft`, 14, 100)
-    doc.text(`Estimated Duration: ${retrofitFinalEstimate.durationWeeks} weeks`, 14, 108)
-    doc.text(`Location Cost Factor: ${retrofitFinalEstimate.locationFactor.toFixed(2)}x`, 14, 116)
-    doc.text(`Estimated Total: PKR ${Math.round(retrofitFinalEstimate.totalCost).toLocaleString()}`, 14, 124)
+    doc.text(`Analyzed Photos: ${retrofitFinalEstimate.imageCount}`, 14, 84)
+    doc.text(`Inferred Area: ${retrofitFinalEstimate.totalAreaSqft.toLocaleString()} sq ft`, 14, 92)
+    doc.text(`Estimated Duration: ${retrofitFinalEstimate.durationWeeks} weeks`, 14, 100)
+    doc.text(`Location Cost Factor: ${retrofitFinalEstimate.locationFactor.toFixed(2)}x`, 14, 108)
+    doc.text(`Estimated Total: PKR ${Math.round(retrofitFinalEstimate.totalCost).toLocaleString()}`, 14, 116)
     doc.text(
       `Estimated Range: PKR ${Math.round(retrofitFinalEstimate.minTotalCost).toLocaleString()} - PKR ${Math.round(retrofitFinalEstimate.maxTotalCost).toLocaleString()}`,
       14,
-      132,
+      124,
     )
-    doc.text(`Effective Rate: PKR ${Math.round(retrofitFinalEstimate.sqftRate).toLocaleString()}/sq ft`, 14, 140)
-    doc.text(`Affected Area (average): ${Math.round(retrofitFinalEstimate.affectedAreaPercent)}%`, 14, 148)
-    doc.text(`Urgency: ${retrofitFinalEstimate.urgencyLevel}`, 14, 156)
+    doc.text(`Effective Rate: PKR ${Math.round(retrofitFinalEstimate.sqftRate).toLocaleString()}/sq ft`, 14, 132)
+    doc.text(`Affected Area (average): ${Math.round(retrofitFinalEstimate.affectedAreaPercent)}%`, 14, 140)
+    doc.text(`Urgency: ${retrofitFinalEstimate.urgencyLevel}`, 14, 148)
 
-    doc.text('Hazard Profile:', 14, 168)
-    doc.text(`- Earthquake: ${provinceProfile.earthquake}`, 18, 176)
-    doc.text(`- Flood: ${provinceProfile.flood}`, 18, 184)
-    doc.text(`- Landslide: ${provinceProfile.landslide}`, 18, 192)
+    doc.text('Hazard Profile:', 14, 160)
+    doc.text(`- Earthquake: ${provinceProfile.earthquake}`, 18, 168)
+    doc.text(`- Flood: ${provinceProfile.flood}`, 18, 176)
+    doc.text(`- Landslide: ${provinceProfile.landslide}`, 18, 184)
 
     const summary =
       retrofitImageSeriesResults[0]?.summary ??
       visionAnalysis?.summary ??
       'No model summary available. Estimate based on uploaded image series and calculator inputs.'
     const clippedSummary = summary.length > 110 ? `${summary.slice(0, 107)}...` : summary
-    doc.text(`Model Summary: ${clippedSummary}`, 14, 204)
-    doc.text(`Detected Defects: ${defectCount}`, 14, 212)
+    doc.text(`Model Summary: ${clippedSummary}`, 14, 196)
+    doc.text(`Detected Defects: ${defectCount}`, 14, 204)
 
     const filename = `resilience360-retrofit-estimate-${Date.now()}.pdf`
     doc.save(filename)
@@ -4033,7 +4258,7 @@ function App() {
           <h2>{t.sections.infraModels}</h2>
           <p>AI catalog of resilient infrastructure models with realistic visuals, features, and Pakistan-specific implementation benefits.</p>
           <p>
-            <strong>{preloadedInfraModels.length}</strong> Pakistan-focused resilience models are preloaded below. Use load more to generate additional AI models.
+            <strong>{preloadedInfraModels.length}</strong> Pakistan-focused resilience models are preloaded below. <strong>{Math.max(0, infraModels.length - preloadedInfraModels.length)}</strong> generated models are saved in this app and will appear automatically next time.
           </p>
           <div className="infra-video-panel">
             <h3>NDMA-IAPD First Resilient Infrastructure Models – Official Overview</h3>
@@ -4067,6 +4292,8 @@ function App() {
           <button onClick={loadResilienceInfraModels} disabled={isLoadingInfraModels}>
             {isLoadingInfraModels ? '🤖 Generating Additional Infra Models...' : '➕ Load More Infra Models'}
           </button>
+          {isLoadingSharedInfraModels && <p>Loading shared generated infra models from server...</p>}
+          {infraModelsSyncMessage && <p>{infraModelsSyncMessage}</p>}
 
           {infraModelsError && <p>{infraModelsError}</p>}
 
@@ -4751,26 +4978,6 @@ function App() {
                 <option>Bridge Approach</option>
               </select>
             </label>
-            <label>
-              Number of Stories
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={retrofitStories}
-                onChange={(event) => setRetrofitStories(Math.max(1, Math.min(12, Number(event.target.value) || 1)))}
-              />
-            </label>
-            <label>
-              Built-up Area per Story (sq ft)
-              <input
-                type="number"
-                min={300}
-                step={50}
-                value={retrofitAreaSqft}
-                onChange={(event) => setRetrofitAreaSqft(Number(event.target.value) || 0)}
-              />
-            </label>
           </div>
 
           <div className="retrofit-model-output">
@@ -4833,11 +5040,13 @@ function App() {
           <label>
             Upload Defect Photos in Series (Image 1, 2, 3...)
             <input
+              ref={retrofitUploadInputRef}
               type="file"
               accept="image/*"
               multiple
               onChange={(event) => {
                 handleRetrofitSeriesUpload(event.target.files)
+                event.currentTarget.value = ''
               }}
             />
           </label>
@@ -4870,13 +5079,20 @@ function App() {
           {retrofitError && <p>{retrofitError}</p>}
 
           {retrofitImageSeriesPreviewUrls.length > 0 && (
-            <div className="retrofit-defect-list">
+            <div className="retrofit-defect-list retrofit-upload-grid">
               {retrofitImageSeriesPreviewUrls.map((preview, index) => (
-                <article key={`${preview}-${index}`} className="retrofit-defect-card">
+                <article
+                  key={`${preview}-${index}`}
+                  className="retrofit-defect-card retrofit-upload-card"
+                  onClick={() => retrofitUploadInputRef.current?.click()}
+                >
                   <h4>Image {index + 1}</h4>
                   <div className="retrofit-preview-wrap">
                     <img src={preview} alt={`Retrofit upload ${index + 1}`} className="retrofit-preview" />
                   </div>
+                  <p>
+                    <strong>Click this photo to add more images</strong>
+                  </p>
                 </article>
               ))}
             </div>
@@ -4929,13 +5145,10 @@ function App() {
               )}
               <div className="retrofit-insights-grid">
                 <p>
-                  Stories: <strong>{retrofitFinalEstimate.stories}</strong>
-                </p>
-                <p>
                   Photos Analyzed: <strong>{retrofitFinalEstimate.imageCount}</strong>
                 </p>
                 <p>
-                  Total Area Considered: <strong>{retrofitFinalEstimate.totalAreaSqft.toLocaleString()} sq ft</strong>
+                  Inferred Area from Images: <strong>{retrofitFinalEstimate.totalAreaSqft.toLocaleString()} sq ft</strong>
                 </p>
                 <p>
                   Final Estimated Cost: <strong>PKR {Math.round(retrofitFinalEstimate.totalCost).toLocaleString()}</strong>
@@ -5306,8 +5519,13 @@ function App() {
             <button type="button" onClick={() => void loadCommunityIssueReports()} disabled={isLoadingCommunityIssues}>
               {isLoadingCommunityIssues ? '🔄 Loading Issues...' : '🔄 Reload Issues'}
             </button>
+            <button type="button" onClick={() => void syncInfraModelsGitHubNow()} disabled={isSyncingInfraModels || !communityAdminToken.trim()}>
+              {isSyncingInfraModels ? '⬆️ Syncing Infra Models...' : '⬆️ Sync Shared Infra Models to GitHub'}
+            </button>
           </div>
           <p>Status updates are admin-protected and require a valid shared token.</p>
+          <p>Infra models generated in the app are saved server-side for cross-device access. Use sync to commit/push the shared storage file.</p>
+          {infraModelsSyncMessage && <p>{infraModelsSyncMessage}</p>}
           {communityIssueReports.length === 0 ? (
             <p>No community issue submissions yet.</p>
           ) : (
@@ -5405,13 +5623,7 @@ function App() {
                 <button
                   key={key}
                   className={`home-card ${homeCardMeta[key].tone}`}
-                  onClick={() => {
-                    if (key === 'pgbc') {
-                      openPgbcPortalHome()
-                      return
-                    }
-                    navigateToSection(key)
-                  }}
+                  onClick={() => navigateToSection(key)}
                 >
                   <span className="home-card-icon">{homeCardMeta[key].icon}</span>
                   <span className="home-card-copy">

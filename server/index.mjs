@@ -1,11 +1,13 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
+import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import multer from 'multer'
 import path from 'node:path'
 import OpenAI from 'openai'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 import { predictRetrofitMl, retrainRetrofitMlModel } from './ml/retrofitMlModel.mjs'
 
 dotenv.config()
@@ -47,6 +49,9 @@ const RECOVERY_FROM_NAME = String(process.env.RECOVERY_FROM_NAME ?? 'Resilience3
 const RESEND_API_KEY = String(process.env.RESEND_API_KEY ?? '').trim()
 const BREVO_API_KEY = String(process.env.BREVO_API_KEY ?? '').trim()
 const COMMUNITY_ISSUES_ADMIN_TOKEN = String(process.env.COMMUNITY_ISSUES_ADMIN_TOKEN ?? '').trim()
+const INFRA_MODELS_ADMIN_TOKEN = String(process.env.INFRA_MODELS_ADMIN_TOKEN ?? COMMUNITY_ISSUES_ADMIN_TOKEN).trim()
+const INFRA_MODELS_GIT_SYNC_ENABLED = String(process.env.INFRA_MODELS_GIT_SYNC_ENABLED ?? 'false').trim().toLowerCase() === 'true'
+const INFRA_MODELS_GIT_SYNC_BRANCH = String(process.env.INFRA_MODELS_GIT_SYNC_BRANCH ?? '').trim()
 const RECOVERY_RATE_LIMIT_WINDOW_MS = Math.max(60_000, Number(process.env.RECOVERY_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000) || 15 * 60 * 1000)
 const RECOVERY_RATE_LIMIT_MAX_REQUESTS = Math.max(1, Number(process.env.RECOVERY_RATE_LIMIT_MAX_REQUESTS ?? 6) || 6)
 const recoveryRateLimitStore = new Map()
@@ -56,7 +61,13 @@ const retrofitTrainingDataFile = path.join(retrofitTrainingDir, 'userRetrofitTra
 const communityIssuesDir = path.join(__dirname, 'data', 'community-issues')
 const communityIssueImagesDir = path.join(communityIssuesDir, 'images')
 const communityIssuesDataFile = path.join(communityIssuesDir, 'issues.json')
+const sharedInfraModelsDir = path.join(__dirname, 'data', 'infra-models')
+const sharedInfraModelsDataFile = path.join(sharedInfraModelsDir, 'generated-models.json')
+const repoRootDir = path.resolve(__dirname, '..')
+const sharedInfraModelsGitRelativePath = 'server/data/infra-models/generated-models.json'
+const execFileAsync = promisify(execFile)
 const allowedCommunityIssueStatuses = new Set(['Submitted', 'In Review', 'In Progress', 'Resolved', 'Rejected'])
+const SHARED_INFRA_MODELS_MAX = 200
 
 const openai = selectedAiProvider === 'openai' && OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
 const huggingFaceRouterClient =
@@ -358,6 +369,130 @@ const readAdminTokenFromRequest = (req) => {
     return bearer.slice(7).trim()
   }
   return String(req.headers['x-admin-token'] ?? '').trim()
+}
+
+const normalizeInfraText = (value) => String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+const getInfraModelSignature = (model) =>
+  [
+    normalizeInfraText(model?.title),
+    normalizeInfraText(model?.description),
+    safeArray(model?.features).map((item) => normalizeInfraText(item)).sort().join('|'),
+    safeArray(model?.advantagesPakistan).map((item) => normalizeInfraText(item)).sort().join('|'),
+  ].join('::')
+
+const sanitizeInfraModel = (value) => {
+  if (!value || typeof value !== 'object') return null
+
+  const item = {
+    id: String(value.id ?? '').trim(),
+    title: String(value.title ?? '').trim(),
+    description: String(value.description ?? '').trim(),
+    features: safeArray(value.features).map((entry) => String(entry ?? '').trim()).filter(Boolean).slice(0, 12),
+    advantagesPakistan: safeArray(value.advantagesPakistan).map((entry) => String(entry ?? '').trim()).filter(Boolean).slice(0, 12),
+    imageDataUrl: String(value.imageDataUrl ?? '').trim(),
+    generatedAt: String(value.generatedAt ?? new Date().toISOString()).trim(),
+  }
+
+  if (!item.id || !item.title || !item.description || !item.imageDataUrl) return null
+  if (item.features.length === 0 || item.advantagesPakistan.length === 0) return null
+
+  return item
+}
+
+const ensureSharedInfraModelsStorage = async () => {
+  await fs.mkdir(sharedInfraModelsDir, { recursive: true })
+}
+
+const readSharedInfraModels = async () => {
+  try {
+    const raw = await fs.readFile(sharedInfraModelsDataFile, 'utf8')
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    const deduped = new Map()
+    for (const entry of parsed) {
+      const model = sanitizeInfraModel(entry)
+      if (!model) continue
+      const signature = getInfraModelSignature(model)
+      if (!signature || deduped.has(signature)) continue
+      deduped.set(signature, model)
+    }
+
+    return Array.from(deduped.values()).slice(-SHARED_INFRA_MODELS_MAX)
+  } catch {
+    return []
+  }
+}
+
+const writeSharedInfraModels = async (rows) => {
+  await ensureSharedInfraModelsStorage()
+  await fs.writeFile(sharedInfraModelsDataFile, JSON.stringify(rows.slice(-SHARED_INFRA_MODELS_MAX), null, 2), 'utf8')
+}
+
+const appendSharedInfraModels = async (incomingRows) => {
+  const existing = await readSharedInfraModels()
+  const deduped = new Map()
+
+  for (const item of existing) {
+    deduped.set(getInfraModelSignature(item), item)
+  }
+
+  let added = 0
+  for (const rawItem of incomingRows) {
+    const item = sanitizeInfraModel(rawItem)
+    if (!item) continue
+    const signature = getInfraModelSignature(item)
+    if (!signature || deduped.has(signature)) continue
+    deduped.set(signature, {
+      ...item,
+      generatedAt: new Date().toISOString(),
+    })
+    added += 1
+  }
+
+  const merged = Array.from(deduped.values()).slice(-SHARED_INFRA_MODELS_MAX)
+  await writeSharedInfraModels(merged)
+  return {
+    added,
+    total: merged.length,
+    models: merged,
+  }
+}
+
+const runGitCommand = async (args) =>
+  execFileAsync('git', args, {
+    cwd: repoRootDir,
+    windowsHide: true,
+    maxBuffer: 1024 * 1024 * 5,
+  })
+
+const syncSharedInfraModelsToGitHub = async () => {
+  await ensureSharedInfraModelsStorage()
+
+  const statusResult = await runGitCommand(['status', '--porcelain', '--', sharedInfraModelsGitRelativePath])
+  const statusText = String(statusResult.stdout ?? '').trim()
+
+  if (!statusText) {
+    return {
+      committed: false,
+      pushed: false,
+      message: 'No shared infra model changes to sync.',
+    }
+  }
+
+  await runGitCommand(['add', '--', sharedInfraModelsGitRelativePath])
+  const branch = INFRA_MODELS_GIT_SYNC_BRANCH || String((await runGitCommand(['rev-parse', '--abbrev-ref', 'HEAD'])).stdout ?? '').trim() || 'main'
+  const commitMessage = `chore: sync shared infra models ${new Date().toISOString()}`
+  await runGitCommand(['commit', '-m', commitMessage])
+  await runGitCommand(['push', 'origin', branch])
+
+  return {
+    committed: true,
+    pushed: true,
+    branch,
+    message: `Shared infra models synced to GitHub on branch ${branch}.`,
+  }
 }
 
 const sendViaResend = async ({ toEmail, toName, subject, text, html }) => {
@@ -1474,6 +1609,62 @@ app.post('/api/models/resilience-catalog', async (req, res) => {
     res.json({ models })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Infra model generation failed.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.get('/api/models/shared-generated', async (_req, res) => {
+  try {
+    const models = await readSharedInfraModels()
+    res.json({ models })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load shared infra models.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.post('/api/models/shared-generated', async (req, res) => {
+  try {
+    const incoming = safeArray(req.body?.models)
+    if (incoming.length === 0) {
+      res.status(400).json({ error: 'models array is required.' })
+      return
+    }
+
+    const result = await appendSharedInfraModels(incoming)
+    res.json({
+      added: result.added,
+      total: result.total,
+      models: result.models,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save shared infra models.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.post('/api/models/shared-generated/sync-github', async (req, res) => {
+  try {
+    if (!INFRA_MODELS_ADMIN_TOKEN) {
+      res.status(503).json({ error: 'Infra model sync admin token is not configured on server.' })
+      return
+    }
+
+    const providedToken = readAdminTokenFromRequest(req)
+    if (!providedToken || providedToken !== INFRA_MODELS_ADMIN_TOKEN) {
+      res.status(401).json({ error: 'Unauthorized: valid admin token is required to sync infra models.' })
+      return
+    }
+
+    if (!INFRA_MODELS_GIT_SYNC_ENABLED) {
+      res.status(403).json({ error: 'GitHub sync is disabled. Set INFRA_MODELS_GIT_SYNC_ENABLED=true on server.' })
+      return
+    }
+
+    const syncResult = await syncSharedInfraModelsToGitHub()
+    res.json(syncResult)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'GitHub sync failed for shared infra models.'
     res.status(500).json({ error: message })
   }
 })

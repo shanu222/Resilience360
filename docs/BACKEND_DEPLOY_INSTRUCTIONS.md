@@ -44,9 +44,15 @@ For portal credential recovery email (PGBC + COE), add:
 For community issue admin status updates, add:
 - COMMUNITY_ISSUES_ADMIN_TOKEN=<shared secret token used by admin dashboard>
 
+For shared infra-model cross-device persistence + GitHub sync, add:
+- INFRA_MODELS_ADMIN_TOKEN=<admin token for shared model GitHub sync; if omitted, COMMUNITY_ISSUES_ADMIN_TOKEN is used>
+- INFRA_MODELS_GIT_SYNC_ENABLED=true (required to allow server-side git commit/push from Settings)
+- INFRA_MODELS_GIT_SYNC_BRANCH=main (optional; defaults to current branch)
+
 Notes:
 - At least one provider key must be configured.
 - This backend mail path avoids browser-side EmailJS provider token expiry issues.
+- Shared generated infra models are stored in `server/data/infra-models/generated-models.json` and auto-served through backend APIs.
 
 ### 4) Auto-deploy
 - Enable Auto-Deploy = On
