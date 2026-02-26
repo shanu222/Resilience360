@@ -101,6 +101,108 @@
         background: linear-gradient(180deg, #2b9cff, #1b6cdd);
       }
 
+      .btn.success {
+        background: linear-gradient(180deg, #22c55e, #15803d);
+      }
+
+      .email-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 140;
+        background: rgba(2, 8, 20, 0.65);
+        backdrop-filter: blur(2px);
+      }
+
+      .email-modal.open {
+        display: flex;
+      }
+
+      .email-modal-card {
+        width: min(560px, calc(100vw - 24px));
+        max-height: calc(100vh - 28px);
+        overflow: auto;
+        border: 1px solid rgba(119, 174, 255, 0.4);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(9, 23, 56, 0.98), rgba(4, 12, 34, 0.98));
+        padding: 14px;
+      }
+
+      .email-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .email-modal-head h3 {
+        margin: 0;
+      }
+
+      .email-help {
+        margin: 0 0 10px;
+        color: #b7cdef;
+        font-size: 13px;
+      }
+
+      .email-add-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      .email-input {
+        border: 1px solid rgba(141, 193, 255, 0.3);
+        border-radius: 8px;
+        padding: 9px 10px;
+        color: #eef5ff;
+        background: rgba(7, 19, 43, 0.9);
+      }
+
+      .email-status {
+        min-height: 18px;
+        font-size: 12px;
+        color: #9bd2ff;
+        margin: 8px 0;
+      }
+
+      .email-status.error {
+        color: #ff9aa8;
+      }
+
+      .email-sub-list {
+        margin-top: 8px;
+        max-height: 220px;
+        overflow: auto;
+        border: 1px solid rgba(121, 170, 247, 0.24);
+        border-radius: 9px;
+        padding: 8px;
+        background: rgba(5, 16, 37, 0.92);
+      }
+
+      .email-sub-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(124, 173, 255, 0.18);
+        border-radius: 8px;
+        padding: 7px 8px;
+        margin-bottom: 6px;
+      }
+
+      .email-sub-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .email-tag {
+        font-size: 11px;
+        color: #9bbde5;
+      }
+
       .layout {
         display: grid;
         grid-template-columns: 370px 1fr;
@@ -504,6 +606,7 @@
         <div class="status"><span class="dot"></span> Live Data <small id="updatedAt">Last Updated: Just Now</small></div>
         <div class="actions">
           <button class="btn back" id="backBtn" type="button">Back</button>
+          <button class="btn success" id="emailAlertsBtn" type="button">Upload Emails</button>
           <button class="btn" id="autoRotateBtn" type="button">Stop Motion</button>
           <button class="btn" id="fullscreenBtn" type="button">Fullscreen</button>
           <button class="btn primary" id="refreshBtn" type="button">Refresh</button>
@@ -557,6 +660,23 @@
           <div class="stats-grid" id="statsGrid"></div>
         </section>
       </div>
+
+      <div class="email-modal" id="emailModal">
+        <div class="email-modal-card" role="dialog" aria-modal="true" aria-labelledby="emailModalTitle">
+          <div class="email-modal-head">
+            <h3 id="emailModalTitle">Earthquake Email Alerts (M &gt; 5)</h3>
+            <button class="btn back" id="emailModalCloseBtn" type="button">Close</button>
+          </div>
+          <p class="email-help">Enter Gmail addresses to receive live notifications for earthquakes above magnitude 5. This subscription is shared across devices.</p>
+          <div class="email-add-row">
+            <input id="emailInput" class="email-input" type="email" placeholder="example@gmail.com" autocomplete="email" />
+            <button class="btn success" id="emailAddBtn" type="button">Add Gmail</button>
+          </div>
+          <div id="emailStatus" class="email-status"></div>
+          <div id="emailThresholdTag" class="email-tag">Threshold: M 5.0+</div>
+          <div class="email-sub-list" id="emailSubscribersList"></div>
+        </div>
+      </div>
     </div>
 
     <script src="https://unpkg.com/three"></script>
@@ -568,6 +688,49 @@
         'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
       ];
       const ALL_ORIGINS = 'https://api.allorigins.win/raw?url=';
+      const EARTHQUAKE_ALERT_PATH = '/api/earthquake-alerts';
+
+      function stripTrailingSlash(value) {
+        return String(value || '').replace(/\/+$/, '');
+      }
+
+      function buildApiTargets(path) {
+        const targets = new Set([path]);
+        const host = window.location.hostname;
+        const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+
+        if (isLocalhost) {
+          targets.add(`http://localhost:8787${path}`);
+        } else {
+          targets.add(`https://resilience360-backend.onrender.com${path}`);
+        }
+
+        return Array.from(targets).map((item) => {
+          if (/^https?:\/\//i.test(item)) return item;
+          return stripTrailingSlash(item);
+        });
+      }
+
+      async function requestJsonWithFallback(path, options = {}) {
+        const targets = buildApiTargets(path);
+        let lastError = null;
+
+        for (const target of targets) {
+          try {
+            const response = await fetch(target, options);
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+              lastError = new Error(String(payload?.error || `Request failed (${response.status})`));
+              continue;
+            }
+            return payload;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        throw lastError || new Error('Network request failed.');
+      }
 
       let globe = null;
       let quakeRows = [];
@@ -577,6 +740,9 @@
       let locationsData = [];
       let activeLeftTab = 'recent';
       let expandedCountry = null;
+      let emailSubscribers = [];
+      let isEmailModalOpen = false;
+      let earthquakeAlertThreshold = 5;
       const defaultCenter = { lat: 20, lng: 15 };
       let isAutoRotateEnabled = true;
 
@@ -876,6 +1042,117 @@
         });
       }
 
+      function setEmailStatus(message, isError = false) {
+        const statusEl = document.getElementById('emailStatus');
+        if (!statusEl) return;
+        statusEl.textContent = message || '';
+        statusEl.classList.toggle('error', Boolean(isError));
+      }
+
+      function renderSubscribersList() {
+        const host = document.getElementById('emailSubscribersList');
+        const thresholdTag = document.getElementById('emailThresholdTag');
+        if (!host) return;
+
+        if (thresholdTag) {
+          thresholdTag.textContent = `Threshold: M ${Number(earthquakeAlertThreshold || 5).toFixed(1)}+`;
+        }
+
+        if (!emailSubscribers.length) {
+          host.innerHTML = '<div class="state-empty">No Gmail subscribers added yet.</div>';
+          return;
+        }
+
+        host.innerHTML = emailSubscribers.map((subscriber) => `
+          <div class="email-sub-item">
+            <div>
+              <div>${subscriber.email}</div>
+              <div class="email-tag">Subscribed ${new Date(subscriber.subscribedAt || Date.now()).toLocaleString()}</div>
+            </div>
+            <button class="btn back" type="button" data-remove-email="${subscriber.email}">Remove</button>
+          </div>
+        `).join('');
+
+        host.querySelectorAll('[data-remove-email]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const email = button.getAttribute('data-remove-email');
+            if (!email) return;
+
+            try {
+              await requestJsonWithFallback(`${EARTHQUAKE_ALERT_PATH}/subscriptions/remove`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+              });
+              setEmailStatus(`Removed ${email}`);
+              await loadSubscribers();
+            } catch (error) {
+              setEmailStatus(error?.message || 'Failed to remove subscriber.', true);
+            }
+          });
+        });
+      }
+
+      function openEmailModal() {
+        const modal = document.getElementById('emailModal');
+        if (!modal) return;
+        modal.classList.add('open');
+        isEmailModalOpen = true;
+      }
+
+      function closeEmailModal() {
+        const modal = document.getElementById('emailModal');
+        if (!modal) return;
+        modal.classList.remove('open');
+        isEmailModalOpen = false;
+      }
+
+      async function loadSubscribers() {
+        try {
+          const payload = await requestJsonWithFallback(`${EARTHQUAKE_ALERT_PATH}/subscriptions`, { method: 'GET' });
+          emailSubscribers = Array.isArray(payload?.subscribers) ? payload.subscribers : [];
+          earthquakeAlertThreshold = Number(payload?.threshold ?? 5) || 5;
+          renderSubscribersList();
+        } catch (error) {
+          setEmailStatus(error?.message || 'Unable to load subscribers.', true);
+        }
+      }
+
+      async function addSubscriberFromInput() {
+        const input = document.getElementById('emailInput');
+        if (!input) return;
+
+        const email = String(input.value || '').trim().toLowerCase();
+        if (!email) {
+          setEmailStatus('Please enter a Gmail address.', true);
+          return;
+        }
+
+        try {
+          await requestJsonWithFallback(`${EARTHQUAKE_ALERT_PATH}/subscriptions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          input.value = '';
+          setEmailStatus(`Subscribed ${email} for live M > ${earthquakeAlertThreshold} alerts.`);
+          await loadSubscribers();
+        } catch (error) {
+          setEmailStatus(error?.message || 'Failed to subscribe Gmail.', true);
+        }
+      }
+
+      async function triggerAlertDispatch() {
+        try {
+          await requestJsonWithFallback(`${EARTHQUAKE_ALERT_PATH}/dispatch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trigger: 'live-monitor' }),
+          });
+        } catch {
+        }
+      }
+
       async function fetchEarth3DArcGisSource() {
         const itemDataUrl = `https://www.arcgis.com/sharing/rest/content/items/${EARTH3D_SCENE_ID}/data?f=json`;
         const itemDataRes = await fetch(itemDataUrl, { cache: 'no-store' });
@@ -1140,6 +1417,7 @@
           const { features, sourceLabel } = await fetchLiveEarthquakes();
           window.__sourceLabel = sourceLabel;
           render(features);
+          await triggerAlertDispatch();
         } catch {
           window.__sourceLabel = 'Source: unavailable';
           render([]);
@@ -1151,6 +1429,11 @@
         const refreshBtn = document.getElementById('refreshBtn');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const autoRotateBtn = document.getElementById('autoRotateBtn');
+        const emailAlertsBtn = document.getElementById('emailAlertsBtn');
+        const emailModal = document.getElementById('emailModal');
+        const emailModalCloseBtn = document.getElementById('emailModalCloseBtn');
+        const emailAddBtn = document.getElementById('emailAddBtn');
+        const emailInput = document.getElementById('emailInput');
         const tabRecentBtn = document.getElementById('tabRecentBtn');
         const tabLocationsBtn = document.getElementById('tabLocationsBtn');
         const zoomInBtn = document.getElementById('zoomInBtn');
@@ -1171,6 +1454,38 @@
 
         autoRotateBtn.addEventListener('click', () => {
           setAutoRotation(!isAutoRotateEnabled);
+        });
+
+        emailAlertsBtn.addEventListener('click', async () => {
+          openEmailModal();
+          await loadSubscribers();
+        });
+
+        emailModalCloseBtn.addEventListener('click', () => {
+          closeEmailModal();
+        });
+
+        emailAddBtn.addEventListener('click', async () => {
+          await addSubscriberFromInput();
+        });
+
+        emailInput.addEventListener('keydown', async (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            await addSubscriberFromInput();
+          }
+        });
+
+        emailModal.addEventListener('click', (event) => {
+          if (event.target === emailModal) {
+            closeEmailModal();
+          }
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && isEmailModalOpen) {
+            closeEmailModal();
+          }
         });
 
         tabRecentBtn.addEventListener('click', () => setLeftTab('recent'));
@@ -1210,6 +1525,7 @@
       }
 
       bindControls();
+      loadSubscribers();
       load();
       window.setInterval(load, 120000);
     </script>

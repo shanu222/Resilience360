@@ -11,6 +11,20 @@ services:
     envVars:
       - key: OPENAI_API_KEY
         sync: false
+      - key: RECOVERY_EMAIL_PROVIDER
+        sync: false
+      - key: RECOVERY_FROM_EMAIL
+        sync: false
+      - key: RECOVERY_FROM_NAME
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD
+        sync: false
+      - key: EARTHQUAKE_ALERT_POLL_INTERVAL_MS
+        sync: false
       - key: MATERIAL_HUBS_SUPABASE_URL
         sync: false
       - key: MATERIAL_HUBS_SUPABASE_ANON_KEY

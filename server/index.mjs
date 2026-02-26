@@ -69,6 +69,12 @@ const communityIssueImagesDir = path.join(communityIssuesDir, 'images')
 const communityIssuesDataFile = path.join(communityIssuesDir, 'issues.json')
 const sharedInfraModelsDir = path.join(__dirname, 'data', 'infra-models')
 const sharedInfraModelsDataFile = path.join(sharedInfraModelsDir, 'generated-models.json')
+const earthquakeAlertsDir = path.join(__dirname, 'data', 'earthquake-alerts')
+const earthquakeSubscriptionsFile = path.join(earthquakeAlertsDir, 'subscriptions.json')
+const earthquakeSentAlertsFile = path.join(earthquakeAlertsDir, 'sent-alerts.json')
+const EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD = Math.max(4, Number(process.env.EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD ?? 5) || 5)
+const EARTHQUAKE_ALERT_POLL_INTERVAL_MS = Math.max(60_000, Number(process.env.EARTHQUAKE_ALERT_POLL_INTERVAL_MS ?? 120_000) || 120_000)
+const EARTHQUAKE_ALERT_MAX_SENT_IDS = Math.max(200, Number(process.env.EARTHQUAKE_ALERT_MAX_SENT_IDS ?? 5000) || 5000)
 const repoRootDir = path.resolve(__dirname, '..')
 const sharedInfraModelsGitRelativePath = 'server/data/infra-models/generated-models.json'
 const execFileAsync = promisify(execFile)
@@ -676,6 +682,223 @@ const sendRecoveryCredentialEmail = async (payload) => {
   return lastFailure
 }
 
+const ensureEarthquakeAlertsStorage = async () => {
+  await fs.mkdir(earthquakeAlertsDir, { recursive: true })
+}
+
+const normalizeGmail = (value) => {
+  const email = normalizeEmail(value)
+  if (!email) return ''
+  return email
+}
+
+const isGmailAddress = (email) => /@gmail\.com$/i.test(email)
+
+const readEarthquakeSubscriptions = async () => {
+  try {
+    const raw = await fs.readFile(earthquakeSubscriptionsFile, 'utf8')
+    const parsed = JSON.parse(raw)
+    const rows = Array.isArray(parsed) ? parsed : []
+
+    const unique = new Map()
+    for (const row of rows) {
+      const email = normalizeGmail(row?.email)
+      if (!email || !isGmailAddress(email)) continue
+      if (unique.has(email)) continue
+      unique.set(email, {
+        email,
+        subscribedAt: String(row?.subscribedAt ?? new Date().toISOString()),
+      })
+    }
+
+    return Array.from(unique.values())
+  } catch {
+    return []
+  }
+}
+
+const writeEarthquakeSubscriptions = async (rows) => {
+  await ensureEarthquakeAlertsStorage()
+  const unique = new Map()
+  for (const row of rows) {
+    const email = normalizeGmail(row?.email)
+    if (!email || !isGmailAddress(email)) continue
+    if (unique.has(email)) continue
+    unique.set(email, {
+      email,
+      subscribedAt: String(row?.subscribedAt ?? new Date().toISOString()),
+    })
+  }
+  await fs.writeFile(earthquakeSubscriptionsFile, JSON.stringify(Array.from(unique.values()), null, 2), 'utf8')
+}
+
+const readSentEarthquakeAlerts = async () => {
+  try {
+    const raw = await fs.readFile(earthquakeSentAlertsFile, 'utf8')
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.map((item) => String(item)).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+const writeSentEarthquakeAlerts = async (ids) => {
+  await ensureEarthquakeAlertsStorage()
+  const unique = [...new Set(ids.map((item) => String(item)).filter(Boolean))].slice(-EARTHQUAKE_ALERT_MAX_SENT_IDS)
+  await fs.writeFile(earthquakeSentAlertsFile, JSON.stringify(unique, null, 2), 'utf8')
+}
+
+const fetchLiveEarthquakeFeaturesForAlerts = async () => {
+  const feeds = [GLOBAL_EARTHQUAKE_FEED_URL, GLOBAL_EARTHQUAKE_FEED_URL_BACKUP]
+  let lastError = null
+
+  for (const feed of feeds) {
+    try {
+      const payload = await fetchRemoteJson(feed, 20000)
+      const features = safeArray(payload?.features)
+      if (features.length > 0) {
+        return features
+      }
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  if (lastError) throw lastError
+  return []
+}
+
+const extractQuakeAlertEvent = (feature) => {
+  const id = String(feature?.id ?? '').trim()
+  const mag = Number(feature?.properties?.mag ?? 0)
+  const place = String(feature?.properties?.place ?? 'Unknown location').trim()
+  const timeValue = Number(feature?.properties?.time ?? Date.now())
+  const detailUrl = String(feature?.properties?.url ?? 'https://earthquake.usgs.gov/').trim()
+  const coordinates = safeArray(feature?.geometry?.coordinates)
+  const longitude = Number(coordinates[0])
+  const latitude = Number(coordinates[1])
+  const depthKm = Number(coordinates[2])
+
+  if (!id || Number.isNaN(mag)) return null
+
+  return {
+    id,
+    mag,
+    place,
+    time: Number.isNaN(timeValue) ? Date.now() : timeValue,
+    detailUrl,
+    latitude: Number.isFinite(latitude) ? latitude : null,
+    longitude: Number.isFinite(longitude) ? longitude : null,
+    depthKm: Number.isFinite(depthKm) ? depthKm : null,
+  }
+}
+
+const buildEarthquakeAlertEmailContent = ({ event }) => {
+  const eventDate = new Date(event.time)
+  const eventTimeText = Number.isNaN(eventDate.getTime()) ? 'Unknown time' : eventDate.toUTCString()
+  const locationLine = event.place || 'Unknown location'
+  const coordsLine =
+    event.latitude === null || event.longitude === null
+      ? 'Coordinates unavailable'
+      : `${event.latitude.toFixed(3)}, ${event.longitude.toFixed(3)}${event.depthKm === null ? '' : ` | Depth ${event.depthKm.toFixed(1)} km`}`
+
+  const subject = `🚨 Earthquake Alert: M ${event.mag.toFixed(1)} near ${locationLine}`
+  const text =
+    `Resilience360 Earthquake Alert\n\n` +
+    `Magnitude: M ${event.mag.toFixed(1)}\n` +
+    `Location: ${locationLine}\n` +
+    `Time (UTC): ${eventTimeText}\n` +
+    `Coordinates: ${coordsLine}\n` +
+    `Details: ${event.detailUrl}\n\n` +
+    `You are receiving this because you subscribed for live quake alerts above M ${EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD.toFixed(1)}.`
+
+  const html =
+    `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">` +
+    `<h2 style="margin:0 0 10px;color:#b91c1c">🚨 Resilience360 Earthquake Alert</h2>` +
+    `<p><strong>Magnitude:</strong> M ${event.mag.toFixed(1)}</p>` +
+    `<p><strong>Location:</strong> ${escapeHtml(locationLine)}</p>` +
+    `<p><strong>Time (UTC):</strong> ${escapeHtml(eventTimeText)}</p>` +
+    `<p><strong>Coordinates:</strong> ${escapeHtml(coordsLine)}</p>` +
+    `<p><a href="${escapeHtml(event.detailUrl)}" target="_blank" rel="noreferrer">Open event details</a></p>` +
+    `<p style="font-size:12px;color:#475569">Subscribed via Resilience360 live earthquake monitor (threshold M ${EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD.toFixed(1)}).</p>` +
+    `</div>`
+
+  return { subject, text, html }
+}
+
+const sendEarthquakeAlertEmails = async ({ event, subscribers }) => {
+  const content = buildEarthquakeAlertEmailContent({ event })
+  let successCount = 0
+  const failures = []
+
+  for (const subscriber of subscribers) {
+    const result = await sendRecoveryCredentialEmail({
+      toEmail: subscriber.email,
+      toName: 'Subscriber',
+      subject: content.subject,
+      text: content.text,
+      html: content.html,
+    })
+
+    if (result?.ok) {
+      successCount += 1
+    } else {
+      failures.push({ email: subscriber.email, reason: result?.reason ?? 'email-send-failed' })
+    }
+  }
+
+  return { successCount, failures }
+}
+
+const processEarthquakeAlertDispatch = async ({ force = false } = {}) => {
+  const subscribers = await readEarthquakeSubscriptions()
+  if (subscribers.length === 0) {
+    return { ok: true, checked: 0, sent: 0, message: 'No subscribers registered.' }
+  }
+
+  const features = await fetchLiveEarthquakeFeaturesForAlerts()
+  const sentIds = await readSentEarthquakeAlerts()
+  const sentSet = new Set(sentIds)
+  const candidates = features
+    .map(extractQuakeAlertEvent)
+    .filter(Boolean)
+    .filter((event) => event.mag >= EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD)
+    .sort((a, b) => b.time - a.time)
+
+  let sent = 0
+  for (const event of candidates) {
+    if (!force && sentSet.has(event.id)) continue
+
+    const delivery = await sendEarthquakeAlertEmails({ event, subscribers })
+    if (delivery.successCount > 0) {
+      sent += 1
+      sentSet.add(event.id)
+    }
+  }
+
+  await writeSentEarthquakeAlerts(Array.from(sentSet))
+
+  return {
+    ok: true,
+    checked: candidates.length,
+    sent,
+    threshold: EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD,
+    subscribers: subscribers.length,
+  }
+}
+
+const startEarthquakeAlertNotifier = () => {
+  void processEarthquakeAlertDispatch().catch((error) => {
+    console.error('Initial earthquake alert dispatch failed:', error?.message || error)
+  })
+
+  setInterval(() => {
+    void processEarthquakeAlertDispatch().catch((error) => {
+      console.error('Scheduled earthquake alert dispatch failed:', error?.message || error)
+    })
+  }, EARTHQUAKE_ALERT_POLL_INTERVAL_MS)
+}
+
 const parsePmdCityTemperatures = (html) => {
   const majorCities = ['ISLAMABAD', 'LAHORE', 'KARACHI', 'PESHAWAR', 'GILGIT', 'MUZAFFARABAD']
   const text = normalizeWhitespace(
@@ -956,7 +1179,76 @@ app.get('/health', (_req, res) => {
     provider: selectedAiProvider,
     model,
     openAiFallbackToHuggingFace: hasHuggingFaceFallback,
+    earthquakeAlertThreshold: EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD,
+    earthquakeAlertPollMs: EARTHQUAKE_ALERT_POLL_INTERVAL_MS,
   })
+})
+
+app.get('/api/earthquake-alerts/subscriptions', async (_req, res) => {
+  try {
+    const subscribers = await readEarthquakeSubscriptions()
+    res.json({
+      ok: true,
+      subscribers,
+      threshold: EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to load earthquake subscribers.'
+    res.status(500).json({ ok: false, error: message })
+  }
+})
+
+app.post('/api/earthquake-alerts/subscriptions', async (req, res) => {
+  try {
+    const email = normalizeGmail(req.body?.email)
+    if (!email || !isGmailAddress(email)) {
+      res.status(400).json({ ok: false, error: 'A valid Gmail address is required (example@gmail.com).' })
+      return
+    }
+
+    const subscribers = await readEarthquakeSubscriptions()
+    if (!subscribers.find((item) => item.email === email)) {
+      subscribers.push({
+        email,
+        subscribedAt: new Date().toISOString(),
+      })
+      await writeEarthquakeSubscriptions(subscribers)
+    }
+
+    res.status(201).json({ ok: true, email, total: subscribers.length, threshold: EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to save earthquake subscription.'
+    res.status(500).json({ ok: false, error: message })
+  }
+})
+
+app.post('/api/earthquake-alerts/subscriptions/remove', async (req, res) => {
+  try {
+    const email = normalizeGmail(req.body?.email)
+    if (!email) {
+      res.status(400).json({ ok: false, error: 'Email is required.' })
+      return
+    }
+
+    const subscribers = await readEarthquakeSubscriptions()
+    const remaining = subscribers.filter((item) => item.email !== email)
+    await writeEarthquakeSubscriptions(remaining)
+
+    res.json({ ok: true, email, total: remaining.length })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to remove earthquake subscription.'
+    res.status(500).json({ ok: false, error: message })
+  }
+})
+
+app.post('/api/earthquake-alerts/dispatch', async (_req, res) => {
+  try {
+    const result = await processEarthquakeAlertDispatch({ force: false })
+    res.json(result)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Earthquake alert dispatch failed.'
+    res.status(500).json({ ok: false, error: message })
+  }
 })
 
 app.post('/api/recovery/send-credentials', async (req, res) => {
@@ -2293,5 +2585,6 @@ app.use('/api', (_req, res) => {
 })
 
 app.listen(port, () => {
+  startEarthquakeAlertNotifier()
   console.log(`Vision API running on http://localhost:${port}`)
 })
