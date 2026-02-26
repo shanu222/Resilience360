@@ -11,6 +11,7 @@ import { InventoryManagement } from "./pages/admin/InventoryManagement";
 import { IssuanceWorkflow } from "./pages/admin/IssuanceWorkflow";
 import { DamageMonitoring } from "./pages/admin/DamageMonitoring";
 import { Analytics } from "./pages/admin/Analytics";
+import { AIAgent } from "./pages/admin/AIAgent";
 import { LoginPage } from "./pages/LoginPage";
 
 const resolveRouterBasename = () => {
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "issuance", Component: IssuanceWorkflow },
       { path: "damage", Component: DamageMonitoring },
       { path: "analytics", Component: Analytics },
+      { path: "ai-agent", Component: AIAgent },
     ],
   },
   {

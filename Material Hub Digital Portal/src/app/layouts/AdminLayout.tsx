@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { LayoutDashboard, Package, FileText, AlertTriangle, BarChart3, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, FileText, AlertTriangle, BarChart3, LogOut, Bot } from "lucide-react";
 import { getCurrentSession, onAuthStateChanged, signOutAdmin } from "../services/authService";
 import { useLiveHubData } from "../hooks/useLiveHubData";
 
@@ -155,6 +155,18 @@ export function AdminLayout() {
             >
               <BarChart3 className="h-5 w-5" />
               <span>Analytics</span>
+            </Link>
+
+            <Link
+              to="/admin/ai-agent"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive('/admin/ai-agent')
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Bot className="h-5 w-5" />
+              <span>AI Agent</span>
             </Link>
           </nav>
 

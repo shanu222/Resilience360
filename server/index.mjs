@@ -22,6 +22,12 @@ const selectedAiProvider = AI_PROVIDER === 'huggingface' ? 'huggingface' : 'open
 const OPENAI_FALLBACK_TO_HUGGINGFACE = String(process.env.OPENAI_FALLBACK_TO_HUGGINGFACE ?? 'true').trim().toLowerCase() !== 'false'
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY ?? '').trim()
 const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4.1-mini').trim()
+const MATERIAL_HUBS_SUPABASE_URL = String(process.env.MATERIAL_HUBS_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
+const MATERIAL_HUBS_SUPABASE_ANON_KEY = String(process.env.MATERIAL_HUBS_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
+const MATERIAL_HUBS_ADMIN_EMAILS = String(process.env.MATERIAL_HUBS_ADMIN_EMAILS ?? '')
+  .split(',')
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean)
 const HUGGINGFACE_API_KEY = String(process.env.HUGGINGFACE_API_KEY ?? '').trim()
 const HUGGINGFACE_BASE_URL = String(process.env.HUGGINGFACE_BASE_URL ?? 'https://router.huggingface.co/v1').trim()
 const HUGGINGFACE_CHAT_MODEL = String(process.env.HUGGINGFACE_CHAT_MODEL ?? 'meta-llama/Llama-3.1-8B-Instruct').trim()
@@ -369,6 +375,75 @@ const readAdminTokenFromRequest = (req) => {
     return bearer.slice(7).trim()
   }
   return String(req.headers['x-admin-token'] ?? '').trim()
+}
+
+const parseJsonBodyField = (value, fallback = null) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return fallback
+  }
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
+const getUploadedDocumentText = (file) => {
+  if (!file) {
+    return ''
+  }
+
+  const raw = file.buffer.toString('utf8')
+  const printableLength = (raw.match(/[\x20-\x7E\n\r\t]/g) ?? []).length
+  const printableRatio = raw.length > 0 ? printableLength / raw.length : 1
+
+  if (printableRatio < 0.55) {
+    throw new Error('Unsupported document encoding. Please upload UTF-8 text/CSV/JSON or paste extracted text in the instruction box.')
+  }
+
+  return raw.slice(0, 120_000)
+}
+
+const getMaterialHubAuthConfigError = () => {
+  if (!MATERIAL_HUBS_SUPABASE_URL || !MATERIAL_HUBS_SUPABASE_ANON_KEY) {
+    return 'Server missing MATERIAL_HUBS_SUPABASE_URL or MATERIAL_HUBS_SUPABASE_ANON_KEY for admin token validation.'
+  }
+
+  return null
+}
+
+const verifyMaterialHubAdmin = async (req) => {
+  const token = readAdminTokenFromRequest(req)
+
+  if (!token) {
+    return { status: 401, error: 'Unauthorized: missing admin session token.' }
+  }
+
+  const configError = getMaterialHubAuthConfigError()
+  if (configError) {
+    return { status: 503, error: configError }
+  }
+
+  const response = await fetch(`${MATERIAL_HUBS_SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: MATERIAL_HUBS_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    return { status: 401, error: 'Unauthorized: invalid or expired admin session.' }
+  }
+
+  const user = await response.json().catch(() => null)
+  const email = String(user?.email ?? '').trim().toLowerCase()
+
+  if (MATERIAL_HUBS_ADMIN_EMAILS.length > 0 && (!email || !MATERIAL_HUBS_ADMIN_EMAILS.includes(email))) {
+    return { status: 403, error: 'Forbidden: this account is not allowed to use the Material Hubs AI agent.' }
+  }
+
+  return { status: 200, user }
 }
 
 const normalizeInfraText = (value) => String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -1180,6 +1255,130 @@ app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {
     const isQuotaError = /\b429\b|quota|insufficient_quota|billing|rate\s*limit/i.test(message)
     const status = statusFromProvider ?? (isQuotaError ? 429 : 500)
     res.status(status).json({ error: message })
+  }
+})
+
+app.post('/api/material-hubs/ai-agent', upload.single('document'), async (req, res) => {
+  if (!hasKey) {
+    res.status(503).json({
+      error: getAiMissingConfigMessage('Material Hubs AI agent'),
+    })
+    return
+  }
+
+  try {
+    const auth = await verifyMaterialHubAdmin(req)
+    if (auth.status !== 200) {
+      res.status(auth.status).json({ error: auth.error })
+      return
+    }
+
+    const instruction = String(req.body.instruction ?? '').trim()
+    const hubs = safeArray(parseJsonBodyField(req.body.hubs, []))
+    const inventory = safeArray(parseJsonBodyField(req.body.inventory, []))
+    const documentText = getUploadedDocumentText(req.file)
+
+    if (!instruction && !documentText) {
+      res.status(400).json({ error: 'Provide an admin instruction or upload a document for analysis.' })
+      return
+    }
+
+    const compactContext = {
+      hubs: hubs.slice(0, 200).map((hub) => ({
+        id: String(hub?.id ?? ''),
+        name: String(hub?.name ?? ''),
+        location: String(hub?.location ?? ''),
+        district: String(hub?.district ?? ''),
+        status: String(hub?.status ?? ''),
+        stockPercentage: Number(hub?.stockPercentage ?? 0),
+        damagePercentage: Number(hub?.damagePercentage ?? 0),
+      })),
+      inventory: inventory.slice(0, 300).map((hubInventory) => ({
+        hubId: String(hubInventory?.hubId ?? ''),
+        hubName: String(hubInventory?.hubName ?? ''),
+        materials: safeArray(hubInventory?.materials).slice(0, 400).map((item) => ({
+          id: String(item?.id ?? ''),
+          hubId: String(item?.hubId ?? ''),
+          name: String(item?.name ?? ''),
+          unit: String(item?.unit ?? ''),
+          opening: Number(item?.opening ?? 0),
+          received: Number(item?.received ?? 0),
+          issued: Number(item?.issued ?? 0),
+          damaged: Number(item?.damaged ?? 0),
+          closing: Number(item?.closing ?? 0),
+        })),
+      })),
+    }
+
+    const completion = await createChatCompletion({
+      openaiModel: OPENAI_MODEL,
+      huggingFaceModel: HUGGINGFACE_CHAT_MODEL,
+      temperature: 0.1,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are an inventory operations AI for disaster material hubs. You must return strict JSON only. Be conservative and avoid destructive edits unless explicitly requested. Use existing IDs for updates/deletes whenever possible.',
+        },
+        {
+          role: 'user',
+          content:
+            `You are helping an admin update Material Hub inventory data. Analyze deeply and return strict JSON with this schema only:\n{\n  "summary": string,\n  "confidence": number,\n  "risks": string[],\n  "hubOperations": [\n    {\n      "action": "create|update|delete",\n      "hubId": string | null,\n      "hubName": string | null,\n      "name": string | null,\n      "location": string | null,\n      "district": string | null,\n      "latitude": number | null,\n      "longitude": number | null,\n      "capacity": number | null,\n      "status": "ready|moderate|critical" | null\n    }\n  ],\n  "entryOperations": [\n    {\n      "action": "create|update|delete",\n      "entryId": string | null,\n      "hubId": string | null,\n      "hubName": string | null,\n      "name": string | null,\n      "unit": string | null,\n      "opening": number | null,\n      "received": number | null,\n      "issued": number | null,\n      "damaged": number | null\n    }\n  ]\n}.\n\nRules:\n- For update/delete, include IDs when available from context.\n- Never invent hub IDs or entry IDs.\n- Keep numbers non-negative.\n- If data is uncertain, add the uncertainty in risks and keep operations minimal.\n\nAdmin instruction:\n${instruction || '(none)'}\n\nUploaded document text:\n${documentText || '(none)'}\n\nCurrent live context:\n${JSON.stringify(compactContext).slice(0, 120_000)}`,
+        },
+      ],
+    })
+
+    const text = completion.choices[0]?.message?.content ?? ''
+    const parsed = extractJson(text)
+
+    const hubOperations = safeArray(parsed.hubOperations).map((item) => ({
+      action: String(item?.action ?? '').toLowerCase(),
+      hubId: item?.hubId ? String(item.hubId) : null,
+      hubName: item?.hubName ? String(item.hubName) : null,
+      name: item?.name ? String(item.name) : null,
+      location: item?.location ? String(item.location) : null,
+      district: item?.district ? String(item.district) : null,
+      latitude: item?.latitude === null || item?.latitude === undefined ? null : Number(item.latitude),
+      longitude: item?.longitude === null || item?.longitude === undefined ? null : Number(item.longitude),
+      capacity: item?.capacity === null || item?.capacity === undefined ? null : Math.max(0, Number(item.capacity) || 0),
+      status: item?.status ? String(item.status).toLowerCase() : null,
+    }))
+
+    const entryOperations = safeArray(parsed.entryOperations).map((item) => ({
+      action: String(item?.action ?? '').toLowerCase(),
+      entryId: item?.entryId ? String(item.entryId) : null,
+      hubId: item?.hubId ? String(item.hubId) : null,
+      hubName: item?.hubName ? String(item.hubName) : null,
+      name: item?.name ? String(item.name) : null,
+      unit: item?.unit ? String(item.unit) : null,
+      opening: item?.opening === null || item?.opening === undefined ? null : Math.max(0, Number(item.opening) || 0),
+      received: item?.received === null || item?.received === undefined ? null : Math.max(0, Number(item.received) || 0),
+      issued: item?.issued === null || item?.issued === undefined ? null : Math.max(0, Number(item.issued) || 0),
+      damaged: item?.damaged === null || item?.damaged === undefined ? null : Math.max(0, Number(item.damaged) || 0),
+    }))
+
+    res.json({
+      model,
+      analyzedAt: new Date().toISOString(),
+      summary: String(parsed.summary ?? ''),
+      confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0.6) || 0.6)),
+      risks: safeArray(parsed.risks).map((item) => String(item)),
+      hubOperations,
+      entryOperations,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Material Hubs AI analysis failed.'
+    const statusFromProvider =
+      typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number'
+        ? error.status
+        : undefined
+    const isQuotaError = /\b429\b|quota|insufficient_quota|billing|rate\s*limit/i.test(message)
+
+    res.status(statusFromProvider ?? (isQuotaError ? 429 : 500)).json({
+      error: message,
+      provider: selectedAiProvider,
+      model,
+    })
   }
 })
 
