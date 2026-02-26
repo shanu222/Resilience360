@@ -4136,10 +4136,33 @@ function App() {
     }
 
     if (activeSection === 'designToolkit') {
+      const materialSafetyLabel = materialSuitability.flags.length >= 3 ? 'Moderate' : materialSuitability.flags.length >= 1 ? 'Good' : 'Excellent'
+      const windStatusLabel = coastalCities.has(designCity) ? 'Moderate' : 'Good'
+      const slopeStatusLabel = slopeEstimator.stabilityClass === 'High Risk' ? 'Moderate' : slopeEstimator.stabilityClass === 'Moderate Risk' ? 'Good' : 'Excellent'
+      const overallReadinessScore = Math.max(
+        42,
+        Math.min(
+          96,
+          Math.round(
+            92 -
+              designHazardOverlay.seismicZone * 3.2 -
+              designHazardOverlay.floodDepth100y * 4.5 -
+              (designHazardOverlay.liquefaction === 'High' ? 10 : designHazardOverlay.liquefaction === 'Medium' ? 5 : 1) -
+              materialSuitability.flags.length * 3.4 -
+              (slopeEstimator.stabilityClass === 'High Risk' ? 8 : slopeEstimator.stabilityClass === 'Moderate Risk' ? 4 : 1),
+          ),
+        ),
+      )
+      const scoreSweep = Math.max(32, Math.min(180, Math.round((overallReadinessScore / 100) * 180)))
+
       return (
         <div className="panel section-panel section-design-toolkit">
-          <h2>{t.sections.designToolkit}</h2>
-          <div className="inline-controls">
+          <div className="design-toolkit-heading">
+            <h2>{t.sections.designToolkit}</h2>
+            <p>Smart resilience planning for your region.</p>
+          </div>
+
+          <div className="inline-controls design-toolkit-filters">
             <label>
               Province
               <select
@@ -4154,7 +4177,7 @@ function App() {
                   <option key={province}>{province}</option>
                 ))}
               </select>
-              </label>
+            </label>
             <label>
               City
               <select value={designCity} onChange={(event) => setDesignCity(event.target.value)}>
@@ -4183,60 +4206,44 @@ function App() {
             </label>
           </div>
 
-          <div className="retrofit-insights-grid">
-                <p>
-                  Seismic Zone: <strong>{designHazardOverlay.seismicZone} / 5</strong>
-                </p>
-                <p>
-                  Flood Depth (1-in-100y): <strong>{designHazardOverlay.floodDepth100y.toFixed(1)} m</strong>
-                </p>
-                <p>
-                  Liquefaction Risk: <strong>{designHazardOverlay.liquefaction}</strong>
-                </p>
-                <p>
-                  Wind Exposure: <strong>{coastalCities.has(designCity) ? 'Coastal High' : 'Inland Moderate'}</strong>
-                </p>
+          <div className="design-toolkit-summary-strip">
+            <p>
+              Seismic Zone <strong>{designHazardOverlay.seismicZone}/5</strong>
+            </p>
+            <p>
+              Flood Depth (1-in-100y) <strong>{designHazardOverlay.floodDepth100y.toFixed(1)} m</strong>
+            </p>
+            <p>
+              Liquefaction Risk <strong>{designHazardOverlay.liquefaction}</strong>
+            </p>
+            <p>
+              Wind Exposure <strong>{coastalCities.has(designCity) ? 'Coastal High' : 'Inland Moderate'}</strong>
+            </p>
           </div>
 
-              <div className="retrofit-model-output">
-                <h3>🧱 Building Material Suitability Checker</h3>
+          <div className="design-toolkit-grid">
+            <div className="design-toolkit-column">
+              <div className="retrofit-model-output design-toolkit-card">
+                <h3>🧱 Recommended Material</h3>
                 <p>
-                  Recommended: <strong>{materialSuitability.recommendations.join(' | ')}</strong>
+                  <strong>{materialSuitability.recommendations[0] ?? materialSuitability.recommendations.join(' | ')}</strong>
                 </p>
-                <ul>
-                  {materialSuitability.flags.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+                <p>Soil Condition: {designSoilType}</p>
+                <p>
+                  Risk Suitability: <strong>{materialSafetyLabel}</strong>
+                </p>
+                {materialSuitability.flags.length > 0 && (
+                  <ul>
+                    {materialSuitability.flags.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              <div className="retrofit-model-output">
-                <h3>📏 Slope Stability & Retaining Wall Estimator</h3>
-                <div className="inline-controls">
-                  <label>
-                    Slope Angle (deg)
-                    <input type="number" min={5} max={60} value={slopeAngleDeg} onChange={(event) => setSlopeAngleDeg(Number(event.target.value) || 5)} />
-                  </label>
-                  <label>
-                    Slope Height (m)
-                    <input type="number" min={1} max={20} value={slopeHeightM} onChange={(event) => setSlopeHeightM(Number(event.target.value) || 1)} />
-                  </label>
-                </div>
-                <p>
-                  Stability Class: <strong>{slopeEstimator.stabilityClass}</strong>
-                </p>
-                <p>
-                  Recommended Wall: <strong>{slopeEstimator.wallType}</strong>
-                </p>
-                <p>
-                  Minimum Embedment: <strong>{slopeEstimator.embedment} m</strong>
-                </p>
-                <p>{slopeEstimator.drainage}</p>
-              </div>
-
-              <div className="retrofit-model-output">
+              <div className="retrofit-model-output design-toolkit-card">
                 <h3>💡 Safe Shelter Capacity Planner</h3>
-                <div className="inline-controls">
+                <div className="inline-controls design-toolkit-compact-controls">
                   <label>
                     Shelter Area (sqm)
                     <input
@@ -4261,6 +4268,9 @@ function App() {
                 <p>
                   Max Safe Capacity: <strong>{shelterCapacityPlan.maxCapacity} people</strong>
                 </p>
+                <p>
+                  Space Per Person: <strong>{shelterCapacityPlan.areaPerPerson.toFixed(1)} sqm</strong>
+                </p>
                 <ul>
                   {shelterCapacityPlan.layout.map((item) => (
                     <li key={item}>{item}</li>
@@ -4268,10 +4278,10 @@ function App() {
                 </ul>
               </div>
 
-              <div className="retrofit-model-output">
-                <h3>🔩 Foundation Type Recommender</h3>
+              <div className="retrofit-model-output design-toolkit-card">
+                <h3>🔩 Recommended Foundation</h3>
                 <p>
-                  Recommended Foundation: <strong>{foundationRecommendation.type}</strong>
+                  <strong>{foundationRecommendation.type}</strong>
                 </p>
                 <ul>
                   {foundationRecommendation.risks.map((item) => (
@@ -4280,32 +4290,89 @@ function App() {
                 </ul>
               </div>
 
-              <div className="retrofit-model-output">
-                <h3>🚪 Non-Structural Risk Checklist Generator</h3>
+              <div className="retrofit-model-output design-toolkit-card">
+                <h3>📐 Wind and Storm Resistance Guide</h3>
+                <ul>
+                  <li>
+                    Roof Angle: <strong>{windStormGuide.roofAngle}</strong>
+                  </li>
+                  <li>
+                    Openings: <strong>{windStormGuide.openings}</strong>
+                  </li>
+                  <li>
+                    Tie Beams: <strong>{windStormGuide.tieBeams}</strong>
+                  </li>
+                </ul>
+                <p>{windStormGuide.note}</p>
+              </div>
+
+              <div className="retrofit-model-output design-toolkit-card">
+                <h3>🚪 Field Implementation Checklist</h3>
                 <ul>
                   {nonStructuralChecklist.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
               </div>
+            </div>
 
-              <div className="retrofit-model-output">
-                <h3>📐 Wind and Storm Resistance Guide</h3>
-                <p>
-                  Roof Angle: <strong>{windStormGuide.roofAngle}</strong>
-                </p>
-                <p>
-                  Opening/Vent Guidance: <strong>{windStormGuide.openings}</strong>
-                </p>
-                <p>
-                  Tie Beam Details: <strong>{windStormGuide.tieBeams}</strong>
-                </p>
-                <p>{windStormGuide.note}</p>
+            <div className="design-toolkit-column">
+              <div className="retrofit-model-output design-toolkit-card design-toolkit-score-card">
+                <h3>Overall Structural Resilience</h3>
+                <div className="design-toolkit-gauge-wrap">
+                  <div
+                    className="design-toolkit-gauge"
+                    style={{
+                      background: `conic-gradient(from 180deg, #2ed7f6 0deg, #30df8e ${scoreSweep * 0.5}deg, #f6d54a ${(scoreSweep * 0.72).toFixed(1)}deg, #ff9058 ${(scoreSweep * 0.88).toFixed(1)}deg, #ea4f76 ${scoreSweep}deg, rgba(54, 86, 118, 0.26) ${scoreSweep}deg 360deg)`,
+                    }}
+                  >
+                    <div className="design-toolkit-gauge-core">
+                      <strong>{overallReadinessScore}</strong>
+                      <span>/100</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="design-toolkit-score-label">Overall Readiness Score</p>
+                <div className="design-toolkit-status-list">
+                  <p>
+                    Material Safety <strong>{materialSafetyLabel}</strong>
+                  </p>
+                  <p>
+                    Slope Stability <strong>{slopeStatusLabel}</strong>
+                  </p>
+                  <p>
+                    Wind Resistance <strong>{windStatusLabel}</strong>
+                  </p>
+                </div>
               </div>
 
-              <div className="retrofit-model-output">
+              <div className="retrofit-model-output design-toolkit-card">
+                <h3>📏 Slope Stability & Retaining Wall Estimator</h3>
+                <div className="inline-controls design-toolkit-compact-controls">
+                  <label>
+                    Slope Angle (deg)
+                    <input type="number" min={5} max={60} value={slopeAngleDeg} onChange={(event) => setSlopeAngleDeg(Number(event.target.value) || 5)} />
+                  </label>
+                  <label>
+                    Slope Height (m)
+                    <input type="number" min={1} max={20} value={slopeHeightM} onChange={(event) => setSlopeHeightM(Number(event.target.value) || 1)} />
+                  </label>
+                </div>
+                <p>
+                  Stability Class: <strong>{slopeEstimator.stabilityClass}</strong>
+                </p>
+                <p>
+                  Recommended Wall: <strong>{slopeEstimator.wallType}</strong>
+                </p>
+                <p>
+                  Minimum Embedment: <strong>{slopeEstimator.embedment} m</strong>
+                </p>
+                <p>{slopeEstimator.drainage}</p>
+              </div>
+
+              <div className="retrofit-model-output design-toolkit-card">
                 <h3>📦 Resilient Design Kit Cost Estimator</h3>
-                <div className="inline-controls">
+                <div className="inline-controls design-toolkit-compact-controls">
                   <label>
                     House Type
                     <select value={houseTypeForCost} onChange={(event) => setHouseTypeForCost(event.target.value as typeof houseTypeForCost)}>
@@ -4325,7 +4392,7 @@ function App() {
                     />
                   </label>
                 </div>
-                <div className="retrofit-insights-grid">
+                <div className="retrofit-insights-grid design-toolkit-cost-grid">
                   <p>
                     Unit Cost: <strong>PKR {Math.round(designCostEstimate.unitCost).toLocaleString()}/sq ft</strong>
                   </p>
@@ -4339,27 +4406,29 @@ function App() {
                     Total Estimate: <strong>PKR {Math.round(designCostEstimate.total).toLocaleString()}</strong>
                   </p>
                 </div>
+
+                <div className="inline-controls design-toolkit-actions">
+                  <button onClick={handleEstimateTotalUpgradeCost}>📦 Estimate My Total Upgrade Cost</button>
+                  <button onClick={downloadConstructionDrawings}>🧰 Download Construction Drawings</button>
+                  <button onClick={generateFieldImplementationChecklist}>📋 Generate Field Implementation Checklist</button>
+                  <button onClick={() => void shareDesignWithCommunity()}>🌍 Share Design with Community</button>
+                </div>
               </div>
-
-              <div className="inline-controls">
-                <button onClick={handleEstimateTotalUpgradeCost}>📦 Estimate My Total Upgrade Cost</button>
-                <button onClick={downloadConstructionDrawings}>🧰 Download Construction Drawings</button>
-                <button onClick={generateFieldImplementationChecklist}>📋 Generate Field Implementation Checklist</button>
-                <button onClick={() => void shareDesignWithCommunity()}>🌍 Share Design with Community</button>
-              </div>
-
-              {designSummaryText && <p>{designSummaryText}</p>}
-
-              {showTrainingPrograms && (
-                <ul>
-                  <li>NESPAK regional training node - structural safety detailing workshops</li>
-                  <li>UNDP resilience accelerator modules - flood and seismic preparedness</li>
-                  <li>ERRA reconstruction practice sessions - field implementation skills</li>
-                  <li>PDMA district drills - emergency shelter and response planning</li>
-                </ul>
-              )}
             </div>
-          )
+          </div>
+
+          {designSummaryText && <p className="design-toolkit-summary-text">{designSummaryText}</p>}
+
+          {showTrainingPrograms && (
+            <ul>
+              <li>NESPAK regional training node - structural safety detailing workshops</li>
+              <li>UNDP resilience accelerator modules - flood and seismic preparedness</li>
+              <li>ERRA reconstruction practice sessions - field implementation skills</li>
+              <li>PDMA district drills - emergency shelter and response planning</li>
+            </ul>
+          )}
+        </div>
+      )
     }
 
     if (activeSection === 'infraModels') {

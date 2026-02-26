@@ -595,6 +595,273 @@ img {
   padding: var(--space-3) var(--space-4) var(--space-2) 24px;
 }
 
+.section-design-toolkit {
+  background:
+    linear-gradient(180deg, rgba(9, 18, 48, 0.86) 0%, rgba(9, 17, 44, 0.82) 100%),
+    radial-gradient(circle at 14% 10%, rgba(42, 182, 214, 0.2), transparent 48%),
+    radial-gradient(circle at 88% 12%, rgba(123, 96, 208, 0.2), transparent 45%);
+  border: 1px solid rgba(111, 143, 188, 0.38);
+  box-shadow: 0 14px 30px rgba(4, 10, 28, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.section-design-toolkit h2,
+.section-design-toolkit p,
+.section-design-toolkit li,
+.section-design-toolkit label,
+.section-design-toolkit strong,
+.section-design-toolkit h3 {
+  color: #ecf7ff;
+}
+
+.design-toolkit-heading {
+  margin-bottom: 12px;
+}
+
+.design-toolkit-heading h2 {
+  margin-bottom: 3px;
+  color: #f3f8ff;
+  font-size: clamp(1.9rem, 1.6rem + 1vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.018em;
+  font-weight: 700;
+}
+
+.design-toolkit-heading p {
+  margin: 0;
+  color: rgba(227, 241, 255, 0.86);
+  font-size: clamp(0.95rem, 0.9rem + 0.16vw, 1.05rem);
+  line-height: 1.28;
+}
+
+.section-design-toolkit .design-toolkit-filters {
+  border: 1px solid rgba(97, 132, 181, 0.46);
+  border-radius: 13px;
+  background: rgba(16, 30, 67, 0.62);
+  backdrop-filter: blur(3px);
+  padding: 11px;
+  margin-bottom: 9px;
+  gap: 9px;
+}
+
+.section-design-toolkit .design-toolkit-filters label {
+  min-width: 145px;
+  flex: 1 1 160px;
+  gap: 4px;
+  font-size: 0.76rem;
+  letter-spacing: 0.025em;
+  color: rgba(218, 236, 254, 0.88);
+}
+
+.section-design-toolkit .design-toolkit-filters select,
+.section-design-toolkit .design-toolkit-filters input,
+.section-design-toolkit .design-toolkit-compact-controls select,
+.section-design-toolkit .design-toolkit-compact-controls input {
+  background: rgba(8, 20, 53, 0.82);
+  border-color: rgba(103, 137, 186, 0.56);
+  color: #e8f4ff;
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 9px;
+}
+
+.section-design-toolkit .design-toolkit-compact-controls {
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.section-design-toolkit .design-toolkit-compact-controls label {
+  min-width: 150px;
+  flex: 1 1 170px;
+  gap: 4px;
+}
+
+.design-toolkit-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.design-toolkit-summary-strip p {
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(88, 121, 172, 0.5);
+  background: rgba(11, 24, 58, 0.72);
+  font-size: 0.78rem;
+  line-height: 1.26;
+}
+
+.design-toolkit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.design-toolkit-column {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.section-design-toolkit .design-toolkit-card {
+  margin-top: 0;
+  border: 1px solid rgba(108, 140, 188, 0.5);
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(13, 28, 66, 0.8) 0%, rgba(11, 24, 58, 0.72) 100%);
+  box-shadow: 0 8px 16px rgba(4, 9, 28, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.section-design-toolkit .design-toolkit-card h3 {
+  margin: 0 0 9px;
+  font-size: clamp(1.03rem, 0.99rem + 0.16vw, 1.12rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.section-design-toolkit .design-toolkit-card p {
+  margin: 0 0 7px;
+  font-size: 0.93rem;
+  line-height: 1.38;
+  color: rgba(230, 243, 255, 0.92);
+}
+
+.section-design-toolkit .design-toolkit-card ul {
+  margin: 7px 0 0;
+  background: rgba(8, 22, 56, 0.38);
+  border-color: rgba(101, 133, 178, 0.42);
+  padding: 10px 12px 7px 22px;
+}
+
+.section-design-toolkit .design-toolkit-card li {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  line-height: 1.32;
+}
+
+.design-toolkit-score-card {
+  text-align: center;
+}
+
+.design-toolkit-gauge-wrap {
+  margin: 5px auto 3px;
+  width: min(100%, 340px);
+  aspect-ratio: 2 / 1.05;
+  overflow: hidden;
+}
+
+.design-toolkit-gauge {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transform: translateY(48%);
+  border: 1px solid rgba(142, 176, 213, 0.44);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.design-toolkit-gauge-core {
+  width: 62%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 36%, rgba(20, 37, 83, 0.92), rgba(9, 17, 45, 0.95));
+  border: 1px solid rgba(112, 148, 198, 0.52);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transform: translateY(-15%);
+}
+
+.design-toolkit-gauge-core strong {
+  font-size: 2.35rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.design-toolkit-gauge-core span {
+  font-size: 0.74rem;
+  color: rgba(231, 244, 255, 0.84);
+}
+
+.design-toolkit-score-label {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  line-height: 1.28;
+  color: rgba(228, 242, 255, 0.86);
+}
+
+.design-toolkit-status-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.design-toolkit-status-list p {
+  margin: 0;
+  text-align: left;
+  border: 1px solid rgba(96, 128, 172, 0.44);
+  border-radius: 9px;
+  padding: 7px 9px;
+  background: rgba(8, 21, 52, 0.58);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.design-toolkit-status-list strong {
+  color: #ddfff0;
+  background: rgba(40, 175, 136, 0.38);
+  border: 1px solid rgba(98, 225, 186, 0.38);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.section-design-toolkit .design-toolkit-cost-grid {
+  margin-top: 7px;
+}
+
+.section-design-toolkit .design-toolkit-cost-grid p {
+  font-size: 0.86rem;
+  padding: 8px 9px;
+}
+
+.section-design-toolkit .design-toolkit-actions {
+  margin-top: 9px;
+  margin-bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.section-design-toolkit .design-toolkit-actions button {
+  width: 100%;
+  min-height: 41px;
+  background: linear-gradient(180deg, #1ba58b 0%, #0d7f6c 100%);
+  border-color: rgba(88, 215, 186, 0.56);
+  box-shadow: 0 6px 14px rgba(1, 30, 23, 0.38);
+  font-size: 0.96rem;
+  letter-spacing: 0.01em;
+}
+
+.design-toolkit-summary-text {
+  margin-top: 9px;
+  border: 1px solid rgba(108, 139, 188, 0.45);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: rgba(12, 25, 57, 0.64);
+  font-size: 0.9rem;
+  line-height: 1.38;
+}
+
 .section-learn p {
   margin-bottom: var(--space-2);
 }
@@ -1555,6 +1822,27 @@ progress {
 
   .inline-controls {
     gap: 8px;
+  }
+
+  .design-toolkit-summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .design-toolkit-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .design-toolkit-gauge-wrap {
+    width: min(100%, 260px);
+  }
+
+  .design-toolkit-heading h2 {
+    font-size: clamp(1.6rem, 1.35rem + 0.8vw, 2rem);
+  }
+
+  .section-design-toolkit .design-toolkit-card {
+    padding: 10px;
   }
 
   .section-back-row {
