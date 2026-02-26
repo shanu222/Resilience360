@@ -1406,6 +1406,7 @@ function App() {
   const isUrdu = language === 'ur'
   const isHomeView = !activeSection
   const isBestPracticesView = activeSection === 'bestPractices'
+  const isRiskMapsView = activeSection === 'riskMaps'
   const isEmbeddedPortalSection = activeSection === 'pgbc' || activeSection === 'coePortal' || activeSection === 'materialHubs'
   const hasPreviousSection = sectionHistory.length > 0
   const infraLayoutVideoSrc = `${import.meta.env.BASE_URL}videos/layout.mp4`
@@ -3721,10 +3722,13 @@ function App() {
 
     if (activeSection === 'riskMaps') {
       return (
-        <div className="panel section-panel section-risk-maps">
-          <h2>{t.sections.riskMaps}</h2>
-          <div className="context-split-layout">
-            <aside className="context-left-panel">
+        <div className="panel section-panel section-risk-maps risk-zone-dashboard">
+          <h2 className="risk-zone-title">
+            {t.sections.riskMaps}
+            <span>Explore &amp; Analyze Hazard Risk Across Pakistan</span>
+          </h2>
+          <div className="context-split-layout risk-zone-top-grid">
+            <aside className="context-left-panel risk-zone-summary-card">
               <h3>Selection Summary</h3>
               <p>
                 <strong>Province:</strong> {selectedProvince}
@@ -3740,7 +3744,7 @@ function App() {
               </p>
             </aside>
             <div className="context-main-panel">
-              <div className="inline-controls">
+              <div className="inline-controls risk-primary-controls">
                 <label>
                   Layer
                   <select value={mapLayer} onChange={(event) => setMapLayer(event.target.value as typeof mapLayer)}>
@@ -3795,7 +3799,7 @@ function App() {
               </div>
             </div>
           </div>
-          <div className="inline-controls">
+          <div className="inline-controls risk-action-controls">
             <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
               {isDetectingLocation ? '📡 Detecting Location...' : '📡 Use My Location'}
             </button>
@@ -3838,7 +3842,7 @@ function App() {
           </div>
           {locationAccessMsg && <p>{locationAccessMsg}</p>}
           {districtProfileSavedMsg && <p>{districtProfileSavedMsg}</p>}
-          <div className="alerts">
+          <div className="alerts risk-progress-panel">
             <p>
               Loading progress: <strong>{riskActionProgress}%</strong>
             </p>
@@ -3872,96 +3876,133 @@ function App() {
             onSelectProvince={setSelectedProvince}
             onSelectDistrict={setSelectedDistrict}
           />
-          <p>Boundary source: geoBoundaries Pakistan ADM1 + ADM2 (public-domain dataset).</p>
-          <p>Risk layer source: integrated NDMA Infrastructure Risk Atlas district profiles for practical planning workflows.</p>
-          <p>
-            Selected Risk: <strong>{selectedProvince}</strong> - <strong>{mapLayer}</strong> ={' '}
-            <strong>{riskValue}</strong>
-          </p>
-          <div className="retrofit-model-output">
-            <h3>🌦️ Flood & Climate Risk Explorer</h3>
-            <div className="inline-controls">
-              <label>
-                Enter Location
-                <input
-                  value={climateLocationInput}
-                  onChange={(event) => setClimateLocationInput(event.target.value)}
-                  placeholder="City / Area"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  void loadLiveClimateByCity(climateLocationInput)
-                }}
-                disabled={isLoadingLiveClimate}
-              >
-                {isLoadingLiveClimate ? 'Applying...' : 'Apply Location'}
-              </button>
-            </div>
-            {liveClimateError && <p>{liveClimateError}</p>}
-            {liveClimateSnapshot && (
+          <div className="risk-source-strip">
+            <p>Boundary Layer • Global Seismic Risk (ADM1 + ADM2) • Pakistan • {selectedProvince}{selectedDistrict ? ` • ${selectedDistrict}` : ''}</p>
+            <p>
+              Selected Risk Level: <strong>{riskValue}</strong>
+            </p>
+          </div>
+
+          <div className="risk-insights-grid">
+            <div className="retrofit-model-output risk-card risk-climate-card">
+              <h3>🌦️ Flood &amp; Climate Risk Explorer</h3>
+              <div className="inline-controls">
+                <label>
+                  Enter Location
+                  <input
+                    value={climateLocationInput}
+                    onChange={(event) => setClimateLocationInput(event.target.value)}
+                    placeholder="City / Area"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void loadLiveClimateByCity(climateLocationInput)
+                  }}
+                  disabled={isLoadingLiveClimate}
+                >
+                  {isLoadingLiveClimate ? 'Applying...' : 'Apply Location'}
+                </button>
+              </div>
+              {liveClimateError && <p>{liveClimateError}</p>}
+              {liveClimateSnapshot && (
+                <p>
+                  Live source: <strong>{liveClimateSnapshot.source}</strong> • Updated:{' '}
+                  <strong>{new Date(liveClimateSnapshot.updatedAt).toLocaleString()}</strong>
+                </p>
+              )}
               <p>
-                Live source: <strong>{liveClimateSnapshot.source}</strong> • Updated:{' '}
-                <strong>{new Date(liveClimateSnapshot.updatedAt).toLocaleString()}</strong>
+                Risk Score: <strong>{displayedClimateRiskScore}/100</strong>
               </p>
-            )}
-            <p>
-              Risk Score: <strong>{displayedClimateRiskScore}/100</strong>
-            </p>
-            <p>
-              Heatwave Risk Zone: <strong>{displayedHeatwaveRiskZone}</strong>
-            </p>
-            <p>
-              Air Quality Level: <strong>{displayedAirQualityLevel}</strong>
-            </p>
-            {liveClimateSnapshot && (
               <p>
-                Temperature / Feels Like: <strong>{liveClimateSnapshot.metrics.temperatureC.toFixed(1)}°C / {liveClimateSnapshot.metrics.apparentTemperatureC.toFixed(1)}°C</strong>{' '}
-                • Rain Chance: <strong>{Math.round(liveClimateSnapshot.metrics.precipitationProbability)}%</strong> • AQI:{' '}
-                <strong>{Math.round(liveClimateSnapshot.metrics.usAqi)}</strong>
+                Heatwave Risk Zone: <strong>{displayedHeatwaveRiskZone}</strong>
               </p>
-            )}
-            <p>
-              Safe Shelters Nearby: <strong>{nearbyShelters.length || 'No mapped shelter in current district'}</strong>
-            </p>
-            {nearbyShelters.length > 0 && (
+              <p>
+                Air Quality Level: <strong>{displayedAirQualityLevel}</strong>
+              </p>
+              {liveClimateSnapshot && (
+                <p>
+                  Temperature / Feels Like: <strong>{liveClimateSnapshot.metrics.temperatureC.toFixed(1)}°C / {liveClimateSnapshot.metrics.apparentTemperatureC.toFixed(1)}°C</strong>{' '}
+                  • Rain Chance: <strong>{Math.round(liveClimateSnapshot.metrics.precipitationProbability)}%</strong> • AQI:{' '}
+                  <strong>{Math.round(liveClimateSnapshot.metrics.usAqi)}</strong>
+                </p>
+              )}
+              <p>
+                Safe Shelters Nearby: <strong>{nearbyShelters.length || 'No mapped shelter in current district'}</strong>
+              </p>
+              {nearbyShelters.length > 0 && (
+                <ul>
+                  {nearbyShelters.slice(0, 3).map((asset) => (
+                    <li key={asset.name}>{asset.name}</li>
+                  ))}
+                </ul>
+              )}
+              <h4>Precautions</h4>
               <ul>
-                {nearbyShelters.slice(0, 3).map((asset) => (
-                  <li key={asset.name}>{asset.name}</li>
+                {displayedClimatePrecautions.map((item) => (
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
-            )}
-            <h4>Precautions</h4>
-            <ul>
-              {displayedClimatePrecautions.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <h4>Emergency Contacts</h4>
-            <ul>
-              {selectedDistrictContacts.map((contact) => (
-                <li key={contact}>{contact}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="global-earthquake-panel global-earthquake-alerts-card">
-            <div className="global-earthquake-alerts-head">
-              <h3>🌍 Live Earthquake Alerts</h3>
+              <h4>Emergency Contacts</h4>
+              <ul>
+                {selectedDistrictContacts.map((contact) => (
+                  <li key={contact}>{contact}</li>
+                ))}
+              </ul>
             </div>
-            <button
-              type="button"
-              className="global-earthquake-launch-btn"
-              onClick={() => {
-                const liveAlertsUrl = `${import.meta.env.BASE_URL}live-earthquake-alerts.html`
-                window.open(liveAlertsUrl, '_blank', 'noopener,noreferrer')
-              }}
-            >
-              live earthquake Alerts
-            </button>
+
+            <div className="risk-side-stack">
+              <div className="global-earthquake-panel global-earthquake-alerts-card risk-card risk-earthquake-card">
+                <div className="global-earthquake-alerts-head">
+                  <h3>🌍 Live Earthquake Alerts</h3>
+                </div>
+                <button
+                  type="button"
+                  className="global-earthquake-launch-btn"
+                  onClick={() => {
+                    const liveAlertsUrl = `${import.meta.env.BASE_URL}live-earthquake-alerts.html`
+                    window.open(liveAlertsUrl, '_blank', 'noopener,noreferrer')
+                  }}
+                >
+                  View Live Earthquake Alerts
+                </button>
+              </div>
+
+              <div className="retrofit-model-output risk-card risk-chatbot-card">
+                <h3>Local Advisory Chatbot</h3>
+                <p>Ask for district-level action advice, retrofit priorities, or hazard-specific guidance.</p>
+                <div className="inline-controls">
+                  <input
+                    type="text"
+                    value={advisoryQuestion}
+                    onChange={(event) => setAdvisoryQuestion(event.target.value)}
+                    placeholder="e.g., What should schools in this district do before monsoon?"
+                  />
+                  <button onClick={() => { void sendLocalAdvisoryQuestion() }} disabled={isAskingAdvisory}>
+                    {isAskingAdvisory ? '💬 Thinking...' : '💬 Ask'}
+                  </button>
+                </div>
+                {advisoryError && <p>{advisoryError}</p>}
+                {advisoryMessages.length > 0 && (
+                  <div>
+                    {advisoryMessages.slice(-6).map((message, idx) => (
+                      <p key={`${message.role}-${idx}`}>
+                        <strong>{message.role === 'user' ? 'You' : 'Advisor'}:</strong> {message.text}
+                      </p>
+                    ))}
+                    <div className="inline-controls">
+                      <button onClick={downloadLatestAdvisoryAnswerPdf}>📄 Download Latest Answer (PDF)</button>
+                      <button onClick={() => { void copyLatestAdvisoryAnswer() }}>📋 Copy Answer</button>
+                    </div>
+                    {advisoryCopyMsg && <p>{advisoryCopyMsg}</p>}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           {selectedDistrict && (
-            <div className="retrofit-model-output">
+            <div className="retrofit-model-output risk-card">
               <h3>District Action Panel</h3>
               <p>
                 District Selected: <strong>{selectedDistrict}</strong>
@@ -4015,38 +4056,7 @@ function App() {
             </div>
           )}
 
-          <div className="retrofit-model-output">
-            <h3>Local Advisory Chatbot</h3>
-            <p>Ask for district-level action advice, retrofit priorities, or hazard-specific guidance.</p>
-            <div className="inline-controls">
-              <input
-                type="text"
-                value={advisoryQuestion}
-                onChange={(event) => setAdvisoryQuestion(event.target.value)}
-                placeholder="e.g., What should schools in this district do before monsoon?"
-              />
-              <button onClick={() => { void sendLocalAdvisoryQuestion() }} disabled={isAskingAdvisory}>
-                {isAskingAdvisory ? '💬 Thinking...' : '💬 Ask'}
-              </button>
-            </div>
-            {advisoryError && <p>{advisoryError}</p>}
-            {advisoryMessages.length > 0 && (
-              <div>
-                {advisoryMessages.slice(-6).map((message, idx) => (
-                  <p key={`${message.role}-${idx}`}>
-                    <strong>{message.role === 'user' ? 'You' : 'Advisor'}:</strong> {message.text}
-                  </p>
-                ))}
-                <div className="inline-controls">
-                  <button onClick={downloadLatestAdvisoryAnswerPdf}>📄 Download Latest Answer (PDF)</button>
-                  <button onClick={() => { void copyLatestAdvisoryAnswer() }}>📋 Copy Answer</button>
-                </div>
-                {advisoryCopyMsg && <p>{advisoryCopyMsg}</p>}
-              </div>
-            )}
-          </div>
-
-          <div className="retrofit-model-output">
+          <div className="retrofit-model-output risk-card">
             <h3>🧱 Build Better: Local Materials Guide</h3>
             <p>
               Recommended: <strong>{localMaterialGuide.recommended.join(' | ')}</strong>
@@ -4061,7 +4071,7 @@ function App() {
             </ul>
           </div>
 
-          <div className="retrofit-model-output">
+          <div className="retrofit-model-output risk-card">
             <h3>🤳 Submit My Structure for Risk Review</h3>
             <div className="inline-controls">
               <label>
@@ -5720,13 +5730,13 @@ function App() {
 
   return (
     <div
-      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView ? 'best-practices-view' : ''}`}
+      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView ? 'best-practices-view' : ''} ${isRiskMapsView ? 'risk-maps-view' : ''}`}
       dir={isUrdu ? 'rtl' : 'ltr'}
     >
-      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView ? 'best-practices-navbar' : ''}`}>
+      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView ? 'best-practices-navbar' : ''} ${isRiskMapsView ? 'risk-maps-navbar' : ''}`}>
         <div className="brand">
           <div className="logo-badge">{t.logoText}</div>
-          {isHomeView || isBestPracticesView ? (
+          {isHomeView || isBestPracticesView || isRiskMapsView ? (
             <div className="hero-title-wrap">
               <h1 className="hero-title">Resilience360°</h1>
               <p className="hero-subtitle">Infrastructure Safety &amp; Disaster Engineering Toolkit</p>
@@ -5787,7 +5797,7 @@ function App() {
           </>
         )}
         {!isHomeView && (
-          <div className={`section-back-row ${isBestPracticesView ? 'best-practices-back-row' : ''}`}>
+          <div className={`section-back-row ${isBestPracticesView ? 'best-practices-back-row' : ''} ${isRiskMapsView ? 'risk-maps-back-row' : ''}`}>
             <button className="section-back-btn" onClick={navigateBack}>
               {hasPreviousSection ? '⬅ Back' : '⬅ Back to Home'}
             </button>
