@@ -63,6 +63,12 @@ body {
   backdrop-filter: blur(2px);
 }
 
+.best-practices-view {
+  background:
+    linear-gradient(180deg, rgba(22, 10, 63, 0.68) 0%, rgba(18, 12, 58, 0.5) 100%),
+    radial-gradient(circle at top right, rgba(111, 65, 183, 0.4), transparent 45%);
+}
+
 .lightweight * {
   transition: none !important;
 }
@@ -85,6 +91,44 @@ body {
     linear-gradient(130deg, rgba(255, 255, 255, 0.9) 0%, rgba(225, 241, 255, 0.75) 55%, rgba(202, 229, 246, 0.7) 100%),
     radial-gradient(circle at top right, rgba(130, 180, 213, 0.28), transparent 50%);
   border: 1px solid rgba(210, 228, 241, 0.85);
+}
+
+.best-practices-navbar {
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(30, 26, 74, 0.86) 0%, rgba(51, 39, 106, 0.72) 58%, rgba(61, 40, 117, 0.78) 100%),
+    radial-gradient(circle at top right, rgba(151, 107, 217, 0.3), transparent 48%);
+  border: 1px solid rgba(142, 120, 201, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.best-practices-view .hero-title {
+  color: #e8e6ff;
+}
+
+.best-practices-view .hero-subtitle {
+  color: rgba(232, 230, 255, 0.82);
+  font-weight: 500;
+}
+
+.best-practices-view .logo-badge {
+  background: linear-gradient(180deg, #5ca5ff 0%, #335bd1 100%);
+}
+
+.best-practices-view .nav-controls label {
+  color: rgba(231, 226, 255, 0.9);
+}
+
+.best-practices-view .nav-controls select {
+  border-color: rgba(125, 110, 191, 0.6);
+  background: rgba(24, 19, 60, 0.88);
+  color: #ece9ff;
+}
+
+.best-practices-view .nav-controls button {
+  background: linear-gradient(180deg, #7052d6 0%, #4d318f 100%);
+  border-color: rgba(146, 122, 214, 0.85);
+  box-shadow: 0 8px 16px rgba(20, 13, 49, 0.45);
 }
 
 .brand {
@@ -217,6 +261,13 @@ button:disabled {
   display: flex;
   justify-content: flex-start;
   margin-top: var(--space-2);
+}
+
+.best-practices-back-row .section-back-btn {
+  min-width: 200px;
+  background: linear-gradient(180deg, #9e56ce 0%, #6f349f 100%);
+  border-color: rgba(173, 121, 220, 0.8);
+  box-shadow: 0 6px 14px rgba(21, 10, 54, 0.45);
 }
 
 .section-back-btn {
@@ -777,6 +828,79 @@ summary {
 
 .section-best-practices details {
   box-shadow: inset 0 0 0 1px rgba(99, 150, 189, 0.1);
+}
+
+.section-best-practices {
+  background:
+    linear-gradient(180deg, rgba(26, 18, 68, 0.84) 0%, rgba(19, 13, 57, 0.8) 100%),
+    radial-gradient(circle at top right, rgba(117, 87, 192, 0.22), transparent 42%);
+  border: 1px solid rgba(118, 93, 186, 0.46);
+  box-shadow: 0 12px 28px rgba(15, 9, 44, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.section-best-practices h2,
+.section-best-practices p,
+.section-best-practices li,
+.section-best-practices strong,
+.section-best-practices summary,
+.section-best-practices label {
+  color: #ece8ff;
+}
+
+.section-best-practices .best-practices-controls {
+  background: rgba(27, 21, 68, 0.58);
+  border: 1px solid rgba(120, 97, 184, 0.42);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.section-best-practices .best-practices-label {
+  min-width: 100%;
+  flex: 1 1 100%;
+}
+
+.section-best-practices .best-practices-label select {
+  border-color: rgba(123, 101, 191, 0.65);
+  background: rgba(20, 15, 54, 0.9);
+  color: #f4f2ff;
+}
+
+.section-best-practices .best-practice-item {
+  margin-bottom: 10px;
+  border: 1px solid rgba(112, 88, 177, 0.55);
+  border-radius: 10px;
+  background: rgba(20, 14, 58, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(193, 182, 235, 0.07);
+}
+
+.section-best-practices .best-practice-item summary {
+  list-style: none;
+}
+
+.section-best-practices .best-practice-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.section-best-practices .best-practice-item summary::before {
+  content: '▸';
+  margin-right: 8px;
+  color: rgba(223, 216, 252, 0.9);
+}
+
+.section-best-practices .best-practice-item[open] summary::before {
+  content: '▾';
+}
+
+.section-best-practices .best-practice-action,
+.section-best-practices .best-practices-load-more {
+  background: linear-gradient(180deg, #8b59de 0%, #5f33a8 100%);
+  border-color: rgba(167, 131, 228, 0.9);
+  box-shadow: 0 7px 14px rgba(19, 11, 53, 0.45);
+}
+
+.section-best-practices .best-practice-action:hover,
+.section-best-practices .best-practices-load-more:hover {
+  filter: brightness(1.08);
 }
 
 .practice-image {

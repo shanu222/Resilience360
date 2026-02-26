@@ -1405,6 +1405,7 @@ function App() {
   const t = translations[language]
   const isUrdu = language === 'ur'
   const isHomeView = !activeSection
+  const isBestPracticesView = activeSection === 'bestPractices'
   const isEmbeddedPortalSection = activeSection === 'pgbc' || activeSection === 'coePortal' || activeSection === 'materialHubs'
   const hasPreviousSection = sectionHistory.length > 0
   const infraLayoutVideoSrc = `${import.meta.env.BASE_URL}videos/layout.mp4`
@@ -3657,8 +3658,8 @@ function App() {
       return (
         <div className="panel section-panel section-best-practices">
           <h2>{t.sections.bestPractices}</h2>
-          <div className="inline-controls">
-            <label>
+          <div className="inline-controls best-practices-controls">
+            <label className="best-practices-label">
               Hazard Type
               <select
                 value={bestPracticeHazard}
@@ -3674,7 +3675,7 @@ function App() {
             const practiceImage = getBestPracticeImage(practice.title)
 
             return (
-              <details key={`${practice.title}-${practice.region}`}>
+              <details key={`${practice.title}-${practice.region}`} className="best-practice-item">
                 <summary>{practice.title}</summary>
                 {practiceImage && (
                   <img
@@ -3697,6 +3698,7 @@ function App() {
                   <strong>Benefit-Cost Ratio:</strong> {practice.bcr}
                 </p>
                 <button
+                  className="best-practice-action"
                   onClick={() => {
                     setApplyHazard(bestPracticeHazard)
                     navigateToSection('applyRegion')
@@ -3709,7 +3711,9 @@ function App() {
           })}
 
           {bestPracticeVisibleCount < globalPracticeLibrary[bestPracticeHazard].length && (
-            <button onClick={() => setBestPracticeVisibleCount((value) => value + 2)}>➕ Load More Global Practices</button>
+            <button className="best-practices-load-more" onClick={() => setBestPracticeVisibleCount((value) => value + 2)}>
+              ➕ Load More Global Practices
+            </button>
           )}
         </div>
       )
@@ -5716,16 +5720,16 @@ function App() {
 
   return (
     <div
-      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''}`}
+      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView ? 'best-practices-view' : ''}`}
       dir={isUrdu ? 'rtl' : 'ltr'}
     >
-      <header className={`navbar ${isHomeView ? 'home-navbar' : ''}`}>
+      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView ? 'best-practices-navbar' : ''}`}>
         <div className="brand">
           <div className="logo-badge">{t.logoText}</div>
-          {isHomeView ? (
+          {isHomeView || isBestPracticesView ? (
             <div className="hero-title-wrap">
               <h1 className="hero-title">Resilience360°</h1>
-              <p className="hero-subtitle">Infrastructure Resilience Toolkit for Pakistan</p>
+              <p className="hero-subtitle">Infrastructure Safety &amp; Disaster Engineering Toolkit</p>
             </div>
           ) : (
             <h1>{t.appTitle}</h1>
@@ -5783,7 +5787,7 @@ function App() {
           </>
         )}
         {!isHomeView && (
-          <div className="section-back-row">
+          <div className={`section-back-row ${isBestPracticesView ? 'best-practices-back-row' : ''}`}>
             <button className="section-back-btn" onClick={navigateBack}>
               {hasPreviousSection ? '⬅ Back' : '⬅ Back to Home'}
             </button>
