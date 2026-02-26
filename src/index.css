@@ -1014,6 +1014,7 @@ img {
     border-color var(--motion-base) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-standard),
     background var(--motion-base) var(--ease-standard);
+  overflow: hidden;
 }
 
 .infra-model-name-btn:hover {
@@ -1027,6 +1028,7 @@ img {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .infra-model-card-icon {
@@ -1046,6 +1048,10 @@ img {
   line-height: 1.3;
   font-weight: 700;
   color: #e4edf9;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .infra-model-card-points {
@@ -1054,6 +1060,14 @@ img {
   font-size: 0.8rem;
   line-height: 1.35;
   color: #b7c7de;
+  width: 100%;
+}
+
+.infra-model-card-points span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .infra-model-name-btn.is-active {
@@ -1135,6 +1149,10 @@ img {
   padding-inline-start: 16px;
   display: grid;
   gap: 6px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(71, 85, 105, 0.45);
+  border-radius: 10px;
+  padding: 10px 12px 8px 20px;
 }
 
 .infra-model-insight-card li {
