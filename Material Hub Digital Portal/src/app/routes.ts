@@ -13,6 +13,21 @@ import { DamageMonitoring } from "./pages/admin/DamageMonitoring";
 import { Analytics } from "./pages/admin/Analytics";
 import { LoginPage } from "./pages/LoginPage";
 
+const resolveRouterBasename = () => {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+
+  const marker = "/material-hubs";
+  const index = window.location.pathname.indexOf(marker);
+
+  if (index === -1) {
+    return "/";
+  }
+
+  return window.location.pathname.slice(0, index + marker.length);
+};
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -40,4 +55,6 @@ export const router = createBrowserRouter([
     path: "/login",
     Component: LoginPage,
   },
-]);
+], {
+  basename: resolveRouterBasename(),
+});
