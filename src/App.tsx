@@ -29,6 +29,7 @@ import {
   type CommunityIssueRecord,
   type CommunityIssueStatus,
 } from './services/communityIssues'
+import readinessFloodHousingImage from './assets/infra-models/flood-housing-cluster-pk.jpg'
 import {
   generateConstructionGuidance,
   generateGuidanceStepImages,
@@ -1298,6 +1299,7 @@ function App() {
   const [selfAssessmentDrainage, setSelfAssessmentDrainage] = useState<'Good' | 'Average' | 'Poor'>('Average')
   const [selfAssessmentSeismicZone, setSelfAssessmentSeismicZone] = useState<'Low' | 'Medium' | 'High'>('Medium')
   const [selfAssessmentFoundation, setSelfAssessmentFoundation] = useState<'Isolated Footing' | 'Raft' | 'Stone Masonry' | 'Unknown'>('Isolated Footing')
+  const [autoCaptureGpsOnSubmit, setAutoCaptureGpsOnSubmit] = useState(true)
   const [emergencyKitChecks, setEmergencyKitChecks] = useState<Record<string, boolean>>(() => {
     const cached = localStorage.getItem('r360-emergency-kit-checks')
     return cached ? (JSON.parse(cached) as Record<string, boolean>) : {}
@@ -1423,6 +1425,7 @@ function App() {
   const isHomeView = !activeSection
   const isBestPracticesView = activeSection === 'bestPractices'
   const isRiskMapsView = activeSection === 'riskMaps'
+  const isReadinessView = activeSection === 'readiness'
   const isEmbeddedPortalSection = activeSection === 'pgbc' || activeSection === 'coePortal' || activeSection === 'materialHubs'
   const hasPreviousSection = sectionHistory.length > 0
   const infraLayoutVideoSrc = `${import.meta.env.BASE_URL}videos/layout.mp4`
@@ -2414,6 +2417,14 @@ function App() {
     return Math.min(score, 100)
   }, [buildingType, materialType, lifeline, locationText])
 
+  const readinessRiskLabel = useMemo(() => {
+    if (readinessScore >= 80) return 'HIGH RISK'
+    if (readinessScore >= 60) return 'MEDIUM RISK'
+    return 'LOW RISK'
+  }, [readinessScore])
+
+  const readinessGaugeAngle = useMemo(() => Math.round((readinessScore / 100) * 180), [readinessScore])
+
   const isQuotaError = useCallback(
     (message: string): boolean =>
       /\b429\b|\b422\b|quota|insufficient_quota|billing|rate\s*limit|requested model|not supported by any provider|provider you have enabled|unsupported model|unprocessable|status code \(no body\)/i.test(
@@ -3378,7 +3389,10 @@ function App() {
       let lat: number | null = detectedUserLocation?.lat ?? null
       let lng: number | null = detectedUserLocation?.lng ?? null
 
-      if (!lat || !lng) {
+      if (!autoCaptureGpsOnSubmit) {
+        lat = null
+        lng = null
+      } else if (!lat || !lng) {
         try {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -5035,30 +5049,68 @@ function App() {
       return (
         <div className="panel section-panel section-readiness">
           <h2>{t.sections.readiness}</h2>
-          <div className="context-split-layout">
-            <aside className="context-left-panel">
-              <h3>Readiness Summary</h3>
-              <p>
-                <strong>Risk Score:</strong> {readinessScore}/100
-              </p>
-              <p>
-                <strong>Location:</strong> {locationText}
-              </p>
-              <p>
-                <strong>Building Type:</strong> {buildingType}
-              </p>
-              <p>
-                <strong>Materials:</strong> {materialType}
-              </p>
-            </aside>
-            <div className="context-main-panel">
-              <div className="inline-controls">
+          <div className="readiness-layout">
+            <aside className="readiness-sidebar">
+              <section className="readiness-card readiness-summary-card">
+                <h3>Readiness Summary</h3>
+                <div className="readiness-gauge-shell" aria-label={`Readiness score ${readinessScore} out of 100`}>
+                  <div className="readiness-gauge-track">
+                    <span className="readiness-gauge-pointer" style={{ transform: `translateX(-50%) rotate(${readinessGaugeAngle - 90}deg)` }} />
+                    <div className="readiness-gauge-hole" />
+                  </div>
+                  <p className="readiness-gauge-score">
+                    {readinessScore}
+                    <span>/100</span>
+                  </p>
+                  <p className="readiness-gauge-label">{readinessRiskLabel}</p>
+                </div>
+                <p className="readiness-recommendation">
+                  Custom Recommendation: Secure and add plinth freeboard, tie beams, and emergency response drills.
+                </p>
+              </section>
+
+              <section className="readiness-card">
+                <h3>Building Type</h3>
                 <label>
                   Building Type
                   <select value={buildingType} onChange={(event) => setBuildingType(event.target.value)}>
                     <option>Residential</option>
                     <option>Commercial</option>
                     <option>Critical Infrastructure</option>
+                  </select>
+                </label>
+                <p className="readiness-meta">Location: {locationText}</p>
+              </section>
+
+              <section className="readiness-card">
+                <h3>Lifeline Presence</h3>
+                <label>
+                  Lifeline Presence
+                  <select value={lifeline} onChange={(event) => setLifeline(event.target.value)}>
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                </label>
+              </section>
+
+              <section className="readiness-card">
+                <h3>Is My Building Safe? Self-Assessment</h3>
+                <label>
+                  Year Built
+                  <input
+                    type="number"
+                    min={1950}
+                    max={new Date().getFullYear()}
+                    value={selfAssessmentYearBuilt}
+                    onChange={(event) => setSelfAssessmentYearBuilt(Number(event.target.value) || 2000)}
+                  />
+                </label>
+                <label>
+                  Construction Type
+                  <select value={selfAssessmentConstruction} onChange={(event) => setSelfAssessmentConstruction(event.target.value)}>
+                    <option>Reinforced Concrete</option>
+                    <option>Steel Frame</option>
+                    <option>Unreinforced Masonry</option>
                   </select>
                 </label>
                 <label>
@@ -5069,148 +5121,155 @@ function App() {
                     <option>Unreinforced Masonry</option>
                   </select>
                 </label>
-                <label>
-                  Lifeline Presence
-                  <select value={lifeline} onChange={(event) => setLifeline(event.target.value)}>
-                    <option>No</option>
-                    <option>Yes</option>
-                  </select>
-                </label>
-              </div>
-              <label>
-                Location
-                <input value={locationText} onChange={(event) => setLocationText(event.target.value)} />
-              </label>
-            </div>
-          </div>
-          <p>
-            Risk Score: <strong>{readinessScore}/100</strong>
-          </p>
-          <p>Custom Recommendation: Add plinth freeboard, tie beams, and emergency response drills.</p>
-          <div className="retrofit-model-output">
-            <h3>🏠 Is My Building Safe? (Self-Assessment)</h3>
-            <div className="inline-controls">
-              <label>
-                Year Built
-                <input
-                  type="number"
-                  min={1950}
-                  max={new Date().getFullYear()}
-                  value={selfAssessmentYearBuilt}
-                  onChange={(event) => setSelfAssessmentYearBuilt(Number(event.target.value) || 2000)}
-                />
-              </label>
-              <label>
-                Construction Type
-                <select value={selfAssessmentConstruction} onChange={(event) => setSelfAssessmentConstruction(event.target.value)}>
-                  <option>Reinforced Concrete</option>
-                  <option>Steel Frame</option>
-                  <option>Unreinforced Masonry</option>
-                </select>
-              </label>
-              <label>
-                Nearby Drainage
-                <select
-                  value={selfAssessmentDrainage}
-                  onChange={(event) => setSelfAssessmentDrainage(event.target.value as 'Good' | 'Average' | 'Poor')}
-                >
-                  <option>Good</option>
-                  <option>Average</option>
-                  <option>Poor</option>
-                </select>
-              </label>
-              <label>
-                Seismic Zone
-                <select
-                  value={selfAssessmentSeismicZone}
-                  onChange={(event) => setSelfAssessmentSeismicZone(event.target.value as 'Low' | 'Medium' | 'High')}
-                >
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
-                </select>
-              </label>
-              <label>
-                Foundation Type
-                <select
-                  value={selfAssessmentFoundation}
-                  onChange={(event) =>
-                    setSelfAssessmentFoundation(event.target.value as 'Isolated Footing' | 'Raft' | 'Stone Masonry' | 'Unknown')
-                  }
-                >
-                  <option>Isolated Footing</option>
-                  <option>Raft</option>
-                  <option>Stone Masonry</option>
-                  <option>Unknown</option>
-                </select>
-              </label>
-            </div>
-            <p>
-              Structural Safety Rating: <strong>{buildingSafetyAssessment.rating}</strong> ({buildingSafetyAssessment.score}/100)
-            </p>
-            <p>{buildingSafetyAssessment.recommendation}</p>
-            <p>
-              Professional inspection advice:{' '}
-              <strong>{buildingSafetyAssessment.score < 70 ? 'Strongly recommended' : 'Recommended as preventive practice'}</strong>
-            </p>
-          </div>
+                <div className="readiness-advanced-grid">
+                  <label>
+                    Nearby Drainage
+                    <select
+                      value={selfAssessmentDrainage}
+                      onChange={(event) => setSelfAssessmentDrainage(event.target.value as 'Good' | 'Average' | 'Poor')}
+                    >
+                      <option>Good</option>
+                      <option>Average</option>
+                      <option>Poor</option>
+                    </select>
+                  </label>
+                  <label>
+                    Seismic Zone
+                    <select
+                      value={selfAssessmentSeismicZone}
+                      onChange={(event) => setSelfAssessmentSeismicZone(event.target.value as 'Low' | 'Medium' | 'High')}
+                    >
+                      <option>Low</option>
+                      <option>Medium</option>
+                      <option>High</option>
+                    </select>
+                  </label>
+                  <label>
+                    Foundation
+                    <select
+                      value={selfAssessmentFoundation}
+                      onChange={(event) =>
+                        setSelfAssessmentFoundation(event.target.value as 'Isolated Footing' | 'Raft' | 'Stone Masonry' | 'Unknown')
+                      }
+                    >
+                      <option>Isolated Footing</option>
+                      <option>Raft</option>
+                      <option>Stone Masonry</option>
+                      <option>Unknown</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="readiness-checklist">
+                  <span>✓ Seismic Zone: {selfAssessmentSeismicZone}</span>
+                  <span>✓ {selfAssessmentFoundation}</span>
+                </div>
+                <p className="readiness-assessment-note">
+                  Structural Safety Rating: <strong>{buildingSafetyAssessment.rating}</strong> ({buildingSafetyAssessment.score}/100)
+                </p>
+              </section>
+            </aside>
 
-          <div className="retrofit-model-output">
-            <h3>🛠️ Community Infrastructure Issue Reporting</h3>
-            <div className="inline-controls">
-              <label>
-                Issue Category
-                <select
-                  value={communityIssueCategory}
-                  onChange={(event) => setCommunityIssueCategory(event.target.value as CommunityIssueCategory)}
-                >
-                  {communityIssueCategories.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Upload Photo
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setCommunityIssuePhoto(event.target.files?.[0] ?? null)}
-                />
-              </label>
-              <label>
-                Notes
-                <input value={communityIssueNotes} onChange={(event) => setCommunityIssueNotes(event.target.value)} placeholder="Describe issue" />
-              </label>
-              <button onClick={() => void submitCommunityIssueReport()} disabled={isSubmittingCommunityIssue}>
-                {isSubmittingCommunityIssue ? '🔄 Submitting...' : '📤 Submit Issue'}
+            <section className="readiness-main-content">
+              <article className="readiness-card readiness-image-card">
+                <h3>ELEVATED FLOOD-RESILIENT HOUSING CLUSTER</h3>
+                <img src={readinessFloodHousingImage} alt="Elevated flood-resilient housing cluster" />
+              </article>
+
+              <article className="readiness-card readiness-features-card">
+                <h3>Key Features</h3>
+                <ul>
+                  <li>Elevated housing 1.5m (5ft) above flooding</li>
+                  <li>Self-sufficient with rainwater harvesting, raised borewell, and kitchen garden.</li>
+                </ul>
+              </article>
+
+              <article className="readiness-card readiness-reporting-card">
+                <h3>Community Infrastructure Issue Reporting</h3>
+                <div className="readiness-reporting-grid">
+                  <label>
+                    Issue Category
+                    <select
+                      value={communityIssueCategory}
+                      onChange={(event) => setCommunityIssueCategory(event.target.value as CommunityIssueCategory)}
+                    >
+                      {communityIssueCategories.map((item) => (
+                        <option key={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Upload Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => setCommunityIssuePhoto(event.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  <label className="readiness-reporting-note">
+                    Describe Issue
+                    <input
+                      value={communityIssueNotes}
+                      onChange={(event) => setCommunityIssueNotes(event.target.value)}
+                      placeholder="Describe issue"
+                    />
+                  </label>
+                </div>
+
+                <div className="readiness-gps-row">
+                  <span>
+                    GPS Location:{' '}
+                    {autoCaptureGpsOnSubmit
+                      ? detectedUserLocation
+                        ? `${detectedUserLocation.lat.toFixed(4)}, ${detectedUserLocation.lng.toFixed(4)}`
+                        : 'Auto-capture on submit'
+                      : 'Disabled'}
+                  </span>
+                  <label className="readiness-switch" aria-label="Toggle GPS auto-capture">
+                    <input
+                      type="checkbox"
+                      checked={autoCaptureGpsOnSubmit}
+                      onChange={(event) => setAutoCaptureGpsOnSubmit(event.target.checked)}
+                    />
+                    <span />
+                  </label>
+                </div>
+
+                <div className="readiness-actions-row">
+                  <button onClick={() => void submitCommunityIssueReport()} disabled={isSubmittingCommunityIssue}>
+                    {isSubmittingCommunityIssue ? 'Submitting...' : 'Submit Issue'}
+                  </button>
+                  <button onClick={() => void loadCommunityIssueReports()} disabled={isLoadingCommunityIssues}>
+                    {isLoadingCommunityIssues ? 'Refreshing...' : 'Refresh Reports'}
+                  </button>
+                </div>
+
+                {communityIssueReports.length > 0 && (
+                  <div className="alerts">
+                    {communityIssueReports.slice(0, 5).map((report) => (
+                      <p key={report.id}>
+                        <strong>{report.category}</strong> • {new Date(report.submittedAt).toLocaleString()} • Status:{' '}
+                        <strong>{report.status}</strong>
+                        {report.district ? ` • ${report.district}` : ''}
+                        {report.imageUrl ? (
+                          <>
+                            {' '}
+                            •{' '}
+                            <a href={report.imageUrl} target="_blank" rel="noreferrer">
+                              Photo
+                            </a>
+                          </>
+                        ) : null}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </article>
+
+              <button className="readiness-download-btn" onClick={downloadReport}>
+                Download PDF Report
               </button>
-              <button onClick={() => void loadCommunityIssueReports()} disabled={isLoadingCommunityIssues}>
-                {isLoadingCommunityIssues ? '🔄 Refreshing...' : '🔄 Refresh Reports'}
-              </button>
-            </div>
-            <p>GPS Location: {detectedUserLocation ? `${detectedUserLocation.lat.toFixed(4)}, ${detectedUserLocation.lng.toFixed(4)}` : 'Auto capture on submit'}</p>
-            {communityIssueReports.length > 0 && (
-              <div className="alerts">
-                {communityIssueReports.slice(0, 5).map((report) => (
-                  <p key={report.id}>
-                    <strong>{report.category}</strong> • {new Date(report.submittedAt).toLocaleString()} • Status:{' '}
-                    <strong>{report.status}</strong>
-                    {report.district ? ` • ${report.district}` : ''}
-                    {report.imageUrl ? (
-                      <>
-                        {' '}
-                        •{' '}
-                        <a href={report.imageUrl} target="_blank" rel="noreferrer">
-                          Photo
-                        </a>
-                      </>
-                    ) : null}
-                  </p>
-                ))}
-              </div>
-            )}
+            </section>
           </div>
-          <button onClick={downloadReport}>📄 Download PDF Report</button>
         </div>
       )
     }
@@ -5871,10 +5930,10 @@ function App() {
 
   return (
     <div
-      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView ? 'best-practices-view' : ''} ${isRiskMapsView ? 'risk-maps-view' : ''}`}
+      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView ? 'best-practices-view' : ''} ${isRiskMapsView ? 'risk-maps-view' : ''} ${isReadinessView ? 'readiness-view' : ''}`}
       dir={isUrdu ? 'rtl' : 'ltr'}
     >
-      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView ? 'best-practices-navbar' : ''} ${isRiskMapsView ? 'risk-maps-navbar' : ''}`}>
+      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView ? 'best-practices-navbar' : ''} ${isRiskMapsView ? 'risk-maps-navbar' : ''} ${isReadinessView ? 'readiness-navbar' : ''}`}>
         <div className="brand">
           <div className="logo-badge">{t.logoText}</div>
           {isHomeView || isBestPracticesView || isRiskMapsView ? (
