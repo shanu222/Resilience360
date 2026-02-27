@@ -455,7 +455,13 @@ const extractOperationsFromDocumentText = (documentText) => {
     return { hubOps: [], entryOps: [] }
   }
 
-  const parsed = extractJson(documentText)
+  let parsed = null
+
+  try {
+    parsed = extractJson(documentText)
+  } catch {
+    return { hubOps: [], entryOps: [] }
+  }
 
   return {
     hubOps: extractHubOpsFromPayload(parsed),
@@ -1638,7 +1644,28 @@ app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {
     })
 
     const text = completion.choices[0]?.message?.content ?? ''
-    const parsed = extractJson(text)
+    let parsed = {
+      summary: '',
+      confidence: 0.45,
+      risks: ['Model output was not strict JSON. Parsed using fallback mode.'],
+      hubOperations: [],
+      entryOperations: [],
+    }
+
+    try {
+      const extracted = extractJson(text)
+      if (extracted && typeof extracted === 'object') {
+        parsed = {
+          ...parsed,
+          ...extracted,
+        }
+      }
+    } catch {
+      parsed.summary = String(text).replace(/\s+/g, ' ').trim().slice(0, 600)
+      if (!parsed.summary) {
+        parsed.summary = 'AI returned unstructured output. No structured operation payload was detected.'
+      }
+    }
 
     res.json({
       model,
