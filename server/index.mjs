@@ -7,7 +7,6 @@ import mammoth from 'mammoth'
 import multer from 'multer'
 import path from 'node:path'
 import OpenAI from 'openai'
-import { PDFParse } from 'pdf-parse'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { predictRetrofitMl, retrainRetrofitMlModel } from './ml/retrofitMlModel.mjs'
@@ -478,6 +477,7 @@ const getUploadedDocumentText = async (file) => {
   const mime = String(file.mimetype ?? '').toLowerCase()
 
   if (extension === '.pdf' || mime === 'application/pdf') {
+    const { PDFParse } = await import('pdf-parse')
     const parser = new PDFParse({ data: file.buffer })
     let text = ''
 
