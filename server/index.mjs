@@ -397,6 +397,11 @@ const parseJsonBodyField = (value, fallback = null) => {
   }
 }
 
+const normalizeHubStatus = (value) => {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  return normalized === 'ready' || normalized === 'moderate' || normalized === 'critical' ? normalized : null
+}
+
 const getUploadedDocumentText = async (file) => {
   if (!file) {
     return ''
@@ -1656,7 +1661,7 @@ app.post('/api/material-hubs/ai-agent', upload.single('document'), async (req, r
         {
           role: 'user',
           content:
-            `You are helping an admin update Material Hub inventory data. Analyze deeply and return strict JSON with this schema only:\n{\n  "summary": string,\n  "confidence": number,\n  "risks": string[],\n  "hubOperations": [\n    {\n      "action": "create|update|delete",\n      "hubId": string | null,\n      "hubName": string | null,\n      "name": string | null,\n      "location": string | null,\n      "district": string | null,\n      "latitude": number | null,\n      "longitude": number | null,\n      "capacity": number | null,\n      "status": "ready|moderate|critical" | null\n    }\n  ],\n  "entryOperations": [\n    {\n      "action": "create|update|delete",\n      "entryId": string | null,\n      "hubId": string | null,\n      "hubName": string | null,\n      "name": string | null,\n      "unit": string | null,\n      "opening": number | null,\n      "received": number | null,\n      "issued": number | null,\n      "damaged": number | null\n    }\n  ]\n}.\n\nRules:\n- For update/delete, include IDs when available from context.\n- Never invent hub IDs or entry IDs.\n- Keep numbers non-negative.\n- If data is uncertain, add the uncertainty in risks and keep operations minimal.\n\nAdmin instruction:\n${instruction || '(none)'}\n\nUploaded document text:\n${documentText || '(none)'}\n\nCurrent live context:\n${JSON.stringify(compactContext).slice(0, 120_000)}`,
+            `You are helping an admin update Material Hub portal data. Analyze deeply and return strict JSON with this schema only:\n{\n  "summary": string,\n  "confidence": number,\n  "risks": string[],\n  "hubOperations": [\n    {\n      "action": "create|update|delete",\n      "hubId": string | null,\n      "hubName": string | null,\n      "name": string | null,\n      "location": string | null,\n      "district": string | null,\n      "latitude": number | null,\n      "longitude": number | null,\n      "capacity": number | null,\n      "status": "ready|moderate|critical" | null,\n      "stockPercentage": number | null,\n      "damagePercentage": number | null\n    }\n  ],\n  "entryOperations": [\n    {\n      "action": "create|update|delete",\n      "entryId": string | null,\n      "hubId": string | null,\n      "hubName": string | null,\n      "name": string | null,\n      "unit": string | null,\n      "opening": number | null,\n      "received": number | null,\n      "issued": number | null,\n      "damaged": number | null\n    }\n  ]\n}.\n\nRules:\n- For update/delete, include IDs when available from context.\n- Never invent hub IDs or entry IDs.\n- Keep numbers non-negative.\n- stockPercentage and damagePercentage must be between 0 and 100 when present.\n- Be conservative with deletes unless explicitly requested.\n- If data is uncertain, add the uncertainty in risks and keep operations minimal.\n\nAdmin instruction:\n${instruction || '(none)'}\n\nUploaded document text:\n${documentText || '(none)'}\n\nCurrent live context:\n${JSON.stringify(compactContext).slice(0, 120_000)}`,
         },
       ],
     })
@@ -1674,7 +1679,15 @@ app.post('/api/material-hubs/ai-agent', upload.single('document'), async (req, r
       latitude: item?.latitude === null || item?.latitude === undefined ? null : Number(item.latitude),
       longitude: item?.longitude === null || item?.longitude === undefined ? null : Number(item.longitude),
       capacity: item?.capacity === null || item?.capacity === undefined ? null : Math.max(0, Number(item.capacity) || 0),
-      status: item?.status ? String(item.status).toLowerCase() : null,
+      status: normalizeHubStatus(item?.status),
+      stockPercentage:
+        item?.stockPercentage === null || item?.stockPercentage === undefined
+          ? null
+          : Math.max(0, Math.min(100, Number(item.stockPercentage) || 0)),
+      damagePercentage:
+        item?.damagePercentage === null || item?.damagePercentage === undefined
+          ? null
+          : Math.max(0, Math.min(100, Number(item.damagePercentage) || 0)),
     }))
 
     const entryOperations = safeArray(parsed.entryOperations).map((item) => ({

@@ -11,6 +11,8 @@ export type AiHubOperation = {
   longitude: number | null;
   capacity: number | null;
   status: MaterialHub['status'] | null;
+  stockPercentage: number | null;
+  damagePercentage: number | null;
 };
 
 export type AiEntryOperation = {

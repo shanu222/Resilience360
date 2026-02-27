@@ -18,9 +18,36 @@ import {
 } from '../../services/materialHubAiService';
 
 const normalizeKey = (value: string) => value.trim().toLowerCase();
+const supportedExtensions = new Set(['txt', 'csv', 'json', 'md', 'log', 'pdf', 'docx', 'doc']);
+const supportedMimeTypes = new Set([
+  'text/plain',
+  'text/csv',
+  'application/json',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
 
 const validHubActions = new Set(['create', 'update', 'delete']);
 const validEntryActions = new Set(['create', 'update', 'delete']);
+const validHubStatuses = new Set(['ready', 'moderate', 'critical']);
+
+const isSupportedDocument = (inputFile: File) => {
+  const extension = inputFile.name.includes('.')
+    ? inputFile.name.split('.').pop()?.trim().toLowerCase() ?? ''
+    : '';
+  const mimeType = String(inputFile.type ?? '').trim().toLowerCase();
+
+  if (extension && supportedExtensions.has(extension)) {
+    return true;
+  }
+
+  if (mimeType && supportedMimeTypes.has(mimeType)) {
+    return true;
+  }
+
+  return false;
+};
 
 export function AIAgent() {
   const { hubs, inventory, isLoading, error, reload } = useLiveHubData();
@@ -36,6 +63,18 @@ export function AIAgent() {
     () => inventory.flatMap((hubInventory) => hubInventory.materials),
     [inventory],
   );
+
+  const hubIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const hub of hubs) {
+      const key = normalizeKey(hub.name);
+      if (key) {
+        map.set(key, hub.id);
+      }
+    }
+
+    return map;
+  }, [hubs]);
 
   const resolveHubId = (
     operation: { hubId: string | null; hubName: string | null },
@@ -55,7 +94,7 @@ export function AIAgent() {
     return existing?.id ?? null;
   };
 
-  const resolveEntryId = (operation: AiEntryOperation) => {
+  const resolveEntryId = (operation: AiEntryOperation, createdHubByName: Map<string, string>) => {
     if (operation.entryId) {
       return operation.entryId;
     }
@@ -65,7 +104,8 @@ export function AIAgent() {
       return null;
     }
 
-    const hubId = operation.hubId ?? null;
+    const hubName = operation.hubName ? normalizeKey(operation.hubName) : '';
+    const hubId = operation.hubId ?? createdHubByName.get(hubName) ?? hubIdByName.get(hubName) ?? null;
 
     const entry = flattenedEntries.find((item) => {
       if (normalizeKey(item.name) !== materialName) {
@@ -134,6 +174,8 @@ export function AIAgent() {
             continue;
           }
 
+          const status = operation.status && validHubStatuses.has(operation.status) ? operation.status : 'moderate';
+
           const created = await createHub({
             name: operation.name,
             location: operation.location,
@@ -141,9 +183,9 @@ export function AIAgent() {
             latitude: operation.latitude ?? 0,
             longitude: operation.longitude ?? 0,
             capacity: operation.capacity ?? 0,
-            status: operation.status ?? 'moderate',
-            stockPercentage: 0,
-            damagePercentage: 0,
+            status,
+            stockPercentage: Math.max(0, Math.min(100, operation.stockPercentage ?? 0)),
+            damagePercentage: Math.max(0, Math.min(100, operation.damagePercentage ?? 0)),
           });
 
           createdHubByName.set(normalizeKey(created.name), created.id);
@@ -167,6 +209,8 @@ export function AIAgent() {
           continue;
         }
 
+        const status = operation.status && validHubStatuses.has(operation.status) ? operation.status : undefined;
+
         await updateHub(resolvedHubId, {
           name: operation.name ?? undefined,
           location: operation.location ?? undefined,
@@ -174,7 +218,15 @@ export function AIAgent() {
           latitude: operation.latitude ?? undefined,
           longitude: operation.longitude ?? undefined,
           capacity: operation.capacity ?? undefined,
-          status: operation.status ?? undefined,
+          status,
+          stockPercentage:
+            operation.stockPercentage === null || operation.stockPercentage === undefined
+              ? undefined
+              : Math.max(0, Math.min(100, operation.stockPercentage)),
+          damagePercentage:
+            operation.damagePercentage === null || operation.damagePercentage === undefined
+              ? undefined
+              : Math.max(0, Math.min(100, operation.damagePercentage)),
         });
         logs.push(`Updated hub: ${operation.hubName ?? operation.name ?? resolvedHubId}`);
       }
@@ -206,7 +258,7 @@ export function AIAgent() {
           continue;
         }
 
-        const entryId = resolveEntryId(operation);
+        const entryId = resolveEntryId(operation, createdHubByName);
         if (!entryId) {
           logs.push(`Skipped entry ${operation.action}: missing resolvable entry id.`);
           continue;
@@ -282,9 +334,23 @@ export function AIAgent() {
             <input
               type="file"
               className="hidden"
-              accept=".txt,.csv,.json,.md,.log,.pdf,.docx,.doc"
+              accept=".txt,.csv,.json,.md,.log,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv,application/json"
               onChange={(event) => {
-                setFile(event.target.files?.[0] ?? null);
+                const selected = event.target.files?.[0] ?? null;
+
+                if (!selected) {
+                  setFile(null);
+                  return;
+                }
+
+                if (!isSupportedDocument(selected)) {
+                  setFile(null);
+                  setAnalysisError('Unsupported file type. Upload txt/csv/json/md/log, PDF, or DOCX (DOC may need conversion).');
+                  return;
+                }
+
+                setAnalysisError(null);
+                setFile(selected);
               }}
             />
           </label>
