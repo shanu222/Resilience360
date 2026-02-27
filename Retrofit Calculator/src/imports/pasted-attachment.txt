@@ -1,0 +1,305 @@
+🎯 FIGMA DESIGN SCRIPT
+Project Name: AI-Based Retrofit Cost Calculator
+Platform: Web + Tablet Responsive
+Style: Professional | Engineering | Clean | Trustworthy
+🖥️ SCREEN 1 — Dashboard / Upload Screen
+
+Create a clean modern dashboard layout
+
+Layout:
+
+Left sidebar (dark blue #0F172A)
+
+Main content area (light gray #F8FAFC)
+
+Top navigation bar (white)
+
+Sidebar items:
+
+Dashboard
+
+New Assessment
+
+My Reports
+
+Cost Database
+
+Settings
+
+Main Content:
+
+Header:
+
+Title:
+
+AI Retrofit Cost Calculator
+
+Subtitle:
+
+Upload structural defect images to estimate element-level retrofit cost
+
+Upload Card (Centered)
+
+Card style:
+
+White background
+
+16px radius
+
+Soft shadow
+
+Padding 24px
+
+Inside card:
+
+Drag & Drop upload area
+
+Icon: camera + upload
+
+Text: “Upload defect image (Column, Beam, Slab, Wall)”
+
+Button: Browse Files
+
+Auto-detected Location Field
+
+Label: Location
+
+Auto-filled (GPS detected)
+
+Editable dropdown
+
+Button (Primary Blue):
+
+Analyze Image
+
+🧠 SCREEN 2 — AI Detection Result
+
+Split layout:
+
+Left side (40% width):
+Image preview with bounding box highlighting defect
+
+Below image:
+AI Detection Summary Card:
+
+Element Type: Column
+
+Defect Type: Shear Crack
+
+Severity: Moderate
+
+Confidence: 92%
+
+Right side (60% width):
+Manual Confirmation Form
+
+Section Title:
+
+Confirm Structural Details
+
+Fields:
+
+1️⃣ Element Dimensions
+
+Width (cm)
+
+Depth (cm)
+
+Height affected (cm)
+
+2️⃣ Damage Extent
+
+Slider:
+0% — 100%
+
+3️⃣ Material Type
+
+Dropdown:
+
+Reinforced Concrete
+
+Brick Masonry
+
+Steel
+
+Block
+
+Adobe
+
+4️⃣ Floor Level
+
+Dropdown:
+
+Ground
+
+1–3
+
+4+
+
+5️⃣ Accessibility
+
+Checkboxes:
+☐ Tight site access
+☐ Occupied building
+☐ Scaffolding required
+
+6️⃣ Desired Retrofit Level
+
+Radio buttons:
+○ Cosmetic repair
+○ Structural strengthening
+○ Full seismic upgrade
+
+Primary Button:
+
+Calculate Element Cost
+
+💰 SCREEN 3 — Element Cost Breakdown
+
+Card Layout
+
+Title:
+
+Column Retrofit Cost Estimate
+
+Cost Breakdown Table:
+
+Item	Quantity	Unit Cost	Total
+Surface prep			
+Epoxy injection			
+RC jacketing			
+Labor			
+
+Below table:
+
+Cost Summary Box (Highlighted)
+
+Base Cost
+
+Location Multiplier
+
+Complexity Multiplier
+
+Contingency (10%)
+
+Contractor Overhead (15%)
+
+Large Bold Total:
+
+Estimated Cost: PKR 185,000
+
+Buttons:
+
+Add Another Defect
+View Full Report
+
+📊 SCREEN 4 — Final Combined Report
+
+Clean professional report layout.
+
+Header:
+Building Assessment Summary
+
+Left Column:
+Building Details:
+
+Location
+
+Floors
+
+Structural Type
+
+Year Built
+
+Right Column:
+Total Defects Detected:
+
+2 Columns
+
+1 Beam
+
+12 sq ft Slab
+
+Total Cost Summary Section
+
+Large Highlighted Box:
+
+Minimum Estimate
+Most Likely Cost
+Maximum Estimate
+
+Cost Per Sq Ft
+
+% of New Construction Cost
+
+Chart Section
+
+Bar Graph:
+Cost by Element Type:
+
+Columns
+
+Beams
+
+Slabs
+
+Walls
+
+Foundation
+
+Buttons:
+Download PDF
+Share Report
+Request Engineer Review
+
+🎨 DESIGN SYSTEM
+
+Color Palette:
+Primary: #2563EB (Engineering Blue)
+Dark: #0F172A
+Success: #16A34A
+Warning: #F59E0B
+Danger: #DC2626
+Background: #F8FAFC
+
+Font:
+Inter / SF Pro
+Headings Bold
+Body Regular
+
+Spacing:
+8pt grid system
+
+Buttons:
+Rounded 12px
+Strong shadow hover
+
+⚙️ Advanced UI Additions
+
+Add:
+
+✔ Confidence score badge
+✔ Cost accuracy range indicator
+✔ Risk multiplier tooltip
+✔ Expandable “How cost calculated” section
+✔ AI confidence meter
+
+📱 Mobile Version (Simplified Flow)
+
+Step-based UI:
+
+Upload
+
+Confirm Details
+
+View Cost
+
+Add More Defects
+
+Final Summary
+
+Use progress bar at top.
+
+🏗 UX Logic Flow
+
+Upload → AI Detect → User Confirm → Element Cost → Add More → Final Total → Export

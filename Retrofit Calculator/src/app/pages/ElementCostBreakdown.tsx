@@ -1,42 +1,185 @@
-import { useNavigate } from "react-router";
-import { Info, ChevronDown, DollarSign, Calculator, Package, Users, AlertTriangle, FileText, Plus } from "lucide-react";
-import { useState } from "react";
-import { motion } from "motion/react";
-import { useAppContext } from "../context/AppContext";
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router"
+import { Info, ChevronDown, DollarSign, Calculator, Package, Users, AlertTriangle, FileText, Plus } from "lucide-react"
+import { motion } from "motion/react"
+import { useAppContext } from "../context/AppContext"
+import { getMlRetrofitEstimate } from "../services/retrofitApi"
 
 export function ElementCostBreakdown() {
-  const navigate = useNavigate();
-  const { addDefect } = useAppContext();
-  const [showCalculation, setShowCalculation] = useState(false);
-  const [calculating, setCalculating] = useState(true);
-  
-  useState(() => {
-    setTimeout(() => setCalculating(false), 1500);
-  });
-  
-  const costItems = [
-    { item: "Surface Preparation", quantity: "2.025 m²", unitCost: "PKR 450", total: "PKR 911", icon: Package },
-    { item: "Epoxy Injection", quantity: "0.8 m", unitCost: "PKR 2,500", total: "PKR 2,000", icon: Package },
-    { item: "RC Jacketing", quantity: "1.35 m³", unitCost: "PKR 85,000", total: "PKR 114,750", icon: Package },
-    { item: "Skilled Labor", quantity: "48 hrs", unitCost: "PKR 800", total: "PKR 38,400", icon: Users },
-  ];
-  
-  const baseCost = 156061;
-  const locationMultiplier = 1.05;
-  const complexityMultiplier = 1.15;
-  const contingency = baseCost * 0.1;
-  const overhead = baseCost * 0.15;
-  const totalCost = Math.round(baseCost * locationMultiplier * complexityMultiplier + contingency + overhead);
+  const navigate = useNavigate()
+  const { addDefect, formData, detectionData, location, setActiveEstimate } = useAppContext()
+  const [showCalculation, setShowCalculation] = useState(false)
+  const [calculating, setCalculating] = useState(true)
+  const [mlError, setMlError] = useState<string | null>(null)
+  const [mlCostPerSqft, setMlCostPerSqft] = useState<number | null>(null)
+  const [mlDurationWeeks, setMlDurationWeeks] = useState<number | null>(null)
+
+  const dimensions = useMemo(() => {
+    const widthM = Math.max(0.1, formData.widthCm / 100)
+    const depthM = Math.max(0.1, formData.depthCm / 100)
+    const heightM = Math.max(0.2, formData.heightCm / 100)
+    const perimeterM = (widthM + depthM) * 2
+    const surfaceAreaM2 = perimeterM * heightM
+    const jacketVolumeM3 = Math.max(0.03, surfaceAreaM2 * 0.06)
+    const crackLengthM = Math.max(0.2, (formData.damageExtent / 100) * perimeterM)
+
+    return {
+      widthM,
+      depthM,
+      heightM,
+      perimeterM,
+      surfaceAreaM2,
+      jacketVolumeM3,
+      crackLengthM,
+    }
+  }, [formData.depthCm, formData.damageExtent, formData.heightCm, formData.widthCm])
+
+  const locationFactorMap: Record<string, number> = {
+    lahore: 1.05,
+    karachi: 1.12,
+    islamabad: 1.1,
+    rawalpindi: 1.08,
+    faisalabad: 1.03,
+  }
+
+  const locationKey = location.toLowerCase()
+  const locationMultiplier = Object.entries(locationFactorMap).find(([city]) => locationKey.includes(city))?.[1] ?? 1
+  const complexityMultiplier =
+    1 +
+    (formData.tightAccess ? 0.08 : 0) +
+    (formData.occupied ? 0.06 : 0) +
+    (formData.scaffolding ? 0.05 : 0)
+
+  const retrofitLevelFactor =
+    formData.retrofitLevel === "seismic" ? 1.28 : formData.retrofitLevel === "structural" ? 1.12 : 0.9
+
+  const costItems = useMemo(() => {
+    const surfacePreparation = Math.round(dimensions.surfaceAreaM2 * 480)
+    const epoxyInjection = Math.round(dimensions.crackLengthM * 2800)
+    const rcJacketing = Math.round(dimensions.jacketVolumeM3 * 92000)
+    const skilledLabor = Math.round((32 + formData.damageExtent * 0.8) * 850)
+
+    return [
+      { item: "Surface Preparation", quantity: `${dimensions.surfaceAreaM2.toFixed(2)} m²`, unitCost: 480, total: surfacePreparation, icon: Package },
+      { item: "Epoxy Injection", quantity: `${dimensions.crackLengthM.toFixed(2)} m`, unitCost: 2800, total: epoxyInjection, icon: Package },
+      { item: "RC Jacketing", quantity: `${dimensions.jacketVolumeM3.toFixed(2)} m³`, unitCost: 92000, total: rcJacketing, icon: Package },
+      { item: "Skilled Labor", quantity: `${Math.round(32 + formData.damageExtent * 0.8)} hrs`, unitCost: 850, total: skilledLabor, icon: Users },
+    ]
+  }, [dimensions.crackLengthM, dimensions.jacketVolumeM3, dimensions.surfaceAreaM2, formData.damageExtent])
+
+  const baseCost = useMemo(() => costItems.reduce((sum, item) => sum + item.total, 0), [costItems])
+  const contingency = Math.round(baseCost * 0.1)
+  const overhead = Math.round(baseCost * 0.15)
+
+  const calculatedTotal = Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor + contingency + overhead)
+
+  const areaSqft = Math.max(50, Math.round((dimensions.widthM * dimensions.depthM * 10.7639) * (formData.floorLevel === "Ground" ? 1 : 1.08)))
+  const totalCost = mlCostPerSqft ? Math.round(mlCostPerSqft * areaSqft) : calculatedTotal
+  const estimatedDurationWeeks = mlDurationWeeks ?? Math.max(1, Math.round(2 + formData.damageExtent / 14))
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const loadMlEstimate = async () => {
+      setCalculating(true)
+      setMlError(null)
+
+      const severityScore =
+        detectionData?.severity === "High"
+          ? 82
+          : detectionData?.severity === "Moderate"
+            ? 58
+            : 35
+
+      try {
+        const ml = await getMlRetrofitEstimate({
+          structureType: "RC Frame",
+          province: "Punjab",
+          city: location,
+          areaSqft,
+          severityScore,
+          affectedAreaPercent: formData.damageExtent,
+          urgencyLevel: severityScore >= 75 ? "critical" : severityScore >= 50 ? "priority" : "routine",
+        })
+
+        if (isCancelled) return
+        setMlCostPerSqft(ml.predictedCostPerSqft)
+        setMlDurationWeeks(ml.predictedDurationWeeks)
+      } catch (error) {
+        if (isCancelled) return
+        const message = error instanceof Error ? error.message : "Failed to load ML estimate"
+        setMlError(message)
+      } finally {
+        if (!isCancelled) {
+          setCalculating(false)
+        }
+      }
+    }
+
+    void loadMlEstimate()
+    return () => {
+      isCancelled = true
+    }
+  }, [areaSqft, detectionData?.severity, formData.damageExtent, location])
+
+  useEffect(() => {
+    setActiveEstimate({
+      elementType: detectionData?.elementType ?? "Structural Element",
+      location,
+      confidence: detectionData?.confidence ?? 70,
+      baseCost,
+      locationMultiplier,
+      complexityMultiplier,
+      contingency,
+      overhead,
+      totalCost,
+      estimatedDurationWeeks,
+      lineItems: costItems.map((item) => ({ item: item.item, quantity: item.quantity, unitCost: item.unitCost, total: item.total })),
+      assumptions: [
+        `Material: ${formData.materialType}`,
+        `Retrofit level: ${formData.retrofitLevel}`,
+        `Damage extent: ${formData.damageExtent}%`,
+        mlCostPerSqft ? "Cost influenced by ML model output" : "Cost derived from deterministic engineering formula",
+      ],
+    })
+  }, [
+    baseCost,
+    complexityMultiplier,
+    contingency,
+    costItems,
+    detectionData?.confidence,
+    detectionData?.elementType,
+    estimatedDurationWeeks,
+    formData.damageExtent,
+    formData.materialType,
+    formData.retrofitLevel,
+    location,
+    locationMultiplier,
+    mlCostPerSqft,
+    overhead,
+    setActiveEstimate,
+    totalCost,
+  ])
   
   const handleAddDefect = () => {
-    addDefect({ elementType: "Column", cost: totalCost });
-    navigate("/");
-  };
+    addDefect({
+      elementType: detectionData?.elementType ?? "Structural Element",
+      defectType: detectionData?.defectType ?? "general",
+      severity: detectionData?.severity ?? "Moderate",
+      cost: totalCost,
+    })
+    navigate("/")
+  }
   
   const handleViewReport = () => {
-    addDefect({ elementType: "Column", cost: totalCost });
-    navigate("/final-report");
-  };
+    addDefect({
+      elementType: detectionData?.elementType ?? "Structural Element",
+      defectType: detectionData?.defectType ?? "general",
+      severity: detectionData?.severity ?? "Moderate",
+      cost: totalCost,
+    })
+    navigate("/final-report")
+  }
   
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -75,8 +218,8 @@ export function ElementCostBreakdown() {
               <FileText className="w-6 h-6 text-[#2563EB]" />
             </div>
             <div>
-              <h2 className="text-[20px] font-semibold text-[#0F172A]">Column Retrofit Estimate</h2>
-              <p className="text-sm text-slate-500">Structural strengthening with RC jacketing</p>
+              <h2 className="text-[20px] font-semibold text-[#0F172A]">{detectionData?.elementType ?? "Element"} Retrofit Estimate</h2>
+              <p className="text-sm text-slate-500">Location-sensitive structural retrofit costing</p>
             </div>
           </div>
           
@@ -120,8 +263,8 @@ export function ElementCostBreakdown() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-slate-600 text-sm">{row.quantity}</td>
-                          <td className="px-6 py-4 text-slate-600 text-sm">{row.unitCost}</td>
-                          <td className="px-6 py-4 text-right font-medium text-slate-900 text-sm">{row.total}</td>
+                            <td className="px-6 py-4 text-slate-600 text-sm">PKR {row.unitCost.toLocaleString()}</td>
+                              <td className="px-6 py-4 text-right font-medium text-slate-900 text-sm">PKR {row.total.toLocaleString()}</td>
                         </motion.tr>
                       );
                     })}
@@ -152,12 +295,12 @@ export function ElementCostBreakdown() {
                     <span className="text-sm font-semibold text-slate-900">PKR {baseCost.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-sm text-slate-600">Location Adjustment (Lahore)</span>
+                    <span className="text-sm text-slate-600">Location Adjustment ({location})</span>
                     <span className="text-sm font-semibold text-[#2563EB]">×{locationMultiplier}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-sm text-slate-600">Complexity Factor</span>
-                    <span className="text-sm font-semibold text-[#2563EB]">×{complexityMultiplier}</span>
+                    <span className="text-sm font-semibold text-[#2563EB]">×{complexityMultiplier.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-sm text-slate-600">Contingency (10%)</span>
@@ -173,6 +316,9 @@ export function ElementCostBreakdown() {
                   </div>
                 </div>
               </motion.div>
+              {mlError && (
+                <p className="text-xs text-amber-700 mb-4">ML estimate unavailable: {mlError}. Using engineering fallback formula.</p>
+              )}
               
               {/* Expandable Calculation Details */}
               <button
@@ -196,19 +342,19 @@ export function ElementCostBreakdown() {
                   <h4 className="text-[15px] font-semibold text-[#0F172A] mb-4">How We Calculate Costs</h4>
                   <div className="space-y-3 text-sm text-slate-700">
                     <p className="p-3 bg-white rounded-lg">
-                      <strong>Surface Preparation:</strong> Calculated based on column surface area (2.025 m²) at PKR 450/m²
+                      <strong>Surface Preparation:</strong> Based on computed element surface area and cleaning/priming rates.
                     </p>
                     <p className="p-3 bg-white rounded-lg">
-                      <strong>Epoxy Injection:</strong> Crack length (0.8m) × unit rate (PKR 2,500/m) for moderate severity cracks
+                      <strong>Epoxy Injection:</strong> Crack length inferred from damage extent and element perimeter.
                     </p>
                     <p className="p-3 bg-white rounded-lg">
-                      <strong>RC Jacketing:</strong> Volume of concrete jacket (1.35 m³) at PKR 85,000/m³ including reinforcement
+                      <strong>RC Jacketing:</strong> Jacket concrete quantity from geometry and retrofit-level assumptions.
                     </p>
                     <p className="p-3 bg-white rounded-lg">
-                      <strong>Labor:</strong> Estimated 48 hours of skilled labor at PKR 800/hour
+                      <strong>Labor:</strong> Labor effort scales with damage extent, access limits, and occupancy constraints.
                     </p>
                     <p className="p-3 bg-white rounded-lg">
-                      <strong>Regional Adjustments:</strong> Lahore location factor (1.05) and complexity multiplier (1.15) applied
+                      <strong>Regional Adjustments:</strong> Location multiplier and complexity coefficient are applied to base cost.
                     </p>
                   </div>
                 </motion.div>
@@ -253,5 +399,5 @@ export function ElementCostBreakdown() {
         </motion.div>
       </div>
     </div>
-  );
+  )
 }
