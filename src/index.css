@@ -220,6 +220,11 @@ button {
 select,
 input {
   background: #ffffff;
+  color: #1d2530;
+}
+
+textarea {
+  color: #1d2530;
 }
 
 select:focus,
@@ -2286,7 +2291,7 @@ progress {
 
 .section-readiness p strong,
 .section-risk-maps p strong {
-  color: #16517a;
+  color: #e6f0ff;
 }
 
 .section-readiness {
