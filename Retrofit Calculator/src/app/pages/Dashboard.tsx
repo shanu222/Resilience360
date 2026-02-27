@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router"
-import { Upload, Camera, MapPin, Zap, Shield } from "lucide-react"
+import { Upload, Camera, MapPin, Zap, Shield, TrendingUp } from "lucide-react"
 import { motion } from "motion/react"
 import { useAppContext } from "../context/AppContext"
 import { analyzeBuildingWithVision } from "../services/retrofitApi"
