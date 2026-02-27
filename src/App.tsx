@@ -1444,6 +1444,7 @@ function App() {
   const isBestPracticesView = activeSection === 'bestPractices' || isApplyRegionView
   const isRiskMapsView = activeSection === 'riskMaps'
   const isReadinessView = activeSection === 'readiness'
+  const isWarningView = activeSection === 'warning'
   const isEmbeddedPortalSection = activeSection === 'pgbc' || activeSection === 'coePortal' || activeSection === 'materialHubs'
   const hasPreviousSection = sectionHistory.length > 0
   const infraLayoutVideoSrc = `${import.meta.env.BASE_URL}videos/layout.mp4`
@@ -5605,20 +5606,119 @@ function App() {
     }
 
     if (activeSection === 'warning') {
+      const warningMapUpdatedAt = pmdLiveSnapshot ? new Date(pmdLiveSnapshot.updatedAt).toLocaleString() : 'Live map awaiting PMD sync'
+
       return (
         <div className="panel section-panel section-warning">
-          <h2>{t.sections.warning}</h2>
-          <p>Connected Feeds: NDMA advisories/sitreps/projections + PMD CAP RSS.</p>
-          <div className="warning-actions-row">
-            <button onClick={loadLiveAlerts} disabled={isLoadingAlerts}>
-              {isLoadingAlerts ? '🔄 Loading Live Alerts...' : '🚨 Fetch Latest Alert'}
-            </button>
-            <button onClick={loadPmdLive} disabled={isLoadingPmdLive}>
-              {isLoadingPmdLive ? '🔄 Syncing PMD Live...' : '📡 Refresh PMD Live'}
-            </button>
+          <div className="warning-hero-card">
+            <h2>{t.sections.warning}</h2>
+            <p className="warning-hero-subtitle">Provide Real-Time Multi-Hazard Early Warning Updates for Pakistan — FMC-CDRI NEL</p>
+            <div className="warning-actions-row warning-tabs-row">
+              <button onClick={loadLiveAlerts} disabled={isLoadingAlerts}>
+                {isLoadingAlerts ? '🔄 Refreshing Risk Alert Map...' : '🌐 Risk Alert Map View'}
+              </button>
+              <button onClick={loadPmdLive} disabled={isLoadingPmdLive}>
+                {isLoadingPmdLive ? '🔄 Syncing FMC Details...' : '🧾 Details FMC Help'}
+              </button>
+              <button type="button" className="warning-search-btn" aria-label="Search warning updates">🔍</button>
+            </div>
           </div>
-          {alertError && <p>{alertError}</p>}
-          {pmdLiveError && <p>{pmdLiveError}</p>}
+
+          {alertError && <p className="warning-error-text">{alertError}</p>}
+          {pmdLiveError && <p className="warning-error-text">{pmdLiveError}</p>}
+
+          <div className="warning-map-panel">
+            <div className="warning-map-head">
+              <span className="warning-map-badge">FMC</span>
+              <span>{warningMapUpdatedAt}</span>
+            </div>
+            <div className="warning-map-canvas">
+              {pmdLiveSnapshot?.satellite.imageUrl ? (
+                <a href={pmdLiveSnapshot.links.satellite} target="_blank" rel="noreferrer">
+                  <img src={pmdLiveSnapshot.satellite.imageUrl} alt="Latest PMD satellite" className="warning-main-map" />
+                </a>
+              ) : (
+                <p>Satellite image preview is not currently available. Tap Details FMC Help to sync PMD live map.</p>
+              )}
+            </div>
+            {pmdLiveSnapshot && (
+              <div className="warning-map-links">
+                <a href={pmdLiveSnapshot.links.satellite} target="_blank" rel="noreferrer">
+                  Open full satellite page
+                </a>
+                <a href={pmdLiveSnapshot.links.radar} target="_blank" rel="noreferrer">
+                  Open PMD radar
+                </a>
+              </div>
+            )}
+          </div>
+
+          <div className="warning-updates-card">
+            <h3>PMD Updates</h3>
+            {alertLog.length === 0 ? (
+              <p>No alerts available yet.</p>
+            ) : (
+              <ul className="warning-updates-list">
+                {alertLog.slice(0, 8).map((alert) => {
+                  const published = alert.publishedAt ? ` • ${new Date(alert.publishedAt).toLocaleString()}` : ''
+                  return (
+                    <li key={alert.id}>
+                      <strong>[{alert.source}]</strong>{' '}
+                      {alert.source === 'PMD' && <span className="live-pmd-badge">LIVE PMD</span>}{' '}
+                      <a href={alert.link} target="_blank" rel="noreferrer">
+                        {alert.title}
+                      </a>
+                      {published}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="warning-whatnow-card">
+            <h3>What To Do Now</h3>
+            <div className="warning-toolkit-grid">
+              <article className="warning-toolkit-column">
+                <h4>👜 Emergency Kit Checklist</h4>
+                <ul className="warning-toolkit-list warning-checklist-list">
+                  {emergencyKitChecklistItems.map((item) => (
+                    <li key={item}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(emergencyKitChecks[item])}
+                          onChange={(event) =>
+                            setEmergencyKitChecks((previous) => ({
+                              ...previous,
+                              [item]: event.target.checked,
+                            }))
+                          }
+                        />{' '}
+                        {item}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="warning-toolkit-column">
+                <h4>🧰 Emergency Response Toolkit</h4>
+                <ul className="warning-toolkit-list">
+                  <li>Move vulnerable people and critical records to safe elevation.</li>
+                  <li>Follow district evacuation routes and keep emergency kits ready.</li>
+                  <li>Use SMS-style alert channel for last-mile communication.</li>
+                  <li>Switch off electricity and move to higher floor or designated shelter.</li>
+                  <li>Drop, cover, and hold under sturdy furniture during tremors.</li>
+                  {(nearestHospitalsByProvince[selectedProvince] ?? nearestHospitalsByProvince.Punjab)
+                    .slice(0, 4)
+                    .map((hospital) => (
+                      <li key={hospital}>{hospital}</li>
+                    ))}
+                </ul>
+              </article>
+            </div>
+          </div>
 
           {pmdLiveSnapshot ? (
             <div className="pmd-live-widget">
@@ -5683,29 +5783,6 @@ function App() {
             </div>
           ) : null}
 
-          <div className="alerts">
-            {alertLog.length === 0 && <p>No alerts available yet.</p>}
-            {alertLog.map((alert) => {
-              const published = alert.publishedAt ? ` • ${new Date(alert.publishedAt).toLocaleString()}` : ''
-              return (
-                <p key={alert.id}>
-                  <strong>[{alert.source}]</strong>{' '}
-                  {alert.source === 'PMD' && <span className="live-pmd-badge">LIVE PMD</span>}{' '}
-                  <a href={alert.link} target="_blank" rel="noreferrer">
-                    {alert.title}
-                  </a>
-                  {published}
-                </p>
-              )
-            })}
-          </div>
-          <h3>What to Do Now</h3>
-          <ul>
-            <li>Move vulnerable people and critical records to safe elevation.</li>
-            <li>Follow district evacuation routes and keep emergency kits ready.</li>
-            <li>Use SMS-style alert channel for last-mile communication.</li>
-          </ul>
-
           <div className="retrofit-model-output">
             <h3>🌧️ Smart Drainage & Rain Alert Notification</h3>
             <p>Reference source: Pakistan Meteorological Department (PMD) live weather + CAP alerts.</p>
@@ -5722,46 +5799,6 @@ function App() {
               <li>Alternative route suggestion: prioritize raised roads and avoid low underpasses.</li>
               <li>Flooded road warning: do not cross standing water above wheel level.</li>
               <li>High-risk users receive recommended shelter move advice before severe rain.</li>
-            </ul>
-          </div>
-
-          <div className="retrofit-model-output">
-            <h3>🧰 Emergency Resilience Toolkit</h3>
-            <h4>Emergency Kit Checklist</h4>
-            <ul>
-              {emergencyKitChecklistItems.map((item) => (
-                <li key={item}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(emergencyKitChecks[item])}
-                      onChange={(event) =>
-                        setEmergencyKitChecks((previous) => ({
-                          ...previous,
-                          [item]: event.target.checked,
-                        }))
-                      }
-                    />{' '}
-                    {item}
-                  </label>
-                </li>
-              ))}
-            </ul>
-            <h4>What To Do During Flood</h4>
-            <ul>
-              <li>Switch off electricity at main board and move to higher floor/safe shelter.</li>
-              <li>Avoid drainage channels and fast-flowing water crossings.</li>
-            </ul>
-            <h4>What To Do During Earthquake</h4>
-            <ul>
-              <li>Drop, cover, and hold under sturdy furniture.</li>
-              <li>After shaking stops, evacuate through safe stairs and avoid damaged walls.</li>
-            </ul>
-            <h4>Nearest Hospitals</h4>
-            <ul>
-              {(nearestHospitalsByProvince[selectedProvince] ?? nearestHospitalsByProvince.Punjab).map((hospital) => (
-                <li key={hospital}>{hospital}</li>
-              ))}
             </ul>
           </div>
         </div>
@@ -5994,13 +6031,13 @@ function App() {
 
   return (
     <div
-      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView || isLearnView ? 'best-practices-view' : ''} ${isRiskMapsView ? 'risk-maps-view' : ''} ${isReadinessView ? 'readiness-view' : ''}`}
+      className={`app-shell ${!isEmbeddedPortalSection ? 'resilience-bg-shell' : ''} ${isLightweight ? 'lightweight' : ''} ${isHomeView ? 'home-shell' : ''} ${isBestPracticesView || isLearnView ? 'best-practices-view' : ''} ${isRiskMapsView ? 'risk-maps-view' : ''} ${isReadinessView ? 'readiness-view' : ''} ${isWarningView ? 'warning-view' : ''}`}
       dir={isUrdu ? 'rtl' : 'ltr'}
     >
-      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView || isLearnView ? 'best-practices-navbar' : ''} ${isRiskMapsView ? 'risk-maps-navbar' : ''} ${isReadinessView ? 'readiness-navbar' : ''}`}>
+      <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView || isLearnView ? 'best-practices-navbar' : ''} ${isRiskMapsView ? 'risk-maps-navbar' : ''} ${isReadinessView ? 'readiness-navbar' : ''} ${isWarningView ? 'warning-navbar' : ''}`}>
         <div className="brand">
           <div className="logo-badge">{t.logoText}</div>
-          {isHomeView || isBestPracticesView || isLearnView || isRiskMapsView ? (
+          {isHomeView || isBestPracticesView || isLearnView || isRiskMapsView || isWarningView ? (
             <div className="hero-title-wrap">
               <h1 className="hero-title">Resilience360°</h1>
               <p className="hero-subtitle">Infrastructure Safety &amp; Disaster Engineering Toolkit</p>
@@ -6061,7 +6098,7 @@ function App() {
           </>
         )}
         {!isHomeView && (
-          <div className={`section-back-row ${isBestPracticesView ? 'best-practices-back-row' : ''} ${isRiskMapsView ? 'risk-maps-back-row' : ''} ${isApplyRegionView ? 'apply-region-back-row' : ''} ${isLearnView ? 'learn-back-row' : ''}`}>
+          <div className={`section-back-row ${isBestPracticesView ? 'best-practices-back-row' : ''} ${isRiskMapsView ? 'risk-maps-back-row' : ''} ${isApplyRegionView ? 'apply-region-back-row' : ''} ${isLearnView ? 'learn-back-row' : ''} ${isWarningView ? 'warning-back-row' : ''}`}>
             <button className="section-back-btn" onClick={navigateBack}>
               {hasPreviousSection ? '⬅ Back' : '⬅ Back to Home'}
             </button>
