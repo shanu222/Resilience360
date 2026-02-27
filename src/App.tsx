@@ -2638,7 +2638,7 @@ function App() {
 
     const basePath = import.meta.env.BASE_URL
     const normalizedBasePath = basePath.endsWith('/') ? basePath : `${basePath}/`
-    const calculatorUrl = `${normalizedBasePath}Retrofit%20Calculator/index.html`
+    const calculatorUrl = `${normalizedBasePath}retrofit-calculator/`
 
     window.location.assign(calculatorUrl)
   }, [])
