@@ -2633,6 +2633,16 @@ function App() {
     setRetrofitError(null)
   }
 
+  const openRetrofitCalculatorPage = useCallback(() => {
+    setRetrofitError(null)
+
+    const basePath = import.meta.env.BASE_URL
+    const normalizedBasePath = basePath.endsWith('/') ? basePath : `${basePath}/`
+    const calculatorUrl = `${normalizedBasePath}Retrofit%20Calculator/`
+
+    window.location.assign(calculatorUrl)
+  }, [])
+
   const calculateRetrofitEstimateFromSeries = async () => {
     if (retrofitImageSeriesFiles.length === 0) {
       setRetrofitError('Upload one or more building defect photos before calculating.')
@@ -3031,6 +3041,8 @@ function App() {
       setIsCalculatingRetrofitEstimate(false)
     }
   }
+
+  void calculateRetrofitEstimateFromSeries
 
   const generateRetrofitGuidanceFromSeries = async () => {
     if (retrofitImageSeriesFiles.length === 0) {
@@ -5688,12 +5700,9 @@ function App() {
               </button>
               <button
                 className="retrofit-btn retrofit-btn-secondary"
-                onClick={() => void calculateRetrofitEstimateFromSeries()}
-                disabled={isCalculatingRetrofitEstimate}
+                onClick={openRetrofitCalculatorPage}
               >
-                {isCalculatingRetrofitEstimate
-                  ? '🔄 Analyzing Images + Running ML Cost Estimator...'
-                  : '🧮 Calculate Retrofit Estimated Cost'}
+                🧮 Calculate Retrofit Estimated Cost
               </button>
             </div>
           </div>
