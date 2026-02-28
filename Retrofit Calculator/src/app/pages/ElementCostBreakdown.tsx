@@ -22,6 +22,12 @@ export function ElementCostBreakdown() {
     }
   }
 
+  useEffect(() => {
+    if (!cityRates || !cityRates.isConfirmed) {
+      navigateWithFallback("/")
+    }
+  }, [cityRates])
+
   const dimensions = useMemo(() => {
     // If no dimensions are set (no image uploaded), return all zeros
     if (formData.widthCm === 0 || formData.depthCm === 0 || formData.heightCm === 0) {
@@ -55,16 +61,7 @@ export function ElementCostBreakdown() {
     }
   }, [formData.depthCm, formData.damageExtent, formData.heightCm, formData.widthCm])
 
-  const locationFactorMap: Record<string, number> = {
-    lahore: 1.05,
-    karachi: 1.12,
-    islamabad: 1.1,
-    rawalpindi: 1.08,
-    faisalabad: 1.03,
-  }
-
-  const locationKey = location.toLowerCase()
-  const locationMultiplier = Object.entries(locationFactorMap).find(([city]) => locationKey.includes(city))?.[1] ?? 1
+  const locationMultiplier = cityRates?.locationMultiplier ?? 0
   const complexityMultiplier =
     1 +
     (formData.tightAccess ? 0.08 : 0) +
@@ -75,11 +72,10 @@ export function ElementCostBreakdown() {
     formData.retrofitLevel === "seismic" ? 1.28 : formData.retrofitLevel === "structural" ? 1.12 : 0.9
 
   const deterministicCostItems = useMemo(() => {
-    // Use rates from confirmed cityRates or fallback to defaults
-    const surfacePrepRate = cityRates?.surfacePreparationRate ?? 480
-    const epoxyRate = cityRates?.epoxyInjectionRate ?? 2800
-    const rcJacketRate = cityRates?.rcJacketingRate ?? 92000
-    const laborRate = cityRates?.skilledLaborRate ?? 850
+    const surfacePrepRate = cityRates?.surfacePreparationRate ?? 0
+    const epoxyRate = cityRates?.epoxyInjectionRate ?? 0
+    const rcJacketRate = cityRates?.rcJacketingRate ?? 0
+    const laborRate = cityRates?.skilledLaborRate ?? 0
 
     const surfacePreparation = Math.round(dimensions.surfaceAreaM2 * surfacePrepRate)
     const epoxyInjection = Math.round(dimensions.crackLengthM * epoxyRate)
@@ -116,7 +112,7 @@ export function ElementCostBreakdown() {
       })
 
     if (manualAnnotation.investigationRequired) {
-      const investigationCost = cityRates?.investigationCost ?? 65000
+      const investigationCost = cityRates?.investigationCost ?? 0
       severityRows.push({
         item: "Detailed structural investigation",
         quantity: "Lump sum",
@@ -127,7 +123,7 @@ export function ElementCostBreakdown() {
     }
 
     if (manualAnnotation.replacementRecommended) {
-      const replacementCost = cityRates?.replacementAllowance ?? 210000
+      const replacementCost = cityRates?.replacementAllowance ?? 0
       severityRows.push({
         item: "High-severity replacement allowance",
         quantity: "Lump sum",
@@ -150,8 +146,8 @@ export function ElementCostBreakdown() {
     : Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
   
   // Calculate contingency and overhead on adjusted subtotal using rates from cityRates
-  const contingencyPercent = (cityRates?.contingencyPercent ?? 10) / 100
-  const overheadPercent = (cityRates?.overheadPercent ?? 15) / 100
+  const contingencyPercent = (cityRates?.contingencyPercent ?? 0) / 100
+  const overheadPercent = (cityRates?.overheadPercent ?? 0) / 100
   const contingency = Math.round(adjustedSubtotal * contingencyPercent)
   const overhead = Math.round(adjustedSubtotal * overheadPercent)
 

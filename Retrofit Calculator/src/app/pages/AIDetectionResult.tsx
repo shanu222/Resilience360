@@ -43,13 +43,19 @@ export function AIDetectionResult() {
     heightCm: formData.heightCm,
   }))
 
+  useEffect(() => {
+    if (!cityRates || !cityRates.isConfirmed) {
+      navigate("/")
+    }
+  }, [cityRates, navigate])
+
   // Define severity brushes with rates from cityRates
   const severityBrushes: SeverityBrush[] = useMemo(() => [
     {
       severity: "severe",
       label: "Severe damage",
       color: "#EF4444",
-      unitCost: cityRates?.severeSurfaceRepairRate ?? 9200,
+      unitCost: cityRates?.severeSurfaceRepairRate ?? 0,
       multiplier: 1.55,
       strategy: "Structural strengthening",
       action: "RC jacketing / Steel jacketing / FRP wrapping",
@@ -58,7 +64,7 @@ export function AIDetectionResult() {
       severity: "moderate",
       label: "Moderate damage",
       color: "#C4A484",
-      unitCost: cityRates?.moderateSurfaceRepairRate ?? 4200,
+      unitCost: cityRates?.moderateSurfaceRepairRate ?? 0,
       multiplier: 1.2,
       strategy: "Crack repair + partial strengthening",
       action: "Epoxy injection + section repair",
@@ -67,7 +73,7 @@ export function AIDetectionResult() {
       severity: "low",
       label: "Low damage",
       color: "#FACC15",
-      unitCost: cityRates?.lowSurfaceRepairRate ?? 1800,
+      unitCost: cityRates?.lowSurfaceRepairRate ?? 0,
       multiplier: 1,
       strategy: "Surface crack repair",
       action: "Sealant / minor repair",
@@ -76,7 +82,7 @@ export function AIDetectionResult() {
       severity: "veryLow",
       label: "Very low damage",
       color: "#3B82F6",
-      unitCost: cityRates?.veryLowSurfaceRepairRate ?? 650,
+      unitCost: cityRates?.veryLowSurfaceRepairRate ?? 0,
       multiplier: 0.72,
       strategy: "Monitoring + preventive maintenance",
       action: "Periodic observation and preventive care",

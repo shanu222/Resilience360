@@ -74,7 +74,7 @@ export function LocationRateSetup() {
         ...editedRates,
         isConfirmed: true
       })
-      navigate("/dashboard")
+      navigate("/detection")
     }
   }
 
