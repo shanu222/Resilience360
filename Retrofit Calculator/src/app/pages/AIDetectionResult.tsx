@@ -176,14 +176,14 @@ export function AIDetectionResult() {
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between"
+            className="flex items-start sm:items-center justify-between gap-3"
           >
             <div>
-              <h1 className="text-[#0F172A] text-[28px] font-semibold tracking-tight mb-2">
+              <h1 className="text-[#0F172A] text-[24px] sm:text-[28px] font-semibold tracking-tight mb-2">
                 AI Detection Results
               </h1>
               <p className="text-slate-600 text-[15px]">
@@ -198,10 +198,10 @@ export function AIDetectionResult() {
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="grid grid-cols-5 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           {/* Left side - Image and Detection Summary */}
-          <div className="col-span-2 space-y-6">
+          <div className="xl:col-span-2 space-y-6">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -226,7 +226,7 @@ export function AIDetectionResult() {
                     src={imagePreview}
                     alt="Detected defect"
                     draggable={false}
-                    className="w-full h-80 object-cover"
+                    className="w-full h-64 sm:h-80 object-cover"
                   />
                 ) : (
                   <div className="w-full h-80 bg-slate-100"></div>
@@ -339,9 +339,9 @@ export function AIDetectionResult() {
           </div>
           
           {/* Right side - Manual Confirmation Form */}
-          <div className="col-span-3">
+          <div className="xl:col-span-3">
             <motion.div
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-8"
+              className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
@@ -357,7 +357,7 @@ export function AIDetectionResult() {
                     <span className="flex items-center justify-center w-6 h-6 bg-[#2563EB] text-white rounded-full text-xs font-semibold">1</span>
                     Element Dimensions
                   </h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                       { label: "Width (cm)", value: formData.widthCm, key: "widthCm" },
                       { label: "Depth (cm)", value: formData.depthCm, key: "depthCm" },
@@ -424,7 +424,7 @@ export function AIDetectionResult() {
                     <span className="flex items-center justify-center w-6 h-6 bg-[#2563EB] text-white rounded-full text-xs font-semibold">4</span>
                     Floor Level
                   </h4>
-                  <div className="flex gap-3">
+                  <div className="grid grid-cols-2 sm:flex gap-3">
                     {["Ground", "1", "2", "3", "4+"].map((level) => (
                       <button
                         key={level}

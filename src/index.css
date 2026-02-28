@@ -1367,9 +1367,35 @@ img {
 .pgbc-portal-frame {
   width: 100%;
   min-height: 76vh;
+  height: 76vh;
   border: 1px solid #cddff0;
   border-radius: 10px;
   background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .pgbc-portal-frame {
+    min-height: 70vh;
+    height: 70vh;
+  }
+}
+
+@media (max-width: 700px) {
+  .section-pgbc .inline-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .section-pgbc .inline-controls a {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pgbc-portal-frame {
+    min-height: 68vh;
+    height: 68vh;
+    border-radius: 8px;
+  }
 }
 
 .section-infra-models {

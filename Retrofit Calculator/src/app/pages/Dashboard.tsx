@@ -133,12 +133,12 @@ export function Dashboard() {
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h1 className="text-[#0F172A] text-[28px] font-semibold tracking-tight mb-2">
+            <h1 className="text-[#0F172A] text-[24px] sm:text-[28px] font-semibold tracking-tight mb-2">
               AI-Powered Retrofit Assessment
             </h1>
             <p className="text-slate-600 text-[15px]">
@@ -148,18 +148,18 @@ export function Dashboard() {
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="grid grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Upload Section */}
-          <div className="col-span-2">
+          <div className="lg:col-span-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-8"
+              className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
             >
               <div
-                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 ${
+                className={`border-2 border-dashed rounded-xl p-6 sm:p-10 lg:p-12 text-center transition-all duration-200 ${
                   dragActive
                     ? "border-[#2563EB] bg-blue-50/50"
                     : selectedFile
@@ -180,7 +180,7 @@ export function Dashboard() {
                     <img 
                       src={imagePreview} 
                       alt="Preview" 
-                      className="max-h-96 mx-auto rounded-lg shadow-lg border border-slate-200"
+                      className="max-h-72 sm:max-h-96 mx-auto rounded-lg shadow-lg border border-slate-200"
                     />
                     <div className="absolute top-3 right-3 bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
                       ✓ Ready to analyze

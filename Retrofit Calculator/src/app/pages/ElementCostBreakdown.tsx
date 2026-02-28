@@ -193,14 +193,14 @@ export function ElementCostBreakdown() {
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between"
+            className="flex items-start sm:items-center justify-between gap-3"
           >
             <div>
-              <h1 className="text-[#0F172A] text-[28px] font-semibold tracking-tight mb-2">
+              <h1 className="text-[#0F172A] text-[24px] sm:text-[28px] font-semibold tracking-tight mb-2">
                 Detailed Cost Breakdown
               </h1>
               <p className="text-slate-600 text-[15px]">
@@ -215,9 +215,9 @@ export function ElementCostBreakdown() {
         </div>
       </div>
       
-      <div className="max-w-6xl mx-auto px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <motion.div
-          className="bg-white rounded-xl shadow-sm border border-slate-200 p-8"
+          className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -243,7 +243,7 @@ export function ElementCostBreakdown() {
           ) : (
             <>
               {/* Line Items Table */}
-              <div className="border border-slate-200 rounded-lg overflow-hidden mb-6">
+              <div className="border border-slate-200 rounded-lg overflow-x-auto mb-6">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
@@ -382,7 +382,7 @@ export function ElementCostBreakdown() {
               </div>
               
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <motion.button
                   onClick={handleAddDefect}
                   className="px-6 py-3.5 bg-white hover:bg-slate-50 border-2 border-[#2563EB] text-[#2563EB] rounded-lg transition-all shadow-sm font-medium text-[15px] flex items-center justify-center gap-2"

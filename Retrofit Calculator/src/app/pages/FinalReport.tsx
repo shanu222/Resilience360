@@ -79,15 +79,15 @@ export function FinalReport() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          <h1 className="text-[#0F172A] text-[28px] font-semibold tracking-tight mb-2">Comprehensive Assessment Report</h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+          <h1 className="text-[#0F172A] text-[24px] sm:text-[28px] font-semibold tracking-tight mb-2">Comprehensive Assessment Report</h1>
           <p className="text-slate-600 text-[15px]">Live report generated from uploaded image, AI detection and input-confirmed dimensions.</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         <motion.div
-          className="bg-white rounded-xl shadow-sm border border-slate-200 p-8"
+          className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -98,7 +98,7 @@ export function FinalReport() {
             <h2 className="text-[20px] font-semibold text-[#0F172A]">Total Cost Estimate</h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <p className="text-sm text-slate-600">Minimum Estimate</p>
               <p className="text-2xl font-bold text-[#0F172A]">PKR {minEstimate.toLocaleString()}</p>
@@ -117,7 +117,7 @@ export function FinalReport() {
         </motion.div>
 
         <motion.div
-          className="bg-white rounded-xl shadow-sm border border-slate-200 p-8"
+          className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -134,7 +134,7 @@ export function FinalReport() {
           </ResponsiveContainer>
         </motion.div>
 
-        <motion.div className="grid grid-cols-3 gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <motion.div className="grid grid-cols-1 sm:grid-cols-3 gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <button onClick={downloadReport} className="px-6 py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm font-medium">
             <Download className="w-5 h-5" />
             Download Report JSON

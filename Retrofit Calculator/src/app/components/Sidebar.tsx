@@ -19,8 +19,8 @@ export function Sidebar() {
   const location = useLocation();
   
   return (
-    <div className="w-72 bg-[#0F172A] text-white flex flex-col border-r border-slate-800/50">
-      <div className="p-8 border-b border-slate-800/50">
+    <div className="w-full lg:w-72 bg-[#0F172A] text-white flex flex-col border-b lg:border-b-0 lg:border-r border-slate-800/50">
+      <div className="p-4 lg:p-8 border-b border-slate-800/50">
         <motion.div 
           className="flex items-center gap-3"
           initial={{ opacity: 0, y: -10 }}
@@ -36,8 +36,8 @@ export function Sidebar() {
         </motion.div>
       </div>
       
-      <nav className="flex-1 px-4 py-6">
-        <div className="space-y-1">
+      <nav className="flex-1 px-3 py-3 lg:px-4 lg:py-6 overflow-x-auto">
+        <div className="flex lg:block gap-2 lg:space-y-1 min-w-max lg:min-w-0">
           {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -50,14 +50,14 @@ export function Sidebar() {
               >
                 <Link
                   to={item.path}
-                  className={`group flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                  className={`group flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? "bg-[#2563EB] text-white shadow-lg shadow-blue-900/30"
                       : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
                   }`}
                 >
-                  <Icon className="w-5 h-5" strokeWidth={2} />
-                  <span className="text-[15px] font-medium">{item.label}</span>
+                  <Icon className="w-4 h-4 lg:w-5 lg:h-5" strokeWidth={2} />
+                  <span className="text-[13px] lg:text-[15px] font-medium">{item.label}</span>
                   {isActive && (
                     <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full"></div>
                   )}
@@ -68,7 +68,7 @@ export function Sidebar() {
         </div>
       </nav>
       
-      <div className="p-6 border-t border-slate-800/50">
+      <div className="hidden lg:block p-6 border-t border-slate-800/50">
         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
