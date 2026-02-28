@@ -19,6 +19,7 @@ export function Dashboard() {
     analysisError,
     setAnalysisError,
     setDetectionData,
+    setManualAnnotation,
     setFormData,
     setActiveEstimate,
   } = useAppContext()
@@ -44,6 +45,7 @@ export function Dashboard() {
     setAnalysisError(null)
     setSelectedFile(file)
     setActiveEstimate(null)
+    setManualAnnotation(null)
 
     const reader = new FileReader()
     reader.onloadend = () => {

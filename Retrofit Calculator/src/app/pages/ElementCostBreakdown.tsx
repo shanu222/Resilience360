@@ -7,7 +7,7 @@ import { getMlRetrofitEstimate } from "../services/retrofitApi"
 
 export function ElementCostBreakdown() {
   const navigate = useNavigate()
-  const { addDefect, formData, detectionData, location, setActiveEstimate } = useAppContext()
+  const { addDefect, formData, detectionData, location, manualAnnotation, setActiveEstimate } = useAppContext()
   const [showCalculation, setShowCalculation] = useState(false)
   const [calculating, setCalculating] = useState(true)
   const [mlError, setMlError] = useState<string | null>(null)
@@ -15,16 +15,10 @@ export function ElementCostBreakdown() {
   const [mlDurationWeeks, setMlDurationWeeks] = useState<number | null>(null)
 
   const navigateWithFallback = (path: "/" | "/final-report") => {
-    console.log("Navigation triggered to:", path)
-    // Use direct hash manipulation for guaranteed navigation
-    const targetHash = path === "/" ? "#/" : `#${path}`
-    console.log("Setting window.location.hash to:", targetHash)
-    window.location.hash = targetHash
-    // Also trigger React Router navigate as backup
     try {
       navigate(path)
-    } catch (error) {
-      console.error("React Router navigate failed:", error)
+    } catch {
+      window.location.hash = path === "/" ? "#/" : `#${path}`
     }
   }
 
@@ -67,7 +61,7 @@ export function ElementCostBreakdown() {
   const retrofitLevelFactor =
     formData.retrofitLevel === "seismic" ? 1.28 : formData.retrofitLevel === "structural" ? 1.12 : 0.9
 
-  const costItems = useMemo(() => {
+  const deterministicCostItems = useMemo(() => {
     const surfacePreparation = Math.round(dimensions.surfaceAreaM2 * 480)
     const epoxyInjection = Math.round(dimensions.crackLengthM * 2800)
     const rcJacketing = Math.round(dimensions.jacketVolumeM3 * 92000)
@@ -80,6 +74,50 @@ export function ElementCostBreakdown() {
       { item: "Skilled Labor", quantity: `${Math.round(32 + formData.damageExtent * 0.8)} hrs`, unitCost: 850, total: skilledLabor, icon: Users },
     ]
   }, [dimensions.crackLengthM, dimensions.jacketVolumeM3, dimensions.surfaceAreaM2, formData.damageExtent])
+
+  const annotationCostItems = useMemo(() => {
+    if (!manualAnnotation || manualAnnotation.paintedPixels <= 0) {
+      return []
+    }
+
+    const severityRows = manualAnnotation.zones
+      .filter((zone) => zone.severity !== "none" && zone.areaM2 > 0)
+      .map((zone) => {
+        const adjustedUnitCost = Math.round(zone.unitCost * zone.severityMultiplier * complexityMultiplier * locationMultiplier)
+        const total = Math.round(zone.areaM2 * adjustedUnitCost)
+        return {
+          item: `${zone.label} — ${zone.strategy}`,
+          quantity: `${zone.areaM2.toFixed(3)} m²`,
+          unitCost: adjustedUnitCost,
+          total,
+          icon: AlertTriangle,
+        }
+      })
+
+    if (manualAnnotation.investigationRequired) {
+      severityRows.push({
+        item: "Detailed structural investigation",
+        quantity: "Lump sum",
+        unitCost: 65000,
+        total: 65000,
+        icon: Info,
+      })
+    }
+
+    if (manualAnnotation.replacementRecommended) {
+      severityRows.push({
+        item: "High-severity replacement allowance",
+        quantity: "Lump sum",
+        unitCost: 210000,
+        total: 210000,
+        icon: AlertTriangle,
+      })
+    }
+
+    return severityRows
+  }, [complexityMultiplier, locationMultiplier, manualAnnotation])
+
+  const costItems = annotationCostItems.length > 0 ? annotationCostItems : deterministicCostItems
 
   const baseCost = useMemo(() => costItems.reduce((sum, item) => sum + item.total, 0), [costItems])
   const contingency = Math.round(baseCost * 0.1)
@@ -99,34 +137,34 @@ export function ElementCostBreakdown() {
       setMlError(null)
 
       const severityScore =
-        detectionData?.severity === "High"
-          ? 82
-          : detectionData?.severity === "Moderate"
-            ? 58
-            : 35
+        manualAnnotation?.weightedRiskScore
+          ? manualAnnotation.weightedRiskScore
+          : detectionData?.severity === "High"
+            ? 82
+            : detectionData?.severity === "Moderate"
+              ? 58
+              : 35
+
+      const affectedAreaPercent = manualAnnotation?.damagePercent ?? formData.damageExtent
 
       try {
-        console.log("Attempting to load ML estimate...")
         const ml = await getMlRetrofitEstimate({
           structureType: "RC Frame",
           province: "Punjab",
           city: location,
           areaSqft,
           severityScore,
-          affectedAreaPercent: formData.damageExtent,
+          affectedAreaPercent,
           urgencyLevel: severityScore >= 75 ? "critical" : severityScore >= 50 ? "priority" : "routine",
         })
 
         if (isCancelled) return
-        console.log("ML estimate loaded successfully:", ml)
         setMlCostPerSqft(ml.predictedCostPerSqft)
         setMlDurationWeeks(ml.predictedDurationWeeks)
       } catch (error) {
         if (isCancelled) return
         const message = error instanceof Error ? error.message : "Failed to load ML estimate"
-        console.warn("ML estimate failed (non-blocking):", message)
-        // Don't block the UI - just use default values
-        setMlError(null) // Clear error so UI doesn't show error state
+        setMlError(message)
       } finally {
         if (!isCancelled) {
           setCalculating(false)
@@ -138,7 +176,7 @@ export function ElementCostBreakdown() {
     return () => {
       isCancelled = true
     }
-  }, [areaSqft, detectionData?.severity, formData.damageExtent, location])
+  }, [areaSqft, detectionData?.severity, formData.damageExtent, location, manualAnnotation?.damagePercent, manualAnnotation?.weightedRiskScore])
 
   useEffect(() => {
     setActiveEstimate({
@@ -157,6 +195,12 @@ export function ElementCostBreakdown() {
         `Material: ${formData.materialType}`,
         `Retrofit level: ${formData.retrofitLevel}`,
         `Damage extent: ${formData.damageExtent}%`,
+        manualAnnotation
+          ? `Annotated risk score: ${manualAnnotation.weightedRiskScore}/100 with ${manualAnnotation.damagePercent.toFixed(1)}% affected area`
+          : "No manual annotation provided",
+        manualAnnotation?.replacementRecommended
+          ? "Severe region threshold exceeded: replacement strategy should be reviewed"
+          : "Repair-first strategy is feasible for current severity distribution",
         mlCostPerSqft ? "Cost influenced by ML model output" : "Cost derived from deterministic engineering formula",
       ],
     })
@@ -173,13 +217,13 @@ export function ElementCostBreakdown() {
     formData.retrofitLevel,
     location,
     locationMultiplier,
+    manualAnnotation,
     mlCostPerSqft,
     overhead,
     totalCost,
   ])
   
   const handleAddDefect = () => {
-    console.log("Add Another Defect button clicked!")
     try {
       addDefect({
         elementType: detectionData?.elementType ?? "Structural Element",
@@ -187,17 +231,13 @@ export function ElementCostBreakdown() {
         severity: detectionData?.severity ?? "Moderate",
         cost: totalCost,
       })
-      console.log("Defect added successfully")
     } catch (error) {
       console.error("Failed to save defect before navigation", error)
     }
-    console.log("Calling navigateWithFallback to dashboard (/)")
     navigateWithFallback("/")
   }
   
   const handleViewReport = () => {
-    console.log("Generate Full Report button clicked!")
-    console.log("Current location hash:", window.location.hash)
     try {
       addDefect({
         elementType: detectionData?.elementType ?? "Structural Element",
@@ -205,13 +245,10 @@ export function ElementCostBreakdown() {
         severity: detectionData?.severity ?? "Moderate",
         cost: totalCost,
       })
-      console.log("Defect added successfully")
     } catch (error) {
       console.error("Failed to save defect before opening report", error)
     }
-    console.log("Calling navigateWithFallback with /final-report")
     navigateWithFallback("/final-report")
-    console.log("After navigateWithFallback, hash is:", window.location.hash)
   }
   
   return (
@@ -310,6 +347,36 @@ export function ElementCostBreakdown() {
                   </tfoot>
                 </table>
               </div>
+
+              {manualAnnotation && manualAnnotation.zones.length > 0 && (
+                <div className="border border-slate-200 rounded-lg overflow-x-auto mb-6">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                      <tr>
+                        <th className="text-left px-6 py-3 text-sm font-semibold text-slate-700">Severity Layer</th>
+                        <th className="text-right px-6 py-3 text-sm font-semibold text-slate-700">Area %</th>
+                        <th className="text-right px-6 py-3 text-sm font-semibold text-slate-700">Area m²</th>
+                        <th className="text-left px-6 py-3 text-sm font-semibold text-slate-700">Retrofit Strategy</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {manualAnnotation.zones.map((zone) => (
+                        <tr key={zone.severity} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 text-slate-700 text-sm">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: zone.color }}></span>
+                              {zone.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right text-slate-600 text-sm">{zone.percentage.toFixed(2)}%</td>
+                          <td className="px-6 py-4 text-right text-slate-600 text-sm">{zone.areaM2.toFixed(3)}</td>
+                          <td className="px-6 py-4 text-slate-600 text-sm">{zone.recommendedAction}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               
               {/* Cost Summary Card */}
               <motion.div

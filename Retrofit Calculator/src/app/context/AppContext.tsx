@@ -10,6 +10,34 @@ export type DetectionData = {
   summary: string
 }
 
+export type AnnotationSeverity = "severe" | "moderate" | "low" | "veryLow" | "none"
+
+export type ManualAnnotationZone = {
+  severity: AnnotationSeverity
+  label: string
+  color: string
+  pixelCount: number
+  percentage: number
+  areaM2: number
+  unitCost: number
+  severityMultiplier: number
+  strategy: string
+  recommendedAction: string
+}
+
+export type ManualAnnotationSummary = {
+  totalPixels: number
+  paintedPixels: number
+  damagePixels: number
+  damagePercent: number
+  severePercent: number
+  weightedRiskScore: number
+  replacementRecommended: boolean
+  investigationRequired: boolean
+  zones: ManualAnnotationZone[]
+  annotationImage: string | null
+}
+
 export type FormDataState = {
   widthCm: number
   depthCm: number
@@ -60,6 +88,7 @@ type AppState = {
   isAnalyzing: boolean
   analysisError: string | null
   detectionData: DetectionData | null
+  manualAnnotation: ManualAnnotationSummary | null
   formData: FormDataState
   defects: DefectEntry[]
   activeEstimate: CostEstimate | null
@@ -72,6 +101,7 @@ type AppContextType = AppState & {
   setIsAnalyzing: (isAnalyzing: boolean) => void
   setAnalysisError: (message: string | null) => void
   setDetectionData: (data: DetectionData | null) => void
+  setManualAnnotation: (annotation: ManualAnnotationSummary | null) => void
   setFormData: (data: FormDataState) => void
   setActiveEstimate: (estimate: CostEstimate | null) => void
   addDefect: (defect: Omit<DefectEntry, "id">) => void
@@ -109,6 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     isAnalyzing: false,
     analysisError: null,
     detectionData: null,
+    manualAnnotation: null,
     formData: initialFormData,
     defects: [],
     activeEstimate: null,
@@ -138,6 +169,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((previous) => ({ ...previous, detectionData }))
   }
 
+  const setManualAnnotation = (manualAnnotation: ManualAnnotationSummary | null) => {
+    setState((previous) => ({ ...previous, manualAnnotation }))
+  }
+
   const setFormData = (formData: FormDataState) => {
     setState((previous) => ({ ...previous, formData }))
   }
@@ -161,6 +196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isAnalyzing: false,
       analysisError: null,
       detectionData: null,
+      manualAnnotation: null,
       formData: initialFormData,
       activeEstimate: null,
     }))
@@ -176,6 +212,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsAnalyzing,
         setAnalysisError,
         setDetectionData,
+        setManualAnnotation,
         setFormData,
         setActiveEstimate,
         addDefect,

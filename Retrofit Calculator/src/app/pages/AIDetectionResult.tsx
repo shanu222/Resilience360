@@ -1,24 +1,90 @@
-import { useState, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router"
-import { CheckCircle, AlertCircle, ChevronRight, Activity } from "lucide-react"
+import { CheckCircle, AlertCircle, ChevronRight, Activity, Brush, Eraser, RotateCcw } from "lucide-react"
 import { motion } from "motion/react"
 import { useAppContext } from "../context/AppContext"
 
-type BrushRect = {
-  x: number
-  y: number
-  width: number
-  height: number
+type SeverityBrush = {
+  severity: "severe" | "moderate" | "low" | "veryLow" | "none"
+  label: string
+  color: string
+  unitCost: number
+  multiplier: number
+  strategy: string
+  action: string
+}
+
+const severityBrushes: SeverityBrush[] = [
+  {
+    severity: "severe",
+    label: "Severe damage",
+    color: "#EF4444",
+    unitCost: 9200,
+    multiplier: 1.55,
+    strategy: "Structural strengthening",
+    action: "RC jacketing / Steel jacketing / FRP wrapping",
+  },
+  {
+    severity: "moderate",
+    label: "Moderate damage",
+    color: "#C4A484",
+    unitCost: 4200,
+    multiplier: 1.2,
+    strategy: "Crack repair + partial strengthening",
+    action: "Epoxy injection + section repair",
+  },
+  {
+    severity: "low",
+    label: "Low damage",
+    color: "#FACC15",
+    unitCost: 1800,
+    multiplier: 1,
+    strategy: "Surface crack repair",
+    action: "Sealant / minor repair",
+  },
+  {
+    severity: "veryLow",
+    label: "Very low damage",
+    color: "#3B82F6",
+    unitCost: 650,
+    multiplier: 0.72,
+    strategy: "Monitoring + preventive maintenance",
+    action: "Periodic observation and preventive care",
+  },
+  {
+    severity: "none",
+    label: "No damage",
+    color: "#22C55E",
+    unitCost: 0,
+    multiplier: 0,
+    strategy: "No retrofit required",
+    action: "No cost applied",
+  },
+]
+
+const getRgbFromHex = (hex: string) => {
+  const clean = hex.replace("#", "")
+  const normalized = clean.length === 3 ? clean.split("").map((value) => `${value}${value}`).join("") : clean
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  }
 }
 
 export function AIDetectionResult() {
   const navigate = useNavigate()
-  const { imagePreview, formData, setFormData, detectionData } = useAppContext()
-  const imageCanvasRef = useRef<HTMLDivElement | null>(null)
-  const [isBrushing, setIsBrushing] = useState(false)
-  const [brushStartPoint, setBrushStartPoint] = useState<{ x: number; y: number } | null>(null)
-  const [brushRect, setBrushRect] = useState<BrushRect | null>(null)
-  const [draftBrushRect, setDraftBrushRect] = useState<BrushRect | null>(null)
+  const { imagePreview, formData, setFormData, detectionData, manualAnnotation, setManualAnnotation } = useAppContext()
+  const imageElementRef = useRef<HTMLImageElement | null>(null)
+  const annotationCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [isPainting, setIsPainting] = useState(false)
+  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null)
+  const [selectedSeverity, setSelectedSeverity] = useState<SeverityBrush["severity"]>("severe")
+  const [brushSize, setBrushSize] = useState(18)
+  const [brushOpacity, setBrushOpacity] = useState(0.7)
+  const [damagePercentPreview, setDamagePercentPreview] = useState(formData.damageExtent)
+  const [zoneStatsPreview, setZoneStatsPreview] = useState(manualAnnotation?.zones ?? [])
+  const [annotationInsight, setAnnotationInsight] = useState("")
   const [aiDimensions] = useState(() => ({
     widthCm: formData.widthCm,
     depthCm: formData.depthCm,
@@ -31,139 +97,282 @@ export function AIDetectionResult() {
       ? "bg-amber-500"
       : "bg-green-600"
   
-  const handleSubmit = () => {
-    navigate("/cost-breakdown")
-  }
+  const colorDistanceTable = useMemo(
+    () =>
+      severityBrushes.map((brush) => ({
+        ...brush,
+        rgb: getRgbFromHex(brush.color),
+      })),
+    [],
+  )
 
-  const getClientPointFromTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+  const getClientPointFromTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
     const touch = e.touches[0] ?? e.changedTouches[0]
     if (!touch) return null
 
     return { x: touch.clientX, y: touch.clientY }
   }
 
-  const createNormalizedRect = (start: { x: number; y: number }, end: { x: number; y: number }, bounds: DOMRect): BrushRect => {
-    const left = Math.min(start.x, end.x)
-    const right = Math.max(start.x, end.x)
-    const top = Math.min(start.y, end.y)
-    const bottom = Math.max(start.y, end.y)
+  const getCanvasPoint = (point: { x: number; y: number }) => {
+    const canvas = annotationCanvasRef.current
+    if (!canvas) return null
+    const bounds = canvas.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return null
 
     return {
-      x: Math.max(0, Math.min(1, (left - bounds.left) / bounds.width)),
-      y: Math.max(0, Math.min(1, (top - bounds.top) / bounds.height)),
-      width: Math.max(0, Math.min(1, (right - left) / bounds.width)),
-      height: Math.max(0, Math.min(1, (bottom - top) / bounds.height)),
+      x: ((point.x - bounds.left) / bounds.width) * canvas.width,
+      y: ((point.y - bounds.top) / bounds.height) * canvas.height,
     }
   }
 
-  const applyBrushDimensions = (rect: BrushRect) => {
-    const scaleX = Math.max(0.05, rect.width)
-    const scaleY = Math.max(0.05, rect.height)
-    const scaleDepth = Math.max(0.05, (scaleX + scaleY) / 2)
+  const getAnnotationContext = () => {
+    const canvas = annotationCanvasRef.current
+    if (!canvas) return null
+    const context = canvas.getContext("2d")
+    if (!context) return null
+    return { canvas, context }
+  }
 
-    const widthCm = Math.max(1, Math.round(aiDimensions.widthCm * scaleX))
-    const depthCm = Math.max(1, Math.round(aiDimensions.depthCm * scaleDepth))
-    const heightCm = Math.max(1, Math.round(aiDimensions.heightCm * scaleY))
+  const drawSegment = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    const annotationContext = getAnnotationContext()
+    if (!annotationContext) return
 
-    setFormData({
-      ...formData,
-      widthCm,
-      depthCm,
-      heightCm,
+    const selectedBrush = severityBrushes.find((brush) => brush.severity === selectedSeverity)
+    if (!selectedBrush) return
+
+    annotationContext.context.save()
+    annotationContext.context.globalAlpha = brushOpacity
+    annotationContext.context.strokeStyle = selectedBrush.color
+    annotationContext.context.lineCap = "round"
+    annotationContext.context.lineJoin = "round"
+    annotationContext.context.lineWidth = brushSize
+    annotationContext.context.beginPath()
+    annotationContext.context.moveTo(from.x, from.y)
+    annotationContext.context.lineTo(to.x, to.y)
+    annotationContext.context.stroke()
+    annotationContext.context.restore()
+  }
+
+  const generateAnnotationSummary = () => {
+    const annotationContext = getAnnotationContext()
+    if (!annotationContext) return null
+
+    const imageData = annotationContext.context.getImageData(0, 0, annotationContext.canvas.width, annotationContext.canvas.height)
+    const counters: Record<SeverityBrush["severity"], number> = {
+      severe: 0,
+      moderate: 0,
+      low: 0,
+      veryLow: 0,
+      none: 0,
+    }
+
+    for (let pixelIndex = 0; pixelIndex < imageData.data.length; pixelIndex += 4) {
+      const alpha = imageData.data[pixelIndex + 3]
+      if (alpha < 16) continue
+
+      const red = imageData.data[pixelIndex]
+      const green = imageData.data[pixelIndex + 1]
+      const blue = imageData.data[pixelIndex + 2]
+
+      let nearestSeverity: SeverityBrush["severity"] = "none"
+      let nearestDistance = Number.POSITIVE_INFINITY
+
+      for (const colorCandidate of colorDistanceTable) {
+        const distance =
+          (red - colorCandidate.rgb.r) ** 2 +
+          (green - colorCandidate.rgb.g) ** 2 +
+          (blue - colorCandidate.rgb.b) ** 2
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance
+          nearestSeverity = colorCandidate.severity
+        }
+      }
+
+      counters[nearestSeverity] += 1
+    }
+
+    const totalPixels = annotationContext.canvas.width * annotationContext.canvas.height
+    const paintedPixels = Object.values(counters).reduce((sum, value) => sum + value, 0)
+    const damagePixels = Math.max(0, paintedPixels - counters.none)
+    const damagePercent = totalPixels > 0 ? (damagePixels / totalPixels) * 100 : 0
+    const severePercent = totalPixels > 0 ? (counters.severe / totalPixels) * 100 : 0
+
+    const weightedPoints =
+      counters.severe * 1 +
+      counters.moderate * 0.72 +
+      counters.low * 0.38 +
+      counters.veryLow * 0.15
+
+    const weightedRiskScore = damagePixels > 0 ? Math.min(100, Math.round((weightedPoints / damagePixels) * 100)) : 0
+    const replacementRecommended = severePercent > 40
+    const investigationRequired = severePercent > 22 || damagePercent > 55
+
+    const elementFaceAreaM2 = Math.max(0.01, (Math.max(1, formData.widthCm) * Math.max(1, formData.heightCm)) / 10000)
+
+    const zones = severityBrushes.map((brush) => {
+      const pixelCount = counters[brush.severity]
+      const percentage = totalPixels > 0 ? (pixelCount / totalPixels) * 100 : 0
+      const areaM2 = elementFaceAreaM2 * (percentage / 100)
+
+      return {
+        severity: brush.severity,
+        label: brush.label,
+        color: brush.color,
+        pixelCount,
+        percentage,
+        areaM2,
+        unitCost: brush.unitCost,
+        severityMultiplier: brush.multiplier,
+        strategy: brush.strategy,
+        recommendedAction: brush.action,
+      }
     })
-  }
 
-  const startBrushing = (point: { x: number; y: number }) => {
-    if (!imageCanvasRef.current) return
+    setZoneStatsPreview(zones)
+    setDamagePercentPreview(Math.round(damagePercent))
 
-    const bounds = imageCanvasRef.current.getBoundingClientRect()
-
-    setIsBrushing(true)
-    setBrushStartPoint(point)
-    setDraftBrushRect(createNormalizedRect(point, point, bounds))
-  }
-
-  const moveBrushing = (point: { x: number; y: number }) => {
-    if (!isBrushing || !brushStartPoint || !imageCanvasRef.current) return
-
-    const bounds = imageCanvasRef.current.getBoundingClientRect()
-    setDraftBrushRect(createNormalizedRect(brushStartPoint, point, bounds))
-  }
-
-  const endBrushing = (point: { x: number; y: number }) => {
-    if (!isBrushing || !brushStartPoint || !imageCanvasRef.current) return
-
-    const bounds = imageCanvasRef.current.getBoundingClientRect()
-    const finalized = createNormalizedRect(brushStartPoint, point, bounds)
-
-    setIsBrushing(false)
-    setBrushStartPoint(null)
-    setDraftBrushRect(null)
-
-    if (finalized.width < 0.01 || finalized.height < 0.01) {
-      return
+    if (replacementRecommended) {
+      setAnnotationInsight("Severe zone exceeds 40% of element area; full element replacement should be evaluated.")
+    } else if (investigationRequired) {
+      setAnnotationInsight("Large damaged area detected; include detailed structural investigation in scope.")
+    } else if (damagePercent > 0) {
+      setAnnotationInsight("Damage spread is localized; targeted retrofit strategy is feasible.")
+    } else {
+      setAnnotationInsight("No painted damage zones detected yet.")
     }
 
-    setBrushRect(finalized)
-    applyBrushDimensions(finalized)
+    return {
+      totalPixels,
+      paintedPixels,
+      damagePixels,
+      damagePercent,
+      severePercent,
+      weightedRiskScore,
+      replacementRecommended,
+      investigationRequired,
+      zones,
+      annotationImage: annotationContext.canvas.toDataURL("image/png"),
+    }
   }
 
-  const cancelBrushing = () => {
-    if (!isBrushing) return
+  const startPainting = (point: { x: number; y: number }) => {
+    const canvasPoint = getCanvasPoint(point)
+    if (!canvasPoint) return
 
-    setIsBrushing(false)
-    setBrushStartPoint(null)
-    setDraftBrushRect(null)
+    setIsPainting(true)
+    setLastPoint(canvasPoint)
   }
 
-  const handleBrushStart = (e: React.MouseEvent<HTMLDivElement>) => {
-    const point = { x: e.clientX, y: e.clientY }
-    startBrushing(point)
+  const movePainting = (point: { x: number; y: number }) => {
+    if (!isPainting || !lastPoint) return
+    const canvasPoint = getCanvasPoint(point)
+    if (!canvasPoint) return
+
+    drawSegment(lastPoint, canvasPoint)
+    setLastPoint(canvasPoint)
   }
 
-  const handleBrushMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const current = { x: e.clientX, y: e.clientY }
-    moveBrushing(current)
+  const stopPainting = () => {
+    if (!isPainting) return
+    setIsPainting(false)
+    setLastPoint(null)
+    generateAnnotationSummary()
   }
 
-  const handleBrushEnd = (e: React.MouseEvent<HTMLDivElement>) => {
-    const endPoint = { x: e.clientX, y: e.clientY }
-    endBrushing(endPoint)
+  const clearAnnotation = () => {
+    const annotationContext = getAnnotationContext()
+    if (!annotationContext) return
+
+    annotationContext.context.clearRect(0, 0, annotationContext.canvas.width, annotationContext.canvas.height)
+    setManualAnnotation(null)
+    setZoneStatsPreview([])
+    setDamagePercentPreview(0)
+    setAnnotationInsight("No painted damage zones detected yet.")
   }
 
-  const handleTouchBrushStart = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleBrushStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    startPainting({ x: e.clientX, y: e.clientY })
+  }
+
+  const handleBrushMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    movePainting({ x: e.clientX, y: e.clientY })
+  }
+
+  const handleTouchBrushStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault()
     const point = getClientPointFromTouch(e)
     if (!point) return
-
-    startBrushing(point)
+    startPainting(point)
   }
 
-  const handleTouchBrushMove = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleTouchBrushMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault()
     const point = getClientPointFromTouch(e)
     if (!point) return
-
-    moveBrushing(point)
+    movePainting(point)
   }
 
-  const handleTouchBrushEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const point = getClientPointFromTouch(e)
-    if (!point) {
-      cancelBrushing()
+  const handleSubmit = () => {
+    const summary = generateAnnotationSummary()
+    if (summary) {
+      setManualAnnotation(summary)
+      setFormData({
+        ...formData,
+        damageExtent: Math.min(100, Math.max(0, Math.round(summary.damagePercent))),
+      })
+    }
+    navigate("/cost-breakdown")
+  }
+
+  useEffect(() => {
+    const canvas = annotationCanvasRef.current
+    const imageElement = imageElementRef.current
+    if (!canvas || !imageElement) return
+
+    const setupCanvas = () => {
+      const naturalWidth = imageElement.naturalWidth || 1024
+      const naturalHeight = imageElement.naturalHeight || 768
+      canvas.width = naturalWidth
+      canvas.height = naturalHeight
+      canvas.style.width = "100%"
+      canvas.style.height = "100%"
+
+      const context = canvas.getContext("2d")
+      if (!context) return
+      context.clearRect(0, 0, canvas.width, canvas.height)
+
+      if (manualAnnotation?.annotationImage) {
+        const cached = new Image()
+        cached.onload = () => {
+          context.drawImage(cached, 0, 0, canvas.width, canvas.height)
+          generateAnnotationSummary()
+        }
+        cached.src = manualAnnotation.annotationImage
+      }
+    }
+
+    if (imageElement.complete) {
+      setupCanvas()
       return
     }
 
-    endBrushing(point)
-  }
+    imageElement.onload = setupCanvas
+    return () => {
+      imageElement.onload = null
+    }
+  }, [imagePreview, manualAnnotation?.annotationImage])
 
-  const resetBrush = () => {
-    setBrushRect(null)
-    setDraftBrushRect(null)
-    setIsBrushing(false)
-    setBrushStartPoint(null)
+  useEffect(() => {
+    if (manualAnnotation?.zones?.length) {
+      setZoneStatsPreview(manualAnnotation.zones)
+      setDamagePercentPreview(Math.round(manualAnnotation.damagePercent))
+    }
+  }, [manualAnnotation])
 
+  const activeBrush = severityBrushes.find((brush) => brush.severity === selectedSeverity) ?? severityBrushes[0]
+
+  const resetDimensionsToAI = () => {
     setFormData({
       ...formData,
       widthCm: aiDimensions.widthCm,
@@ -208,21 +417,10 @@ export function AIDetectionResult() {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
             >
-              <div
-                ref={imageCanvasRef}
-                className="relative cursor-crosshair select-none"
-                style={{ touchAction: "none" }}
-                onMouseDown={handleBrushStart}
-                onMouseMove={handleBrushMove}
-                onMouseUp={handleBrushEnd}
-                onMouseLeave={handleBrushEnd}
-                onTouchStart={handleTouchBrushStart}
-                onTouchMove={handleTouchBrushMove}
-                onTouchEnd={handleTouchBrushEnd}
-                onTouchCancel={cancelBrushing}
-              >
+              <div className="relative select-none" style={{ touchAction: "none" }}>
                 {imagePreview ? (
                   <img
+                    ref={imageElementRef}
                     src={imagePreview}
                     alt="Detected defect"
                     draggable={false}
@@ -231,55 +429,121 @@ export function AIDetectionResult() {
                 ) : (
                   <div className="w-full h-80 bg-slate-100"></div>
                 )}
-                {brushRect ? (
-                  <motion.div
-                    className="absolute border-4 border-red-500 rounded-lg pointer-events-none"
-                    style={{
-                      left: `${brushRect.x * 100}%`,
-                      top: `${brushRect.y * 100}%`,
-                      width: `${brushRect.width * 100}%`,
-                      height: `${brushRect.height * 100}%`,
-                    }}
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                  ></motion.div>
-                ) : (
-                  <motion.div
-                    className="absolute inset-0 border-4 border-red-500 m-8 rounded-lg pointer-events-none"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                  ></motion.div>
-                )}
-                {draftBrushRect && (
-                  <div
-                    className="absolute border-2 border-red-300 bg-red-500/10 rounded-lg pointer-events-none"
-                    style={{
-                      left: `${draftBrushRect.x * 100}%`,
-                      top: `${draftBrushRect.y * 100}%`,
-                      width: `${draftBrushRect.width * 100}%`,
-                      height: `${draftBrushRect.height * 100}%`,
-                    }}
-                  ></div>
-                )}
-                <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-lg">
-                  Defect Located
+
+                <canvas
+                  ref={annotationCanvasRef}
+                  className="absolute inset-0 w-full h-full cursor-crosshair"
+                  onMouseDown={handleBrushStart}
+                  onMouseMove={handleBrushMove}
+                  onMouseUp={stopPainting}
+                  onMouseLeave={stopPainting}
+                  onTouchStart={handleTouchBrushStart}
+                  onTouchMove={handleTouchBrushMove}
+                  onTouchEnd={stopPainting}
+                  onTouchCancel={stopPainting}
+                />
+
+                <div className="absolute top-4 right-4 bg-slate-900/80 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg backdrop-blur">
+                  Damage marked: {damagePercentPreview}%
                 </div>
               </div>
-              <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/70">
-                <p className="text-xs text-slate-600">
-                  Brush over the detected element to set dimensions manually.
-                </p>
-                <div className="mt-2 flex items-center gap-2">
+
+              <div className="px-4 py-4 border-t border-slate-100 bg-slate-50/70 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {severityBrushes.map((brush) => (
+                    <button
+                      key={brush.severity}
+                      type="button"
+                      onClick={() => setSelectedSeverity(brush.severity)}
+                      className={`px-2 py-2 rounded-lg border text-xs font-medium transition-colors ${selectedSeverity === brush.severity ? "border-slate-900 bg-white text-slate-900" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"}`}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: brush.color }}></span>
+                        {brush.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="text-xs text-slate-600">
+                    Brush size ({brushSize}px)
+                    <input
+                      type="range"
+                      min={6}
+                      max={48}
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(Number(e.target.value))}
+                      className="w-full mt-1"
+                    />
+                  </label>
+                  <label className="text-xs text-slate-600">
+                    Brush opacity ({Math.round(brushOpacity * 100)}%)
+                    <input
+                      type="range"
+                      min={20}
+                      max={100}
+                      value={Math.round(brushOpacity * 100)}
+                      onChange={(e) => setBrushOpacity(Number(e.target.value) / 100)}
+                      className="w-full mt-1"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={resetBrush}
-                    className="px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5"
+                    onClick={clearAnnotation}
                   >
-                    Reset to AI Dimensions
+                    <Eraser className="w-3.5 h-3.5" />
+                    Clear Paint
                   </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5"
+                    onClick={resetDimensionsToAI}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset AI Dimensions
+                  </button>
+                  <span className="text-xs text-slate-600 inline-flex items-center gap-1.5">
+                    <Brush className="w-3.5 h-3.5" />
+                    Active: <strong style={{ color: activeBrush.color }}>{activeBrush.label}</strong>
+                  </span>
                 </div>
+
+                {annotationInsight && (
+                  <p className="text-xs text-slate-600 leading-relaxed">{annotationInsight}</p>
+                )}
+
+                {zoneStatsPreview.length > 0 && (
+                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table className="w-full text-xs">
+                      <thead className="bg-white border-b border-slate-200">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600">Severity</th>
+                          <th className="text-right px-3 py-2 font-semibold text-slate-600">Area %</th>
+                          <th className="text-right px-3 py-2 font-semibold text-slate-600">Area m²</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {zoneStatsPreview.map((zone) => (
+                          <tr key={zone.severity}>
+                            <td className="px-3 py-2 text-slate-700">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: zone.color }}></span>
+                                {zone.label}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-slate-700">{zone.percentage.toFixed(2)}%</td>
+                            <td className="px-3 py-2 text-right text-slate-700">{zone.areaM2.toFixed(3)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </motion.div>
             

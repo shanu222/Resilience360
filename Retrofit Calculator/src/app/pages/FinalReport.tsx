@@ -4,7 +4,7 @@ import { motion } from "motion/react"
 import { useAppContext } from "../context/AppContext"
 
 export function FinalReport() {
-  const { defects, activeEstimate, location, detectionData, formData } = useAppContext()
+  const { defects, activeEstimate, location, detectionData, formData, manualAnnotation } = useAppContext()
 
   const rows = defects.length > 0
     ? defects
@@ -39,6 +39,19 @@ export function FinalReport() {
   const total = rows.reduce((sum, row) => sum + row.cost, 0)
   const minEstimate = Math.round(total * 0.9)
   const maxEstimate = Math.round(total * 1.12)
+
+  const annotationSeverityData = manualAnnotation
+    ? manualAnnotation.zones
+        .filter((zone) => zone.percentage > 0)
+        .map((zone) => ({
+          name: zone.label,
+          value: Number(zone.percentage.toFixed(2)),
+          areaM2: zone.areaM2,
+          color: zone.color,
+          strategy: zone.recommendedAction,
+          estimatedCost: Math.round(zone.areaM2 * zone.unitCost * zone.severityMultiplier),
+        }))
+    : []
   
   const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
   const SEVERITY_COLORS = { Low: '#10B981', Moderate: '#F59E0B', High: '#EF4444' }
@@ -48,6 +61,7 @@ export function FinalReport() {
     location,
     detection: detectionData,
     formData,
+    manualAnnotation,
     activeEstimate,
     defects: rows,
     totalCost: total,
@@ -173,6 +187,69 @@ export function FinalReport() {
             </div>
           </div>
         </motion.div>
+
+        {manualAnnotation && (
+          <motion.div
+            className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="p-6 sm:p-8 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+              <h3 className="text-[20px] font-bold text-[#0F172A] mb-1">Annotated Severity Segmentation</h3>
+              <p className="text-sm text-slate-600">Manual color-coded zones converted to measurable area and retrofit strategy</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-6 sm:p-8 border-b border-slate-200 bg-slate-50">
+              <div className="bg-white rounded-lg border border-slate-200 p-4">
+                <p className="text-xs text-slate-600 mb-1">Weighted Risk Score</p>
+                <p className="text-2xl font-bold text-[#0F172A]">{manualAnnotation.weightedRiskScore}/100</p>
+              </div>
+              <div className="bg-white rounded-lg border border-slate-200 p-4">
+                <p className="text-xs text-slate-600 mb-1">Damage Coverage</p>
+                <p className="text-2xl font-bold text-[#0F172A]">{manualAnnotation.damagePercent.toFixed(1)}%</p>
+              </div>
+              <div className="bg-white rounded-lg border border-slate-200 p-4">
+                <p className="text-xs text-slate-600 mb-1">High-Severity Coverage</p>
+                <p className="text-2xl font-bold text-[#0F172A]">{manualAnnotation.severePercent.toFixed(1)}%</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Severity</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Area %</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Area (m²)</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Estimated Cost</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Recommended Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {annotationSeverityData.map((zone) => (
+                    <tr key={zone.name}>
+                      <td className="px-6 py-4 text-sm text-slate-700">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: zone.color }}></span>
+                          {zone.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right text-slate-700">{zone.value.toFixed(2)}%</td>
+                      <td className="px-6 py-4 text-sm text-right text-slate-700">{zone.areaM2.toFixed(3)}</td>
+                      <td className="px-6 py-4 text-sm text-right font-semibold text-[#0F172A]">PKR {zone.estimatedCost.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm text-slate-700">{zone.strategy}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {(manualAnnotation.replacementRecommended || manualAnnotation.investigationRequired) && (
+              <div className="px-6 sm:px-8 py-4 bg-amber-50 border-t border-amber-200 text-sm text-amber-900">
+                {manualAnnotation.replacementRecommended && "Severe area threshold exceeded: full element replacement assessment is recommended. "}
+                {manualAnnotation.investigationRequired && "Detailed structural investigation should be included in the project scope."}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Defect Breakdown Table */}
         <motion.div
