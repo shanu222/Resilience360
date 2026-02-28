@@ -373,9 +373,23 @@ export function AIDetectionResult() {
   }
   
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+    <div 
+      className="min-h-screen bg-[#F8FAFC] relative"
+      style={{
+        backgroundImage: 'url(/background.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Background overlay for better readability */}
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+      
+      {/* Content wrapper */}
+      <div className="relative" style={{ zIndex: 1 }}>
+        {/* Header */}
+        <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -784,7 +798,7 @@ export function AIDetectionResult() {
             </motion.div>
           </div>
         </div>
-      </div>
-    </div>
+      </div> {/* Close content wrapper */}
+    </div> {/* Close main background div */}
   )
 }

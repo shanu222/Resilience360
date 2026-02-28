@@ -378,8 +378,22 @@ export function FinalReport() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] border-b border-blue-600">
+    <div 
+      className="min-h-screen bg-[#F8FAFC] relative"
+      style={{
+        backgroundImage: 'url(/background.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Background overlay for better readability */}
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+      
+      {/* Content wrapper */}
+      <div className="relative" style={{ zIndex: 1 }}>
+        <div className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] border-b border-blue-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <h1 className="text-white text-[28px] sm:text-[32px] font-bold tracking-tight mb-2">Seismic Retrofit Assessment Report</h1>
           <p className="text-blue-100 text-[15px]">Professional Assessment • Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -738,6 +752,7 @@ export function FinalReport() {
           </button>
         </motion.div>
       </div>
-    </div>
+      </div> {/* Close content wrapper */}
+    </div> {/* Close main background div */}
   )
 }

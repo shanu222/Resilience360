@@ -136,7 +136,7 @@ export function ElementCostBreakdown() {
   const calculatedTotal = adjustedSubtotal + contingency + overhead
 
   const areaSqft = Math.max(50, Math.round((dimensions.widthM * dimensions.depthM * 10.7639) * (formData.floorLevel === "Ground" ? 1 : 1.08)))
-  const totalCost = mlCostPerSqft ? Math.round(mlCostPerSqft * areaSqft) : calculatedTotal
+  const totalCost = calculatedTotal
   const estimatedDurationWeeks = mlDurationWeeks ?? Math.max(1, Math.round(2 + formData.damageExtent / 14))
 
   useEffect(() => {
@@ -211,7 +211,7 @@ export function ElementCostBreakdown() {
         manualAnnotation?.replacementRecommended
           ? "Severe region threshold exceeded: replacement strategy should be reviewed"
           : "Repair-first strategy is feasible for current severity distribution",
-        mlCostPerSqft ? "Cost influenced by ML model output" : "Cost derived from deterministic engineering formula",
+        "Cost derived from deterministic engineering formula (Adjusted Subtotal + Contingency + Overhead)",
       ],
     })
   }, [
@@ -228,7 +228,6 @@ export function ElementCostBreakdown() {
     location,
     locationMultiplier,
     manualAnnotation,
-    mlCostPerSqft,
     overhead,
     totalCost,
   ])
@@ -262,9 +261,23 @@ export function ElementCostBreakdown() {
   }
   
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+    <div 
+      className="min-h-screen bg-[#F8FAFC] relative"
+      style={{
+        backgroundImage: 'url(/background.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Background overlay for better readability */}
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+      
+      {/* Content wrapper */}
+      <div className="relative" style={{ zIndex: 1 }}>
+        {/* Header */}
+        <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -516,6 +529,7 @@ export function ElementCostBreakdown() {
           )}
         </motion.div>
       </div>
-    </div>
+      </div> {/* Close content wrapper */}
+    </div> {/* Close main background div */}
   )
 }
