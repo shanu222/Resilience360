@@ -1,11 +1,29 @@
+import { useState, useRef } from "react"
 import { useNavigate } from "react-router"
 import { CheckCircle, AlertCircle, ChevronRight, Activity } from "lucide-react"
 import { motion } from "motion/react"
 import { useAppContext } from "../context/AppContext"
 
+type BrushRect = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export function AIDetectionResult() {
   const navigate = useNavigate()
   const { imagePreview, formData, setFormData, detectionData } = useAppContext()
+  const imageCanvasRef = useRef<HTMLDivElement | null>(null)
+  const [isBrushing, setIsBrushing] = useState(false)
+  const [brushStartPoint, setBrushStartPoint] = useState<{ x: number; y: number } | null>(null)
+  const [brushRect, setBrushRect] = useState<BrushRect | null>(null)
+  const [draftBrushRect, setDraftBrushRect] = useState<BrushRect | null>(null)
+  const [aiDimensions] = useState(() => ({
+    widthCm: formData.widthCm,
+    depthCm: formData.depthCm,
+    heightCm: formData.heightCm,
+  }))
 
   const severityTone = detectionData?.severity === "High"
     ? "bg-red-500"
@@ -15,6 +33,143 @@ export function AIDetectionResult() {
   
   const handleSubmit = () => {
     navigate("/cost-breakdown")
+  }
+
+  const getClientPointFromTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0] ?? e.changedTouches[0]
+    if (!touch) return null
+
+    return { x: touch.clientX, y: touch.clientY }
+  }
+
+  const createNormalizedRect = (start: { x: number; y: number }, end: { x: number; y: number }, bounds: DOMRect): BrushRect => {
+    const left = Math.min(start.x, end.x)
+    const right = Math.max(start.x, end.x)
+    const top = Math.min(start.y, end.y)
+    const bottom = Math.max(start.y, end.y)
+
+    return {
+      x: Math.max(0, Math.min(1, (left - bounds.left) / bounds.width)),
+      y: Math.max(0, Math.min(1, (top - bounds.top) / bounds.height)),
+      width: Math.max(0, Math.min(1, (right - left) / bounds.width)),
+      height: Math.max(0, Math.min(1, (bottom - top) / bounds.height)),
+    }
+  }
+
+  const applyBrushDimensions = (rect: BrushRect) => {
+    const scaleX = Math.max(0.05, rect.width)
+    const scaleY = Math.max(0.05, rect.height)
+    const scaleDepth = Math.max(0.05, (scaleX + scaleY) / 2)
+
+    const widthCm = Math.max(1, Math.round(aiDimensions.widthCm * scaleX))
+    const depthCm = Math.max(1, Math.round(aiDimensions.depthCm * scaleDepth))
+    const heightCm = Math.max(1, Math.round(aiDimensions.heightCm * scaleY))
+
+    setFormData({
+      ...formData,
+      widthCm,
+      depthCm,
+      heightCm,
+    })
+  }
+
+  const startBrushing = (point: { x: number; y: number }) => {
+    if (!imageCanvasRef.current) return
+
+    const bounds = imageCanvasRef.current.getBoundingClientRect()
+
+    setIsBrushing(true)
+    setBrushStartPoint(point)
+    setDraftBrushRect(createNormalizedRect(point, point, bounds))
+  }
+
+  const moveBrushing = (point: { x: number; y: number }) => {
+    if (!isBrushing || !brushStartPoint || !imageCanvasRef.current) return
+
+    const bounds = imageCanvasRef.current.getBoundingClientRect()
+    setDraftBrushRect(createNormalizedRect(brushStartPoint, point, bounds))
+  }
+
+  const endBrushing = (point: { x: number; y: number }) => {
+    if (!isBrushing || !brushStartPoint || !imageCanvasRef.current) return
+
+    const bounds = imageCanvasRef.current.getBoundingClientRect()
+    const finalized = createNormalizedRect(brushStartPoint, point, bounds)
+
+    setIsBrushing(false)
+    setBrushStartPoint(null)
+    setDraftBrushRect(null)
+
+    if (finalized.width < 0.01 || finalized.height < 0.01) {
+      return
+    }
+
+    setBrushRect(finalized)
+    applyBrushDimensions(finalized)
+  }
+
+  const cancelBrushing = () => {
+    if (!isBrushing) return
+
+    setIsBrushing(false)
+    setBrushStartPoint(null)
+    setDraftBrushRect(null)
+  }
+
+  const handleBrushStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    const point = { x: e.clientX, y: e.clientY }
+    startBrushing(point)
+  }
+
+  const handleBrushMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const current = { x: e.clientX, y: e.clientY }
+    moveBrushing(current)
+  }
+
+  const handleBrushEnd = (e: React.MouseEvent<HTMLDivElement>) => {
+    const endPoint = { x: e.clientX, y: e.clientY }
+    endBrushing(endPoint)
+  }
+
+  const handleTouchBrushStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const point = getClientPointFromTouch(e)
+    if (!point) return
+
+    startBrushing(point)
+  }
+
+  const handleTouchBrushMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const point = getClientPointFromTouch(e)
+    if (!point) return
+
+    moveBrushing(point)
+  }
+
+  const handleTouchBrushEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const point = getClientPointFromTouch(e)
+    if (!point) {
+      cancelBrushing()
+      return
+    }
+
+    endBrushing(point)
+  }
+
+  const resetBrush = () => {
+    setBrushRect(null)
+    setDraftBrushRect(null)
+    setIsBrushing(false)
+    setBrushStartPoint(null)
+
+    setFormData({
+      ...formData,
+      widthCm: aiDimensions.widthCm,
+      depthCm: aiDimensions.depthCm,
+      heightCm: aiDimensions.heightCm,
+    })
   }
   
   return (
@@ -53,24 +208,77 @@ export function AIDetectionResult() {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
             >
-              <div className="relative">
+              <div
+                ref={imageCanvasRef}
+                className="relative cursor-crosshair select-none"
+                style={{ touchAction: "none" }}
+                onMouseDown={handleBrushStart}
+                onMouseMove={handleBrushMove}
+                onMouseUp={handleBrushEnd}
+                onMouseLeave={handleBrushEnd}
+                onTouchStart={handleTouchBrushStart}
+                onTouchMove={handleTouchBrushMove}
+                onTouchEnd={handleTouchBrushEnd}
+                onTouchCancel={cancelBrushing}
+              >
                 {imagePreview ? (
                   <img
                     src={imagePreview}
                     alt="Detected defect"
+                    draggable={false}
                     className="w-full h-80 object-cover"
                   />
                 ) : (
                   <div className="w-full h-80 bg-slate-100"></div>
                 )}
-                <motion.div
-                  className="absolute inset-0 border-4 border-red-500 m-8 rounded-lg pointer-events-none"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                ></motion.div>
+                {brushRect ? (
+                  <motion.div
+                    className="absolute border-4 border-red-500 rounded-lg pointer-events-none"
+                    style={{
+                      left: `${brushRect.x * 100}%`,
+                      top: `${brushRect.y * 100}%`,
+                      width: `${brushRect.width * 100}%`,
+                      height: `${brushRect.height * 100}%`,
+                    }}
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  ></motion.div>
+                ) : (
+                  <motion.div
+                    className="absolute inset-0 border-4 border-red-500 m-8 rounded-lg pointer-events-none"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  ></motion.div>
+                )}
+                {draftBrushRect && (
+                  <div
+                    className="absolute border-2 border-red-300 bg-red-500/10 rounded-lg pointer-events-none"
+                    style={{
+                      left: `${draftBrushRect.x * 100}%`,
+                      top: `${draftBrushRect.y * 100}%`,
+                      width: `${draftBrushRect.width * 100}%`,
+                      height: `${draftBrushRect.height * 100}%`,
+                    }}
+                  ></div>
+                )}
                 <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-lg">
                   Defect Located
+                </div>
+              </div>
+              <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/70">
+                <p className="text-xs text-slate-600">
+                  Brush over the detected element to set dimensions manually.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetBrush}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    Reset to AI Dimensions
+                  </button>
                 </div>
               </div>
             </motion.div>

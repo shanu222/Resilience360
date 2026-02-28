@@ -2957,6 +2957,29 @@ progress {
     flex: 0 0 auto;
   }
 
+  .section-design-toolkit .design-toolkit-filters label,
+  .section-design-toolkit .design-toolkit-compact-controls label {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .section-design-toolkit .design-toolkit-filters,
+  .section-design-toolkit .design-toolkit-compact-controls {
+    align-items: stretch;
+  }
+
+  .section-retrofit .retrofit-action-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .section-retrofit .retrofit-action-row button,
+  .section-retrofit .retrofit-btn {
+    flex: 1 1 100%;
+    width: 100%;
+    white-space: normal;
+  }
+
   select,
   input,
   button {
