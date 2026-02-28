@@ -28,11 +28,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
+        working-directory: './Retrofit Calculator'
         run: npm ci
 
       - name: Build frontend for GitHub Pages
+        working-directory: './Retrofit Calculator'
         env:
-          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_BASE_PATH: /Resilience360/retrofit-calculator/
           VITE_BUILD_VERSION: ${{ github.sha }}
         run: npm run build
 
@@ -44,7 +46,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: './Retrofit Calculator/dist'
 
   deploy:
     environment:
