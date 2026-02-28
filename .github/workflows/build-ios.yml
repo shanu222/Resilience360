@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
@@ -25,45 +25,38 @@ jobs:
       - name: Build web assets and sync to iOS
         run: npm run mobile:prepare
       
-      - name: Setup Ruby (for CocoaPods)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.0'
-          bundler-cache: true
-          working-directory: ios/App
-      
       - name: Install CocoaPods
         run: |
           cd ios/App
           pod install --repo-update
       
-      - name: Build iOS App
+      - name: Build iOS App (Simulator, no signing)
         run: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
             -derivedDataPath build \
-            -arch arm64 \
-            -sdk iphoneos
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
       
-      - name: Create IPA
+      - name: Package iOS app artifact
         run: |
           cd ios/App
-          mkdir -p Payload
-          cp -r build/Release-iphoneos/App.app Payload/
-          zip -r App.ipa Payload/
+          cd build/Build/Products/Release-iphonesimulator
+          zip -r App-simulator.zip App.app
       
-      - name: Upload iOS App Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload iOS Build Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: ios-app-ipa
-          path: ios/App/App.ipa
+          name: ios-app-simulator
+          path: ios/App/build/Build/Products/Release-iphonesimulator/App-simulator.zip
           retention-days: 30
       
       - name: Upload Build Logs on Failure
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-logs
           path: |
