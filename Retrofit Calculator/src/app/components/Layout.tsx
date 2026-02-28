@@ -6,7 +6,7 @@ export function Layout() {
     <div 
       className="flex min-h-screen bg-cover bg-center bg-no-repeat bg-fixed"
       style={{
-        backgroundImage: 'url(/background.png)',
+        backgroundImage: 'url(./background.png)',
         backgroundColor: '#F8FAFC'
       }}
     >
