@@ -67,6 +67,7 @@ type SectionKey =
   | 'coePortal'
   | 'materialHubs'
   | 'pgbc'
+  | 'retrofitCalculator'
   | 'applyRegion'
   | 'readiness'
   | 'retrofit'
@@ -424,6 +425,7 @@ const translations = {
       coePortal: '🎓 COE Training Portal',
       materialHubs: '🏗️ Material Hubs',
       pgbc: '🏛️ PGBC Portal',
+      retrofitCalculator: '🧮 Retrofit Calculator',
       applyRegion: '📍 Construct in my Region',
       readiness: '📊 Readiness Calculator',
       retrofit: '🧰 Retrofit Guide',
@@ -448,6 +450,7 @@ const translations = {
       coePortal: '🎓 سی او ای ٹریننگ پورٹل',
       materialHubs: '🏗️ میٹریل ہبز',
       pgbc: '🏛️ پی جی بی سی پورٹل',
+      retrofitCalculator: '🧮 ریٹروفٹ کیلکولیٹر',
       applyRegion: '📍 اپنے علاقے میں تعمیر',
       readiness: '📊 تیاری کیلکولیٹر',
       retrofit: '🧰 ریٹروفٹ گائیڈ',
@@ -660,6 +663,12 @@ const homeCardMeta: Record<
     title: 'Green Building Codes',
     subtitle: 'Sustainable Building Standards',
     tone: 'tone-c',
+  },
+  retrofitCalculator: {
+    icon: '🧮',
+    title: 'Retrofit Calculator',
+    subtitle: 'AI Defect Cost Workflow',
+    tone: 'tone-f',
   },
   applyRegion: {
     icon: '📍',
@@ -1464,7 +1473,11 @@ function App() {
   const isRiskMapsView = activeSection === 'riskMaps'
   const isReadinessView = activeSection === 'readiness'
   const isWarningView = activeSection === 'warning'
-  const isEmbeddedPortalSection = activeSection === 'pgbc' || activeSection === 'coePortal' || activeSection === 'materialHubs'
+  const isEmbeddedPortalSection =
+    activeSection === 'pgbc' ||
+    activeSection === 'coePortal' ||
+    activeSection === 'materialHubs' ||
+    activeSection === 'retrofitCalculator'
   const hasPreviousSection = sectionHistory.length > 0
   const infraLayoutVideoSrc = `${import.meta.env.BASE_URL}videos/layout.mp4`
   const activeLearnVideo = useMemo(
@@ -2635,13 +2648,8 @@ function App() {
 
   const openRetrofitCalculatorPage = useCallback(() => {
     setRetrofitError(null)
-
-    const basePath = import.meta.env.BASE_URL
-    const normalizedBasePath = basePath.endsWith('/') ? basePath : `${basePath}/`
-    const calculatorUrl = `${normalizedBasePath}retrofit-calculator/`
-
-    window.location.assign(calculatorUrl)
-  }, [])
+    navigateToSection('retrofitCalculator')
+  }, [navigateToSection])
 
   const calculateRetrofitEstimateFromSeries = async () => {
     if (retrofitImageSeriesFiles.length === 0) {
@@ -6204,6 +6212,26 @@ function App() {
             title="Material Hubs Portal"
             className="pgbc-portal-frame"
             src={`${import.meta.env.BASE_URL}material-hubs/`}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )
+    }
+
+    if (activeSection === 'retrofitCalculator') {
+      return (
+        <div className="panel section-panel section-pgbc">
+          <h2>{t.sections.retrofitCalculator}</h2>
+          <div className="inline-controls">
+            <a href={`${import.meta.env.BASE_URL}retrofit-calculator/`} target="_blank" rel="noreferrer">
+              Open Retrofit Calculator in new tab
+            </a>
+          </div>
+          <iframe
+            title="Retrofit Calculator"
+            className="pgbc-portal-frame"
+            src={`${import.meta.env.BASE_URL}retrofit-calculator/`}
             loading="lazy"
             referrerPolicy="no-referrer"
           />

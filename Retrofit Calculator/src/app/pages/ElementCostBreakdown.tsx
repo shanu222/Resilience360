@@ -162,7 +162,6 @@ export function ElementCostBreakdown() {
   ])
   
   const handleAddDefect = () => {
-    console.log("Add Defect clicked", { elementType: detectionData?.elementType, totalCost })
     addDefect({
       elementType: detectionData?.elementType ?? "Structural Element",
       defectType: detectionData?.defectType ?? "general",
@@ -173,14 +172,13 @@ export function ElementCostBreakdown() {
   }
   
   const handleViewReport = () => {
-    console.log("View Report clicked", { elementType: detectionData?.elementType, totalCost })
     addDefect({
       elementType: detectionData?.elementType ?? "Structural Element",
       defectType: detectionData?.defectType ?? "general",
       severity: detectionData?.severity ?? "Moderate",
       cost: totalCost,
     })
-    navigate("/#/final-report")
+    navigate("/final-report")
   }
   
   return (

@@ -91,6 +91,14 @@ const initialFormData: FormDataState = {
   retrofitLevel: "structural",
 }
 
+const generateDefectId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+
+  return `defect-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -141,7 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addDefect = (defect: Omit<DefectEntry, "id">) => {
     setState((previous) => ({
       ...previous,
-      defects: [...previous.defects, { id: crypto.randomUUID(), ...defect }],
+      defects: [...previous.defects, { id: generateDefectId(), ...defect }],
     }))
   }
 
