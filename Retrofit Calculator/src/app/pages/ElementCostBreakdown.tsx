@@ -15,16 +15,16 @@ export function ElementCostBreakdown() {
   const [mlDurationWeeks, setMlDurationWeeks] = useState<number | null>(null)
 
   const navigateWithFallback = (path: "/" | "/final-report") => {
+    console.log("Navigation triggered to:", path)
+    // Use direct hash manipulation for guaranteed navigation
+    const targetHash = path === "/" ? "#/" : `#${path}`
+    console.log("Setting window.location.hash to:", targetHash)
+    window.location.hash = targetHash
+    // Also trigger React Router navigate as backup
     try {
       navigate(path)
-      window.setTimeout(() => {
-        const expectedHash = path === "/" ? "#/" : `#${path}`
-        if (!window.location.hash.startsWith(expectedHash)) {
-          window.location.hash = expectedHash
-        }
-      }, 120)
-    } catch {
-      window.location.hash = path === "/" ? "#/" : `#${path}`
+    } catch (error) {
+      console.error("React Router navigate failed:", error)
     }
   }
 
@@ -190,6 +190,8 @@ export function ElementCostBreakdown() {
   }
   
   const handleViewReport = () => {
+    console.log("Generate Full Report button clicked!")
+    console.log("Current location hash:", window.location.hash)
     try {
       addDefect({
         elementType: detectionData?.elementType ?? "Structural Element",
@@ -197,10 +199,13 @@ export function ElementCostBreakdown() {
         severity: detectionData?.severity ?? "Moderate",
         cost: totalCost,
       })
+      console.log("Defect added successfully")
     } catch (error) {
       console.error("Failed to save defect before opening report", error)
     }
+    console.log("Calling navigateWithFallback with /final-report")
     navigateWithFallback("/final-report")
+    console.log("After navigateWithFallback, hash is:", window.location.hash)
   }
   
   return (
