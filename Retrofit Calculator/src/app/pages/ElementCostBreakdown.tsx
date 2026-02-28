@@ -120,16 +120,10 @@ export function ElementCostBreakdown() {
   const costItems = annotationCostItems.length > 0 ? annotationCostItems : deterministicCostItems
 
   const baseCost = useMemo(() => costItems.reduce((sum, item) => sum + item.total, 0), [costItems])
-  
-  // Apply multipliers to base cost first
-  const adjustedBaseCost = Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
-  
-  // Then calculate contingency and overhead on the adjusted cost
-  const contingency = Math.round(adjustedBaseCost * 0.1)
-  const overhead = Math.round(adjustedBaseCost * 0.15)
+  const contingency = Math.round(baseCost * 0.1)
+  const overhead = Math.round(baseCost * 0.15)
 
-  // Total = adjusted base cost + contingency + overhead
-  const calculatedTotal = adjustedBaseCost + contingency + overhead
+  const calculatedTotal = Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor + contingency + overhead)
 
   const areaSqft = Math.max(50, Math.round((dimensions.widthM * dimensions.depthM * 10.7639) * (formData.floorLevel === "Ground" ? 1 : 1.08)))
   const totalCost = mlCostPerSqft ? Math.round(mlCostPerSqft * areaSqft) : calculatedTotal
