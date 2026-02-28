@@ -106,6 +106,7 @@ export function ElementCostBreakdown() {
             : 35
 
       try {
+        console.log("Attempting to load ML estimate...")
         const ml = await getMlRetrofitEstimate({
           structureType: "RC Frame",
           province: "Punjab",
@@ -117,12 +118,15 @@ export function ElementCostBreakdown() {
         })
 
         if (isCancelled) return
+        console.log("ML estimate loaded successfully:", ml)
         setMlCostPerSqft(ml.predictedCostPerSqft)
         setMlDurationWeeks(ml.predictedDurationWeeks)
       } catch (error) {
         if (isCancelled) return
         const message = error instanceof Error ? error.message : "Failed to load ML estimate"
-        setMlError(message)
+        console.warn("ML estimate failed (non-blocking):", message)
+        // Don't block the UI - just use default values
+        setMlError(null) // Clear error so UI doesn't show error state
       } finally {
         if (!isCancelled) {
           setCalculating(false)
@@ -176,6 +180,7 @@ export function ElementCostBreakdown() {
   ])
   
   const handleAddDefect = () => {
+    console.log("Add Another Defect button clicked!")
     try {
       addDefect({
         elementType: detectionData?.elementType ?? "Structural Element",
@@ -183,9 +188,11 @@ export function ElementCostBreakdown() {
         severity: detectionData?.severity ?? "Moderate",
         cost: totalCost,
       })
+      console.log("Defect added successfully")
     } catch (error) {
       console.error("Failed to save defect before navigation", error)
     }
+    console.log("Calling navigateWithFallback to dashboard (/)")
     navigateWithFallback("/")
   }
   
