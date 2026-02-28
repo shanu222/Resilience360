@@ -175,7 +175,6 @@ export function ElementCostBreakdown() {
     locationMultiplier,
     mlCostPerSqft,
     overhead,
-    setActiveEstimate,
     totalCost,
   ])
   
