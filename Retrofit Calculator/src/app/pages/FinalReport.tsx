@@ -108,82 +108,251 @@ export function FinalReport() {
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
-    const margin = 12
-    let y = 18
+    const margin = 15
+    const contentWidth = pageWidth - margin * 2
+    let y = margin
 
+    // Helper to add new page
+    const addNewPage = () => {
+      pdf.addPage()
+      y = margin
+    }
+
+    // ===== PAGE 1: HEADER & EXECUTIVE SUMMARY =====
+    pdf.setFillColor(37, 99, 235)
+    pdf.rect(0, 0, pageWidth, 40, "F")
+    
     pdf.setFont("helvetica", "bold")
-    pdf.setFontSize(16)
-    pdf.text("Seismic Retrofit Assessment Report", margin, y)
-
-    y += 8
+    pdf.setFontSize(24)
+    pdf.setTextColor(255, 255, 255)
+    pdf.text("Seismic Retrofit Assessment Report", margin, 15)
+    
     pdf.setFont("helvetica", "normal")
-    pdf.setFontSize(10)
-    pdf.text(`Generated: ${new Date(reportPayload.generatedAt).toLocaleString()}`, margin, y)
-    y += 5
-    pdf.text(`Location: ${location}`, margin, y)
-    y += 7
+    pdf.setFontSize(9)
+    const reportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    pdf.text(`Generated: ${reportDate} | Location: ${location}`, margin, 24)
 
+    y = 48
+
+    // Executive Summary Box
+    pdf.setTextColor(0, 0, 0)
     pdf.setFont("helvetica", "bold")
     pdf.setFontSize(12)
     pdf.text("Executive Summary", margin, y)
-    y += 6
+    y += 7
 
+    pdf.setFillColor(240, 245, 255)
+    pdf.rect(margin, y, contentWidth, 40, "F")
+    
     pdf.setFont("helvetica", "normal")
     pdf.setFontSize(10)
-    pdf.text(`Most Likely Cost: PKR ${total.toLocaleString()}`, margin, y)
-    y += 5
-    pdf.text(`Estimate Range: PKR ${minEstimate.toLocaleString()} - ${maxEstimate.toLocaleString()}`, margin, y)
-    y += 5
-    pdf.text(`Defects Assessed: ${rows.length}`, margin, y)
-
+    pdf.text(`Most Likely Cost: PKR ${total.toLocaleString()}`, margin + 5, y + 6)
+    pdf.text(`Cost Range: PKR ${minEstimate.toLocaleString()} – PKR ${maxEstimate.toLocaleString()}`, margin + 5, y + 12)
+    pdf.text(`Total Defects: ${rows.length}  |  Confidence: ${activeEstimate?.confidence ?? 'N/A'}%`, margin + 5, y + 18)
+    pdf.text(`Estimated Duration: ${activeEstimate?.estimatedDurationWeeks ?? 'N/A'} weeks`, margin + 5, y + 24)
+    
     if (manualAnnotation) {
-      y += 8
-      pdf.setFont("helvetica", "bold")
-      pdf.setFontSize(12)
-      pdf.text("Annotation Risk Summary", margin, y)
-      y += 6
-
-      pdf.setFont("helvetica", "normal")
-      pdf.setFontSize(10)
-      pdf.text(`Damage Coverage: ${manualAnnotation.damagePercent.toFixed(1)}%`, margin, y)
-      y += 5
-      pdf.text(`High Severity Coverage: ${manualAnnotation.severePercent.toFixed(1)}%`, margin, y)
-      y += 5
-      pdf.text(`Weighted Risk Score: ${manualAnnotation.weightedRiskScore}/100`, margin, y)
-      y += 5
-      pdf.text(`Replacement Recommended: ${manualAnnotation.replacementRecommended ? "Yes" : "No"}`, margin, y)
-      y += 5
-      pdf.text(`Investigation Required: ${manualAnnotation.investigationRequired ? "Yes" : "No"}`, margin, y)
-
-      y += 7
-      pdf.setFont("helvetica", "bold")
-      pdf.text("Severity Cost Breakdown", margin, y)
-      y += 6
-
-      pdf.setFont("helvetica", "normal")
-      annotationSeverityData.forEach((zone) => {
-        const line = `${zone.name}: ${zone.value.toFixed(2)}% | ${zone.areaM2.toFixed(3)} m² | PKR ${zone.estimatedCost.toLocaleString()}`
-        pdf.text(line, margin, y)
-        y += 5
-      })
+      pdf.text(`Damage Coverage: ${manualAnnotation.damagePercent.toFixed(1)}%  |  Risk Score: ${manualAnnotation.weightedRiskScore}/100`, margin + 5, y + 30)
     }
 
-    const annotatedImage = await buildAnnotatedImageForPdf()
-    if (annotatedImage) {
-      const remainingHeight = pageHeight - y - margin
-      const imageWidth = pageWidth - margin * 2
-      const imageHeight = Math.min(remainingHeight, imageWidth * 0.65)
+    y += 50
 
-      if (imageHeight > 40) {
-        pdf.addPage()
+    // Cost Breakdown Summary
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(12)
+    pdf.text("Cost Breakdown", margin, y)
+    y += 7
+
+    // Defect table
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(9)
+    pdf.setFillColor(37, 99, 235)
+    pdf.setTextColor(255, 255, 255)
+    pdf.rect(margin, y - 4, contentWidth * 0.4, 6, "F")
+    pdf.rect(margin + contentWidth * 0.4, y - 4, contentWidth * 0.3, 6, "F")
+    pdf.rect(margin + contentWidth * 0.7, y - 4, contentWidth * 0.3, 6, "F")
+
+    pdf.text("Element", margin + 2, y)
+    pdf.text("Severity", margin + contentWidth * 0.4 + 2, y)
+    pdf.text("Estimated Cost", margin + contentWidth * 0.7 + 2, y)
+    y += 7
+
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(9)
+
+    rows.forEach((row, index) => {
+      if (y + 6 > pageHeight - margin - 15) addNewPage()
+      
+      if (index % 2 === 0) {
+        pdf.setFillColor(245, 245, 245)
+        pdf.rect(margin, y - 4, contentWidth, 6, "F")
+      }
+      
+      pdf.text(row.elementType, margin + 2, y)
+      pdf.text(row.severity, margin + contentWidth * 0.4 + 2, y)
+      pdf.text(`PKR ${row.cost.toLocaleString()}`, margin + contentWidth * 0.7 + 2, y)
+      y += 6
+    })
+
+    y += 3
+    pdf.setFillColor(37, 99, 235)
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFont("helvetica", "bold")
+    pdf.rect(margin, y - 4, contentWidth, 6, "F")
+    pdf.text("TOTAL COST", margin + 2, y)
+    pdf.text(`PKR ${total.toLocaleString()}`, margin + contentWidth * 0.7 + 2, y)
+
+    y += 15
+    pdf.setTextColor(0, 0, 0)
+
+    // ===== PAGE 2: IMAGE COMPARISON & LEGEND =====
+    if (imagePreview || manualAnnotation?.annotationImage) {
+      addNewPage()
+
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(14)
+      pdf.text("Damage Assessment Visualization", margin, y)
+      y += 10
+
+      // Side-by-side images
+      const imageWidth = (contentWidth - 4) / 2
+      const imageHeight = imageWidth * 0.75
+
+      try {
+        if (imagePreview) {
+          const originalImg = await loadImage(imagePreview)
+          pdf.text("Original Condition", margin, y - 2)
+          pdf.addImage(imagePreview, "JPEG", margin, y, imageWidth, imageHeight)
+        }
+
+        const annotatedImg = await buildAnnotatedImageForPdf()
+        if (annotatedImg) {
+          pdf.text("Damage Assessment Map", margin + imageWidth + 4, y - 2)
+          pdf.addImage(annotatedImg, "JPEG", margin + imageWidth + 4, y, imageWidth, imageHeight)
+        }
+
+        y += imageHeight + 10
+      } catch (error) {
+        y += 15
+      }
+
+      // Color Legend Table
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(11)
+      pdf.text("Color Legend & Retrofit Actions", margin, y)
+      y += 7
+
+      // Legend table header
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(8)
+      pdf.setFillColor(37, 99, 235)
+      pdf.setTextColor(255, 255, 255)
+
+      const colWidths = [
+        contentWidth * 0.15, // Color
+        contentWidth * 0.2,  // Severity
+        contentWidth * 0.35, // Description
+        contentWidth * 0.3,  // Retrofit Action
+      ]
+
+      pdf.rect(margin, y - 3, colWidths[0], 5, "F")
+      pdf.rect(margin + colWidths[0], y - 3, colWidths[1], 5, "F")
+      pdf.rect(margin + colWidths[0] + colWidths[1], y - 3, colWidths[2], 5, "F")
+      pdf.rect(margin + colWidths[0] + colWidths[1] + colWidths[2], y - 3, colWidths[3], 5, "F")
+
+      pdf.text("Color", margin + 2, y)
+      pdf.text("Severity", margin + colWidths[0] + 2, y)
+      pdf.text("Description", margin + colWidths[0] + colWidths[1] + 2, y)
+      pdf.text("Retrofit Action", margin + colWidths[0] + colWidths[1] + colWidths[2] + 2, y)
+      y += 6
+
+      // Legend data
+      const legendData = [
+        { color: "#EF4444", severity: "Severe", desc: "Structural integrity compromised", action: "Full strengthening required" },
+        { color: "#C4A484", severity: "Moderate", desc: "Significant cracking/spalling", action: "Partial strengthening + repair" },
+        { color: "#FACC15", severity: "Low", desc: "Surface-level defects", action: "Minor repair treatment" },
+        { color: "#3B82F6", severity: "Very Low", desc: "Hairline or cosmetic defects", action: "Monitoring/preventive care" },
+        { color: "#22C55E", severity: "No Damage", desc: "No structural issue", action: "No retrofit required" },
+      ]
+
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(8)
+
+      legendData.forEach((item, index) => {
+        if (y + 12 > pageHeight - margin - 5) addNewPage()
+
+        if (index % 2 === 0) {
+          pdf.setFillColor(248, 248, 248)
+          pdf.rect(margin, y - 4, contentWidth, 12, "F")
+        }
+
+        // Color swatch
+        pdf.setFillColor(...hexToRgb(item.color))
+        pdf.rect(margin + 2, y - 2, 6, 5, "F")
+
+        // Text
+        pdf.setTextColor(0, 0, 0)
+        pdf.text(item.severity, margin + colWidths[0] + 2, y + 1)
+        pdf.text(wrapText(item.desc, colWidths[2] - 3, pdf), margin + colWidths[0] + colWidths[1] + 2, y + 1)
+        pdf.text(wrapText(item.action, colWidths[3] - 3, pdf), margin + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 1)
+        y += 12
+      })
+
+      y += 5
+
+      // Annotation summary if available
+      if (manualAnnotation) {
         pdf.setFont("helvetica", "bold")
-        pdf.setFontSize(12)
-        pdf.text("Annotated Defect Overlay", margin, 18)
-        pdf.addImage(annotatedImage, "JPEG", margin, 24, imageWidth, Math.min(pageHeight - 36, imageWidth * 0.65))
+        pdf.setFontSize(10)
+        pdf.text("Damage Assessment Summary", margin, y)
+        y += 6
+
+        pdf.setFont("helvetica", "normal")
+        pdf.setFontSize(9)
+        pdf.setFillColor(255, 248, 240)
+        pdf.rect(margin, y - 3, contentWidth, 20, "F")
+
+        const summaryLines = [
+          `• Total Damage Coverage: ${manualAnnotation.damagePercent.toFixed(1)}%`,
+          `• High Severity Zone: ${manualAnnotation.severePercent.toFixed(1)}%`,
+          `• Risk Assessment Score: ${manualAnnotation.weightedRiskScore}/100`,
+          `• Replacement Recommended: ${manualAnnotation.replacementRecommended ? "Yes – Full element replacement assessment required" : "No – Repair strategy is feasible"}`,
+          `• Investigation Required: ${manualAnnotation.investigationRequired ? "Yes – Include detailed structural assessment" : "No – Standard retrofit approach sufficient"}`,
+        ]
+
+        summaryLines.forEach((line) => {
+          pdf.text(line, margin + 3, y)
+          y += 4
+        })
       }
     }
 
+    // ===== FOOTER WITH PAGE NUMBERS =====
+    const totalPages = pdf.internal.pages.length - 1
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i)
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(8)
+      pdf.setTextColor(150, 150, 150)
+      pdf.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12)
+      pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: "center" })
+      pdf.text("Confidential | Resilience360 Assessment | AI-Powered Retrofit Cost Analysis", margin, pageHeight - 8)
+    }
+
     pdf.save(`retrofit-report-${Date.now()}.pdf`)
+  }
+
+  // Helper functions for PDF
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0]
+  }
+
+  const wrapText = (text: string, maxWidth: number, pdfInstance: any) => {
+    const wrapped = pdfInstance.splitTextToSize(text, maxWidth)
+    return wrapped.length > 1 ? wrapped[0] + "..." : wrapped[0]
   }
 
   const shareReport = async () => {
