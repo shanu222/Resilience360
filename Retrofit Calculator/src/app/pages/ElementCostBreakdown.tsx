@@ -162,22 +162,30 @@ export function ElementCostBreakdown() {
   ])
   
   const handleAddDefect = () => {
-    addDefect({
-      elementType: detectionData?.elementType ?? "Structural Element",
-      defectType: detectionData?.defectType ?? "general",
-      severity: detectionData?.severity ?? "Moderate",
-      cost: totalCost,
-    })
+    try {
+      addDefect({
+        elementType: detectionData?.elementType ?? "Structural Element",
+        defectType: detectionData?.defectType ?? "general",
+        severity: detectionData?.severity ?? "Moderate",
+        cost: totalCost,
+      })
+    } catch (error) {
+      console.error("Failed to save defect before navigation", error)
+    }
     navigate("/")
   }
   
   const handleViewReport = () => {
-    addDefect({
-      elementType: detectionData?.elementType ?? "Structural Element",
-      defectType: detectionData?.defectType ?? "general",
-      severity: detectionData?.severity ?? "Moderate",
-      cost: totalCost,
-    })
+    try {
+      addDefect({
+        elementType: detectionData?.elementType ?? "Structural Element",
+        defectType: detectionData?.defectType ?? "general",
+        severity: detectionData?.severity ?? "Moderate",
+        cost: totalCost,
+      })
+    } catch (error) {
+      console.error("Failed to save defect before opening report", error)
+    }
     navigate("/final-report")
   }
   
