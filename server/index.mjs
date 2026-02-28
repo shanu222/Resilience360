@@ -2747,7 +2747,7 @@ app.use('/api', (_req, res) => {
 })
 
 // SPA fallback: serve index.html for all non-API routes
-app.use('*', (_req, res) => {
+app.use((_req, res) => {
   const indexPath = path.join(distPath, 'index.html')
   res.sendFile(indexPath, (error) => {
     if (error) {
