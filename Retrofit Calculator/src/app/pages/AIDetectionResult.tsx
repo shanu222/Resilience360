@@ -51,15 +51,6 @@ const severityBrushes: SeverityBrush[] = [
     strategy: "Monitoring + preventive maintenance",
     action: "Periodic observation and preventive care",
   },
-  {
-    severity: "none",
-    label: "No damage",
-    color: "#22C55E",
-    unitCost: 0,
-    multiplier: 0,
-    strategy: "No retrofit required",
-    action: "No cost applied",
-  },
 ]
 
 const getRgbFromHex = (hex: string) => {
@@ -449,7 +440,7 @@ export function AIDetectionResult() {
               </div>
 
               <div className="px-4 py-4 border-t border-slate-100 bg-slate-50/70 space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {severityBrushes.map((brush) => (
                     <button
                       key={brush.severity}
@@ -511,6 +502,12 @@ export function AIDetectionResult() {
                     <Brush className="w-3.5 h-3.5" />
                     Active: <strong style={{ color: activeBrush.color }}>{activeBrush.label}</strong>
                   </span>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    💡 <strong>Note:</strong> Unmarked areas are automatically considered as "No Damage" — only paint over damaged zones to calculate retrofit costs accurately.
+                  </p>
                 </div>
 
                 {annotationInsight && (

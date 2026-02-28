@@ -267,13 +267,12 @@ export function FinalReport() {
       pdf.text("Retrofit Action", margin + colWidths[0] + colWidths[1] + colWidths[2] + 2, y)
       y += 6
 
-      // Legend data
+      // Legend data - removed green "No Damage" as unmarked areas are considered no damage
       const legendData = [
         { color: "#EF4444", severity: "Severe", desc: "Structural integrity compromised", action: "Full strengthening required" },
         { color: "#C4A484", severity: "Moderate", desc: "Significant cracking/spalling", action: "Partial strengthening + repair" },
         { color: "#FACC15", severity: "Low", desc: "Surface-level defects", action: "Minor repair treatment" },
         { color: "#3B82F6", severity: "Very Low", desc: "Hairline or cosmetic defects", action: "Monitoring/preventive care" },
-        { color: "#22C55E", severity: "No Damage", desc: "No structural issue", action: "No retrofit required" },
       ]
 
       pdf.setTextColor(0, 0, 0)

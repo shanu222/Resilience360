@@ -83,12 +83,14 @@ export function ElementCostBreakdown() {
     const severityRows = manualAnnotation.zones
       .filter((zone) => zone.severity !== "none" && zone.areaM2 > 0)
       .map((zone) => {
-        const adjustedUnitCost = Math.round(zone.unitCost * zone.severityMultiplier * complexityMultiplier * locationMultiplier)
-        const total = Math.round(zone.areaM2 * adjustedUnitCost)
+        // Cost per zone = Area × (Unit Cost × Severity Multiplier)
+        // DO NOT apply location/complexity here - will be applied to subtotal
+        const baseUnitCost = Math.round(zone.unitCost * zone.severityMultiplier)
+        const total = Math.round(zone.areaM2 * baseUnitCost)
         return {
           item: `${zone.label} — ${zone.strategy}`,
           quantity: `${zone.areaM2.toFixed(3)} m²`,
-          unitCost: adjustedUnitCost,
+          unitCost: baseUnitCost,
           total,
           icon: AlertTriangle,
         }
@@ -120,10 +122,18 @@ export function ElementCostBreakdown() {
   const costItems = annotationCostItems.length > 0 ? annotationCostItems : deterministicCostItems
 
   const baseCost = useMemo(() => costItems.reduce((sum, item) => sum + item.total, 0), [costItems])
-  const contingency = Math.round(baseCost * 0.1)
-  const overhead = Math.round(baseCost * 0.15)
+  
+  // Apply location and complexity multipliers to subtotal (for annotated costs, multipliers already not included in line items)
+  const adjustedSubtotal = annotationCostItems.length > 0 
+    ? Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
+    : Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
+  
+  // Calculate contingency and overhead on adjusted subtotal
+  const contingency = Math.round(adjustedSubtotal * 0.1)
+  const overhead = Math.round(adjustedSubtotal * 0.15)
 
-  const calculatedTotal = Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor + contingency + overhead)
+  // Total = Adjusted Subtotal + Contingency + Overhead
+  const calculatedTotal = adjustedSubtotal + contingency + overhead
 
   const areaSqft = Math.max(50, Math.round((dimensions.widthM * dimensions.depthM * 10.7639) * (formData.floorLevel === "Ground" ? 1 : 1.08)))
   const totalCost = mlCostPerSqft ? Math.round(mlCostPerSqft * areaSqft) : calculatedTotal
@@ -391,11 +401,11 @@ export function ElementCostBreakdown() {
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-sm text-slate-600">Base Construction Cost</span>
+                    <span className="text-sm text-slate-600">Base Repair Cost (Sum of Damage Zones)</span>
                     <span className="text-sm font-semibold text-slate-900">PKR {baseCost.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-sm text-slate-600">Location Adjustment ({location})</span>
+                    <span className="text-sm text-slate-600">Location Factor ({location})</span>
                     <span className="text-sm font-semibold text-[#2563EB]">×{locationMultiplier}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
@@ -403,11 +413,19 @@ export function ElementCostBreakdown() {
                     <span className="text-sm font-semibold text-[#2563EB]">×{complexityMultiplier.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-sm text-slate-600">Contingency (10%)</span>
+                    <span className="text-sm text-slate-600">Retrofit Level Factor</span>
+                    <span className="text-sm font-semibold text-[#2563EB]">×{retrofitLevelFactor.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+                    <span className="text-sm font-medium text-slate-700">Adjusted Subtotal</span>
+                    <span className="text-sm font-bold text-[#2563EB]">PKR {adjustedSubtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <span className="text-sm text-slate-600">Contingency (10% of subtotal)</span>
                     <span className="text-sm font-semibold text-amber-600">PKR {contingency.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg border-b-2 border-slate-200 pb-4">
-                    <span className="text-sm text-slate-600">Contractor Overhead (15%)</span>
+                    <span className="text-sm text-slate-600">Contractor Overhead (15% of subtotal)</span>
                     <span className="text-sm font-semibold text-amber-600">PKR {overhead.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 p-4 bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] rounded-lg shadow-sm">
