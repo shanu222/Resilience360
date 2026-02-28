@@ -119,6 +119,7 @@ type AppContextType = AppState & {
   setImagePreview: (preview: string | null) => void
   setLocation: (location: string) => void
   setCityRates: (rates: CityRateConfiguration | null) => void
+  updateCityRateParameter: (field: keyof CityRateConfiguration, value: string | number | boolean) => void
   setIsAnalyzing: (isAnalyzing: boolean) => void
   setAnalysisError: (message: string | null) => void
   setDetectionData: (data: DetectionData | null) => void
@@ -183,6 +184,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((previous) => ({ ...previous, cityRates }))
   }
 
+  const updateCityRateParameter = (field: keyof CityRateConfiguration, value: string | number | boolean) => {
+    setState((previous) => {
+      if (!previous.cityRates) return previous
+      const numValue = typeof value === "string" ? parseFloat(value) : typeof value === "number" ? value : (value ? 1 : 0)
+      return {
+        ...previous,
+        cityRates: {
+          ...previous.cityRates,
+          [field]: numValue,
+        },
+      }
+    })
+  }
+
   const setIsAnalyzing = (isAnalyzing: boolean) => {
     setState((previous) => ({ ...previous, isAnalyzing }))
   }
@@ -236,6 +251,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setImagePreview,
         setLocation,
         setCityRates,
+        updateCityRateParameter,
         setIsAnalyzing,
         setAnalysisError,
         setDetectionData,

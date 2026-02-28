@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link, useLocation } from "react-router";
 import { 
   LayoutDashboard, 
@@ -7,6 +8,8 @@ import {
   Activity
 } from "lucide-react";
 import { motion } from "motion/react";
+import { CostParametersPanel } from "./CostParametersPanel"
+import { useAppContext } from "../context/AppContext"
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -17,10 +20,13 @@ const navItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const { cityRates } = useAppContext()
+  const [showCostPanel, setShowCostPanel] = useState(false)
   
   return (
-    <div className="w-full lg:w-72 bg-[#0F172A] text-white flex flex-col border-b lg:border-b-0 lg:border-r border-slate-800/50">
-      <div className="p-4 lg:p-8 border-b border-slate-800/50">
+    <>
+      <div className="w-full lg:w-72 bg-[#0F172A] text-white flex flex-col border-b lg:border-b-0 lg:border-r border-slate-800/50">
+        <div className="p-4 lg:p-8 border-b border-slate-800/50">
         <motion.div 
           className="flex items-center gap-3"
           initial={{ opacity: 0, y: -10 }}
@@ -69,9 +75,13 @@ export function Sidebar() {
       </nav>
       
       <div className="hidden lg:block p-6 border-t border-slate-800/50">
-        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+        <button 
+          onClick={() => setShowCostPanel(true)}
+          className="w-full bg-slate-800/50 hover:bg-slate-800/70 rounded-lg p-4 border border-slate-700/50 transition-colors text-left group"
+          disabled={!cityRates}
+        >
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div className={`w-2 h-2 ${cityRates ? "bg-green-500 animate-pulse" : "bg-slate-500"} rounded-full`}></div>
             <p className="text-slate-300 text-sm font-medium">System Status</p>
           </div>
           <div className="space-y-2 text-xs">
@@ -79,13 +89,22 @@ export function Sidebar() {
               <span className="text-slate-400">AI Model</span>
               <span className="text-green-400 font-medium">Online</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between group-hover:text-blue-300 transition-colors">
               <span className="text-slate-400">Database</span>
-              <span className="text-green-400 font-medium">Connected</span>
+              <span className={`font-medium ${cityRates ? "text-green-400 cursor-pointer" : "text-slate-500"}`}>
+                {cityRates ? "Connected" : "Disconnected"}
+              </span>
             </div>
           </div>
-        </div>
+          {cityRates && (
+            <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-600">
+              Click to view cost parameters →
+            </p>
+          )}
+        </button>
       </div>
     </div>
+    
+    {showCostPanel && <CostParametersPanel onClose={() => setShowCostPanel(false)} />}
+    </>
   );
-}

@@ -1,23 +1,56 @@
 import { Download, Share2, FileCheck, DollarSign, Calendar, AlertTriangle, TrendingUp, Package } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts"
+import { useMemo } from "react"
 import { motion } from "motion/react"
 import { jsPDF } from "jspdf"
 import { useAppContext } from "../context/AppContext"
 
 export function FinalReport() {
-  const { defects, activeEstimate, location, detectionData, formData, manualAnnotation, imagePreview } = useAppContext()
+  const { defects, activeEstimate, location, detectionData, manualAnnotation, imagePreview, cityRates, formData } = useAppContext()
 
-  const rows = defects.length > 0
-    ? defects
-    : activeEstimate
-      ? [{
+  // Recalculate location multiplier from current cityRates
+  const locationMultiplier = cityRates?.locationMultiplier ?? 1
+  const complexityMultiplier =
+    1 +
+    (formData.tightAccess ? 0.08 : 0) +
+    (formData.occupied ? 0.06 : 0) +
+    (formData.scaffolding ? 0.05 : 0)
+
+  const retrofitLevelFactor =
+    formData.retrofitLevel === "seismic" ? 1.28 : formData.retrofitLevel === "structural" ? 1.12 : 0.9
+
+  // Recalculate costs based on current cityRates
+  const recalculatedRows = useMemo(() => {
+    if (defects.length > 0) {
+      return defects
+    }
+
+    if (activeEstimate) {
+      // Recalculate the active estimate total based on current cityRates
+      const baseCost = activeEstimate.baseCost || activeEstimate.totalCost / (locationMultiplier * complexityMultiplier * retrofitLevelFactor)
+      const contingencyPercent = (cityRates?.contingencyPercent ?? 0) / 100
+      const overheadPercent = (cityRates?.overheadPercent ?? 0) / 100
+
+      const adjustedSubtotal = Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
+      const contingency = Math.round(adjustedSubtotal * contingencyPercent)
+      const overhead = Math.round(adjustedSubtotal * overheadPercent)
+      const recalculatedTotal = adjustedSubtotal + contingency + overhead
+
+      return [
+        {
           id: "current",
           elementType: activeEstimate.elementType,
           defectType: detectionData?.defectType ?? "general",
           severity: detectionData?.severity ?? "Moderate",
-          cost: activeEstimate.totalCost,
-        }]
-      : []
+          cost: recalculatedTotal,
+        },
+      ]
+    }
+
+    return []
+  }, [defects, activeEstimate, detectionData, cityRates, locationMultiplier, complexityMultiplier, retrofitLevelFactor, formData])
+
+  const rows = recalculatedRows
 
   const grouped = Object.values(
     rows.reduce<Record<string, { name: string; cost: number }>>((accumulator, row) => {
