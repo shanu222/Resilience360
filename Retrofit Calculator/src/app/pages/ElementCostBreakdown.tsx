@@ -14,6 +14,20 @@ export function ElementCostBreakdown() {
   const [mlCostPerSqft, setMlCostPerSqft] = useState<number | null>(null)
   const [mlDurationWeeks, setMlDurationWeeks] = useState<number | null>(null)
 
+  const navigateWithFallback = (path: "/" | "/final-report") => {
+    try {
+      navigate(path)
+      window.setTimeout(() => {
+        const expectedHash = path === "/" ? "#/" : `#${path}`
+        if (!window.location.hash.startsWith(expectedHash)) {
+          window.location.hash = expectedHash
+        }
+      }, 120)
+    } catch {
+      window.location.hash = path === "/" ? "#/" : `#${path}`
+    }
+  }
+
   const dimensions = useMemo(() => {
     const widthM = Math.max(0.1, formData.widthCm / 100)
     const depthM = Math.max(0.1, formData.depthCm / 100)
@@ -172,7 +186,7 @@ export function ElementCostBreakdown() {
     } catch (error) {
       console.error("Failed to save defect before navigation", error)
     }
-    navigate("/")
+    navigateWithFallback("/")
   }
   
   const handleViewReport = () => {
@@ -186,7 +200,7 @@ export function ElementCostBreakdown() {
     } catch (error) {
       console.error("Failed to save defect before opening report", error)
     }
-    navigate("/final-report")
+    navigateWithFallback("/final-report")
   }
   
   return (
