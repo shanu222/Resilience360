@@ -37,7 +37,6 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="text-white text-[19px] font-semibold tracking-tight">Retrofit Pro</h1>
-            <p className="text-slate-400 text-xs font-medium">Engineering Suite</p>
           </div>
         </motion.div>
       </div>
@@ -108,3 +107,4 @@ export function Sidebar() {
     {showCostPanel && <CostParametersPanel onClose={() => setShowCostPanel(false)} />}
     </>
   );
+}

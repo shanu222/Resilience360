@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router"
 import { Upload, Camera, MapPin, Zap, Shield, TrendingUp, Clock, Edit2, CheckCircle, AlertCircle, Loader2, Search } from "lucide-react"
 import { motion } from "motion/react"
@@ -137,22 +137,6 @@ export function Dashboard() {
     }
   }
 
-  const rateFields = editedRates ? [
-    { label: "Surface Preparation Rate", value: editedRates.surfacePreparationRate, key: "surfacePreparationRate" as const, unit: "PKR/m²" },
-    { label: "Epoxy Injection Rate", value: editedRates.epoxyInjectionRate, key: "epoxyInjectionRate" as const, unit: "PKR/m" },
-    { label: "RC Jacketing Rate", value: editedRates.rcJacketingRate, key: "rcJacketingRate" as const, unit: "PKR/m³" },
-    { label: "Skilled Labor Rate", value: editedRates.skilledLaborRate, key: "skilledLaborRate" as const, unit: "PKR/hr" },
-    { label: "Severe Surface Repair Rate", value: editedRates.severeSurfaceRepairRate, key: "severeSurfaceRepairRate" as const, unit: "PKR/m²" },
-    { label: "Moderate Surface Repair Rate", value: editedRates.moderateSurfaceRepairRate, key: "moderateSurfaceRepairRate" as const, unit: "PKR/m²" },
-    { label: "Low Surface Repair Rate", value: editedRates.lowSurfaceRepairRate, key: "lowSurfaceRepairRate" as const, unit: "PKR/m²" },
-    { label: "Very Low Surface Repair Rate", value: editedRates.veryLowSurfaceRepairRate, key: "veryLowSurfaceRepairRate" as const, unit: "PKR/m²" },
-    { label: "Location Multiplier", value: editedRates.locationMultiplier, key: "locationMultiplier" as const, unit: "×" },
-    { label: "Contingency Percentage", value: editedRates.contingencyPercent, key: "contingencyPercent" as const, unit: "%" },
-    { label: "Contractor Overhead Percentage", value: editedRates.overheadPercent, key: "overheadPercent" as const, unit: "%" },
-    { label: "Investigation Cost", value: editedRates.investigationCost, key: "investigationCost" as const, unit: "PKR" },
-    { label: "Replacement Allowance", value: editedRates.replacementAllowance, key: "replacementAllowance" as const, unit: "PKR" },
-  ] : []
-
   const normalizeSeverity = (severity: "low" | "medium" | "high") => {
     if (severity === "high") return "High"
     if (severity === "medium") return "Moderate"
@@ -213,44 +197,39 @@ export function Dashboard() {
       setIsAnalyzing(false)
     }
   }
-  
-  return (
-    <div 
-      className="min-h-screen bg-[#F8FAFC] relative"
-      style={{
-        backgroundImage: 'url(/background.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Background overlay for better readability */}
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
-      
-      {/* Content wrapper */}
-      <div className="relative" style={{ zIndex: 1 }}>
-        {/* Header */}
-        <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h1 className="text-[#0F172A] text-[24px] sm:text-[28px] font-semibold tracking-tight mb-2">
-                AI-Powered Retrofit Assessment
-              </h1>
-              <p className="text-slate-600 text-[15px]">
-                {cityRates?.isConfirmed ? "Upload structural defect images for instant cost estimation and analysis" : "Setup your location and cost parameters to begin"}
-              </p>
-            </motion.div>
-          </div>
-        </div>
 
-        {/* Location Selection Section - Show when rates not confirmed */}
-        {!cityRates || !cityRates.isConfirmed ? (
+  const rateFields = editedRates ? [
+    { label: "Surface Preparation Rate", value: editedRates.surfacePreparationRate, key: "surfacePreparationRate" as const, unit: "PKR/m²" },
+    { label: "Epoxy Injection Rate", value: editedRates.epoxyInjectionRate, key: "epoxyInjectionRate" as const, unit: "PKR/m" },
+    { label: "RC Jacketing Rate", value: editedRates.rcJacketingRate, key: "rcJacketingRate" as const, unit: "PKR/m³" },
+    { label: "Skilled Labor Rate", value: editedRates.skilledLaborRate, key: "skilledLaborRate" as const, unit: "PKR/hr" },
+  ] : []
+
+  // STAGE 1: Location Selection and Rate Configuration
+  if (!cityRates || !cityRates.isConfirmed) {
+    return (
+      <div 
+        className="min-h-screen bg-[#F8FAFC] relative"
+        style={{
+          backgroundImage: 'url(/background.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+        
+        <div className="relative" style={{ zIndex: 1 }}>
+          <div className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] border-b border-blue-600 shadow-lg">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <h1 className="text-white text-3xl font-bold tracking-tight mb-2">Retrofit Cost Configuration</h1>
+              <p className="text-blue-100 text-base">Set your location and confirm retrofit rates before assessment</p>
+            </div>
+          </div>
+
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {!cityRates ? (
+            {!cityRates && (
               <motion.div
                 className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 mb-6"
                 initial={{ opacity: 0, y: 20 }}
@@ -305,7 +284,6 @@ export function Dashboard() {
                   </div>
                 )}
 
-                {/* Manual City Selection Modal */}
                 {isManualMode && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 100 }}>
                     <motion.div
@@ -356,9 +334,8 @@ export function Dashboard() {
                   </div>
                 )}
               </motion.div>
-            ) : null}
+            )}
 
-            {/* Rates Configuration Section */}
             {cityRates && !cityRates.isConfirmed && (
               <motion.div
                 className="bg-white rounded-xl shadow-lg border border-slate-200 p-8"
@@ -426,219 +403,251 @@ export function Dashboard() {
               </motion.div>
             )}
           </div>
-        ) : (
-          // Image Upload Section - Show when rates are confirmed
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Upload Section */}
-          <div className="lg:col-span-2">
+        </div>
+      </div>
+    )
+  }
+
+  // STAGE 2: Image Upload (after rates confirmed)
+  return (
+    <div 
+      className="min-h-screen bg-[#F8FAFC] relative"
+      style={{
+        backgroundImage: 'url(/background.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+      
+      <div className="relative" style={{ zIndex: 1 }}>
+        <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
             >
-              <div
-                className={`border-2 border-dashed rounded-xl p-6 sm:p-10 lg:p-12 text-center transition-all duration-200 ${
-                  dragActive
-                    ? "border-[#2563EB] bg-blue-50/50"
-                    : selectedFile
-                    ? "border-green-500 bg-green-50/30"
-                    : "border-slate-300 hover:border-[#2563EB] hover:bg-slate-50"
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                {imagePreview ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="relative"
-                  >
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="max-h-72 sm:max-h-96 mx-auto rounded-lg shadow-lg border border-slate-200"
-                    />
-                    <div className="absolute top-3 right-3 bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
-                      ✓ Ready to analyze
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div>
-                    <div className="flex justify-center mb-6">
-                      <div className="p-6 bg-slate-100 rounded-2xl">
-                        <Camera className="w-12 h-12 text-slate-600" strokeWidth={2} />
-                      </div>
-                    </div>
-                    <h3 className="text-[17px] font-semibold text-[#0F172A] mb-2">
-                      Upload Structural Defect Image
-                    </h3>
-                    <p className="text-slate-500 text-[15px] mb-4">
-                      Supports: Columns, Beams, Slabs, Walls
-                    </p>
-                    <p className="text-[#2563EB] text-sm font-medium">
-                      Drag and drop or click to browse
-                    </p>
-                  </div>
-                )}
-                
-                <label className="inline-block mt-6">
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                  />
-                  <motion.span 
-                    className="px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg cursor-pointer inline-flex items-center gap-2 shadow-sm transition-all text-[15px] font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Upload className="w-4 h-4" />
-                    {selectedFile ? "Change Image" : "Select Image"}
-                  </motion.span>
-                </label>
-                
-                {selectedFile && (
-                  <motion.p 
-                    className="mt-4 text-sm text-slate-600 font-medium"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    {selectedFile.name}
-                  </motion.p>
-                )}
-              </div>
-              
-              <div className="mt-6">
-                <label className="block text-[15px] font-medium text-slate-700 mb-3 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-slate-500" />
-                  Project Location: {location}
-                </label>
-                <button
-                  onClick={() => setCityRates(null)}
-                  className="px-4 py-2 text-[#2563EB] hover:bg-blue-50 rounded-lg transition-colors font-medium text-sm border border-[#2563EB]"
-                >
-                  Change Location & Rates
-                </button>
-                <p className="mt-2 text-xs text-slate-500">
-                  Location: {location} • Multiplier: {cityRates?.locationMultiplier}×
-                </p>
-              </div>
-              
-              <motion.button
-                onClick={handleAnalyze}
-                disabled={!selectedFile || isAnalyzing}
-                className={`w-full mt-6 px-6 py-4 rounded-lg text-white text-[15px] font-medium transition-all shadow-sm ${
-                  selectedFile && !isAnalyzing
-                    ? "bg-[#2563EB] hover:bg-[#1D4ED8] shadow-blue-900/10"
-                    : "bg-slate-300 cursor-not-allowed"
-                }`}
-                whileHover={selectedFile && !isAnalyzing ? { scale: 1.01 } : {}}
-                whileTap={selectedFile && !isAnalyzing ? { scale: 0.99 } : {}}
-              >
-                {isAnalyzing ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Analyzing with AI...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <Zap className="w-5 h-5" />
-                    <span>Start AI Analysis</span>
-                  </div>
-                )}
-              </motion.button>
-              {analysisError && (
-                <p className="mt-3 text-sm text-red-600">{analysisError}</p>
-              )}
-            </motion.div>
-          </div>
-          
-          {/* Stats Sidebar */}
-          <div className="space-y-6">
-            <motion.div
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-6"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Shield className="w-5 h-5 text-[#2563EB]" />
-                </div>
-                <h3 className="text-[16px] font-semibold text-[#0F172A]">System Performance</h3>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="pb-4 border-b border-slate-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Analyzer Status</span>
-                    <span className="text-lg font-semibold text-[#0F172A]">
-                      {isAnalyzing ? "Running" : "Ready"}
-                    </span>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Current File</span>
-                    <span className="text-sm font-semibold text-[#0F172A] truncate max-w-[140px]">
-                      {selectedFile?.name ?? "Not selected"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-            
-            <motion.div
-              className="bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] rounded-xl shadow-sm p-6 text-white"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5" />
-                <h3 className="text-[16px] font-semibold">Quick Facts</h3>
-              </div>
-              <ul className="space-y-3 text-sm text-blue-50">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-200 mt-0.5">•</span>
-                  <span>Analysis uses your uploaded image and live backend inference</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-200 mt-0.5">•</span>
-                  <span>Location-sensitive costing is applied in next steps</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-200 mt-0.5">•</span>
-                  <span>Final report can be downloaded and shared</span>
-                </li>
-              </ul>
-            </motion.div>
-            
-            <motion.div
-              className="bg-amber-50 border border-amber-200 rounded-xl p-5"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-900 mb-1">Best Practices</p>
-                  <p className="text-xs text-amber-700 leading-relaxed">
-                    Capture clear images with good lighting and include reference objects for scale
-                  </p>
-                </div>
-              </div>
+              <h1 className="text-[#0F172A] text-[24px] sm:text-[28px] font-semibold tracking-tight mb-2">
+                AI-Powered Retrofit Assessment
+              </h1>
+              <p className="text-slate-600 text-[15px]">
+                Upload structural defect images for instant cost estimation and analysis
+              </p>
             </motion.div>
           </div>
         </div>
-        )}
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8"
+              >
+                <div
+                  className={`border-2 border-dashed rounded-xl p-6 sm:p-10 lg:p-12 text-center transition-all duration-200 ${
+                    dragActive
+                      ? "border-[#2563EB] bg-blue-50/50"
+                      : selectedFile
+                      ? "border-green-500 bg-green-50/30"
+                      : "border-slate-300 hover:border-[#2563EB] hover:bg-slate-50"
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  {imagePreview ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="relative"
+                    >
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="max-h-72 sm:max-h-96 mx-auto rounded-lg shadow-lg border border-slate-200"
+                      />
+                      <div className="absolute top-3 right-3 bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
+                        ✓ Ready to analyze
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div>
+                      <div className="flex justify-center mb-6">
+                        <div className="p-6 bg-slate-100 rounded-2xl">
+                          <Camera className="w-12 h-12 text-slate-600" strokeWidth={2} />
+                        </div>
+                      </div>
+                      <h3 className="text-[17px] font-semibold text-[#0F172A] mb-2">
+                        Upload Structural Defect Image
+                      </h3>
+                      <p className="text-slate-500 text-[15px] mb-4">
+                        Supports: Columns, Beams, Slabs, Walls
+                      </p>
+                      <p className="text-[#2563EB] text-sm font-medium">
+                        Drag and drop or click to browse
+                      </p>
+                    </div>
+                  )}
+                  
+                  <label className="inline-block mt-6">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                    <motion.span 
+                      className="px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg cursor-pointer inline-flex items-center gap-2 shadow-sm transition-all text-[15px] font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Upload className="w-4 h-4" />
+                      {selectedFile ? "Change Image" : "Select Image"}
+                    </motion.span>
+                  </label>
+                  
+                  {selectedFile && (
+                    <motion.p 
+                      className="mt-4 text-sm text-slate-600 font-medium"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      {selectedFile.name}
+                    </motion.p>
+                  )}
+                </div>
+                
+                <div className="mt-6">
+                  <label className="block text-[15px] font-medium text-slate-700 mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-slate-500" />
+                    Project Location: {location}
+                  </label>
+                  <button
+                    onClick={() => setCityRates(null)}
+                    className="px-4 py-2 text-[#2563EB] hover:bg-blue-50 rounded-lg transition-colors font-medium text-sm border border-[#2563EB]"
+                  >
+                    Change Location & Rates
+                  </button>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Location: {location} • Multiplier: {cityRates?.locationMultiplier}×
+                  </p>
+                </div>
+                
+                <motion.button
+                  onClick={handleAnalyze}
+                  disabled={!selectedFile || isAnalyzing}
+                  className={`w-full mt-6 px-6 py-4 rounded-lg text-white text-[15px] font-medium transition-all shadow-sm ${
+                    selectedFile && !isAnalyzing
+                      ? "bg-[#2563EB] hover:bg-[#1D4ED8] shadow-blue-900/10"
+                      : "bg-slate-300 cursor-not-allowed"
+                  }`}
+                  whileHover={selectedFile && !isAnalyzing ? { scale: 1.01 } : {}}
+                  whileTap={selectedFile && !isAnalyzing ? { scale: 0.99 } : {}}
+                >
+                  {isAnalyzing ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Analyzing with AI...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <Zap className="w-5 h-5" />
+                      <span>Start AI Analysis</span>
+                    </div>
+                  )}
+                </motion.button>
+                {analysisError && (
+                  <p className="mt-3 text-sm text-red-600">{analysisError}</p>
+                )}
+              </motion.div>
+            </div>
+            
+            <div className="space-y-6">
+              <motion.div
+                className="bg-white rounded-xl shadow-sm border border-slate-200 p-6"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Shield className="w-5 h-5 text-[#2563EB]" />
+                  </div>
+                  <h3 className="text-[16px] font-semibold text-[#0F172A]">System Performance</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="pb-4 border-b border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Analyzer Status</span>
+                      <span className="text-lg font-semibold text-[#0F172A]">
+                        {isAnalyzing ? "Running" : "Ready"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Current File</span>
+                      <span className="text-sm font-semibold text-[#0F172A] truncate max-w-[140px]">
+                        {selectedFile?.name ?? "Not selected"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                className="bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] rounded-xl shadow-sm p-6 text-white"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5" />
+                  <h3 className="text-[16px] font-semibold">Quick Facts</h3>
+                </div>
+                <ul className="space-y-3 text-sm text-blue-50">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-200 mt-0.5">•</span>
+                    <span>Analysis uses your uploaded image and live backend inference</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-200 mt-0.5">•</span>
+                    <span>Location-sensitive costing is applied in next steps</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-200 mt-0.5">•</span>
+                    <span>Final report can be downloaded and shared</span>
+                  </li>
+                </ul>
+              </motion.div>
+              
+              <motion.div
+                className="bg-amber-50 border border-amber-200 rounded-xl p-5"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900 mb-1">Best Practices</p>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      Capture clear images with good lighting and include reference objects for scale
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
