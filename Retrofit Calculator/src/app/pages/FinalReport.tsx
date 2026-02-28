@@ -1,10 +1,11 @@
 import { Download, Share2, FileCheck, DollarSign, Calendar, AlertTriangle, TrendingUp, Package } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts"
 import { motion } from "motion/react"
+import { jsPDF } from "jspdf"
 import { useAppContext } from "../context/AppContext"
 
 export function FinalReport() {
-  const { defects, activeEstimate, location, detectionData, formData, manualAnnotation } = useAppContext()
+  const { defects, activeEstimate, location, detectionData, formData, manualAnnotation, imagePreview } = useAppContext()
 
   const rows = defects.length > 0
     ? defects
@@ -69,14 +70,120 @@ export function FinalReport() {
     maxEstimate,
   }
 
-  const downloadReport = () => {
-    const blob = new Blob([JSON.stringify(reportPayload, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement("a")
-    anchor.href = url
-    anchor.download = `retrofit-report-${Date.now()}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
+  const loadImage = (source: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error("Unable to load image for PDF export"))
+      image.src = source
+    })
+
+  const buildAnnotatedImageForPdf = async () => {
+    if (!imagePreview) {
+      return null
+    }
+
+    if (!manualAnnotation?.annotationImage) {
+      return imagePreview
+    }
+
+    const base = await loadImage(imagePreview)
+    const overlay = await loadImage(manualAnnotation.annotationImage)
+
+    const canvas = document.createElement("canvas")
+    canvas.width = base.naturalWidth || base.width
+    canvas.height = base.naturalHeight || base.height
+
+    const context = canvas.getContext("2d")
+    if (!context) {
+      return imagePreview
+    }
+
+    context.drawImage(base, 0, 0, canvas.width, canvas.height)
+    context.drawImage(overlay, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL("image/jpeg", 0.92)
+  }
+
+  const downloadReport = async () => {
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const margin = 12
+    let y = 18
+
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(16)
+    pdf.text("Seismic Retrofit Assessment Report", margin, y)
+
+    y += 8
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(10)
+    pdf.text(`Generated: ${new Date(reportPayload.generatedAt).toLocaleString()}`, margin, y)
+    y += 5
+    pdf.text(`Location: ${location}`, margin, y)
+    y += 7
+
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(12)
+    pdf.text("Executive Summary", margin, y)
+    y += 6
+
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(10)
+    pdf.text(`Most Likely Cost: PKR ${total.toLocaleString()}`, margin, y)
+    y += 5
+    pdf.text(`Estimate Range: PKR ${minEstimate.toLocaleString()} - ${maxEstimate.toLocaleString()}`, margin, y)
+    y += 5
+    pdf.text(`Defects Assessed: ${rows.length}`, margin, y)
+
+    if (manualAnnotation) {
+      y += 8
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(12)
+      pdf.text("Annotation Risk Summary", margin, y)
+      y += 6
+
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(10)
+      pdf.text(`Damage Coverage: ${manualAnnotation.damagePercent.toFixed(1)}%`, margin, y)
+      y += 5
+      pdf.text(`High Severity Coverage: ${manualAnnotation.severePercent.toFixed(1)}%`, margin, y)
+      y += 5
+      pdf.text(`Weighted Risk Score: ${manualAnnotation.weightedRiskScore}/100`, margin, y)
+      y += 5
+      pdf.text(`Replacement Recommended: ${manualAnnotation.replacementRecommended ? "Yes" : "No"}`, margin, y)
+      y += 5
+      pdf.text(`Investigation Required: ${manualAnnotation.investigationRequired ? "Yes" : "No"}`, margin, y)
+
+      y += 7
+      pdf.setFont("helvetica", "bold")
+      pdf.text("Severity Cost Breakdown", margin, y)
+      y += 6
+
+      pdf.setFont("helvetica", "normal")
+      annotationSeverityData.forEach((zone) => {
+        const line = `${zone.name}: ${zone.value.toFixed(2)}% | ${zone.areaM2.toFixed(3)} m² | PKR ${zone.estimatedCost.toLocaleString()}`
+        pdf.text(line, margin, y)
+        y += 5
+      })
+    }
+
+    const annotatedImage = await buildAnnotatedImageForPdf()
+    if (annotatedImage) {
+      const remainingHeight = pageHeight - y - margin
+      const imageWidth = pageWidth - margin * 2
+      const imageHeight = Math.min(remainingHeight, imageWidth * 0.65)
+
+      if (imageHeight > 40) {
+        pdf.addPage()
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(12)
+        pdf.text("Annotated Defect Overlay", margin, 18)
+        pdf.addImage(annotatedImage, "JPEG", margin, 24, imageWidth, Math.min(pageHeight - 36, imageWidth * 0.65))
+      }
+    }
+
+    pdf.save(`retrofit-report-${Date.now()}.pdf`)
   }
 
   const shareReport = async () => {
@@ -449,9 +556,9 @@ export function FinalReport() {
           animate={{ opacity: 1, y: 0 }} 
           transition={{ delay: 0.45 }}
         >
-          <button onClick={downloadReport} className="px-6 py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl font-semibold">
+          <button onClick={() => { void downloadReport() }} className="px-6 py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl font-semibold">
             <Download className="w-5 h-5" />
-            Download Report
+            Download PDF Report
           </button>
           <button onClick={() => { void shareReport() }} className="px-6 py-4 bg-white hover:bg-slate-50 border-2 border-slate-300 text-slate-700 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md font-semibold">
             <Share2 className="w-5 h-5" />
