@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router"
 import { Upload, Camera, MapPin, Zap, Shield, TrendingUp, Clock } from "lucide-react"
 import { motion } from "motion/react"
@@ -14,6 +14,7 @@ export function Dashboard() {
     setImagePreview,
     location, 
     setLocation,
+    cityRates,
     isAnalyzing,
     setIsAnalyzing,
     analysisError,
@@ -25,6 +26,13 @@ export function Dashboard() {
   } = useAppContext()
   
   const [dragActive, setDragActive] = useState(false)
+
+  // Redirect to location setup if rates not configured
+  useEffect(() => {
+    if (!cityRates || !cityRates.isConfirmed) {
+      navigate("/")
+    }
+  }, [cityRates, navigate])
   
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -380,7 +388,7 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-      </div> {/* Close content wrapper */}
-    </div> {/* Close main background div */}
+      </div>
+    </div>
   )
 }

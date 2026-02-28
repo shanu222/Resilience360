@@ -7,7 +7,7 @@ import { getMlRetrofitEstimate } from "../services/retrofitApi"
 
 export function ElementCostBreakdown() {
   const navigate = useNavigate()
-  const { addDefect, formData, detectionData, location, manualAnnotation, setActiveEstimate } = useAppContext()
+  const { addDefect, formData, detectionData, location, manualAnnotation, cityRates, setActiveEstimate } = useAppContext()
   const [showCalculation, setShowCalculation] = useState(false)
   const [calculating, setCalculating] = useState(true)
   const [mlError, setMlError] = useState<string | null>(null)
@@ -75,18 +75,24 @@ export function ElementCostBreakdown() {
     formData.retrofitLevel === "seismic" ? 1.28 : formData.retrofitLevel === "structural" ? 1.12 : 0.9
 
   const deterministicCostItems = useMemo(() => {
-    const surfacePreparation = Math.round(dimensions.surfaceAreaM2 * 480)
-    const epoxyInjection = Math.round(dimensions.crackLengthM * 2800)
-    const rcJacketing = Math.round(dimensions.jacketVolumeM3 * 92000)
-    const skilledLabor = Math.round((32 + formData.damageExtent * 0.8) * 850)
+    // Use rates from confirmed cityRates or fallback to defaults
+    const surfacePrepRate = cityRates?.surfacePreparationRate ?? 480
+    const epoxyRate = cityRates?.epoxyInjectionRate ?? 2800
+    const rcJacketRate = cityRates?.rcJacketingRate ?? 92000
+    const laborRate = cityRates?.skilledLaborRate ?? 850
+
+    const surfacePreparation = Math.round(dimensions.surfaceAreaM2 * surfacePrepRate)
+    const epoxyInjection = Math.round(dimensions.crackLengthM * epoxyRate)
+    const rcJacketing = Math.round(dimensions.jacketVolumeM3 * rcJacketRate)
+    const skilledLabor = Math.round((32 + formData.damageExtent * 0.8) * laborRate)
 
     return [
-      { item: "Surface Preparation", quantity: `${dimensions.surfaceAreaM2.toFixed(2)} m²`, unitCost: 480, total: surfacePreparation, icon: Package },
-      { item: "Epoxy Injection", quantity: `${dimensions.crackLengthM.toFixed(2)} m`, unitCost: 2800, total: epoxyInjection, icon: Package },
-      { item: "RC Jacketing", quantity: `${dimensions.jacketVolumeM3.toFixed(2)} m³`, unitCost: 92000, total: rcJacketing, icon: Package },
-      { item: "Skilled Labor", quantity: `${Math.round(32 + formData.damageExtent * 0.8)} hrs`, unitCost: 850, total: skilledLabor, icon: Users },
+      { item: "Surface Preparation", quantity: `${dimensions.surfaceAreaM2.toFixed(2)} m²`, unitCost: surfacePrepRate, total: surfacePreparation, icon: Package },
+      { item: "Epoxy Injection", quantity: `${dimensions.crackLengthM.toFixed(2)} m`, unitCost: epoxyRate, total: epoxyInjection, icon: Package },
+      { item: "RC Jacketing", quantity: `${dimensions.jacketVolumeM3.toFixed(2)} m³`, unitCost: rcJacketRate, total: rcJacketing, icon: Package },
+      { item: "Skilled Labor", quantity: `${Math.round(32 + formData.damageExtent * 0.8)} hrs`, unitCost: laborRate, total: skilledLabor, icon: Users },
     ]
-  }, [dimensions.crackLengthM, dimensions.jacketVolumeM3, dimensions.surfaceAreaM2, formData.damageExtent])
+  }, [dimensions.crackLengthM, dimensions.jacketVolumeM3, dimensions.surfaceAreaM2, formData.damageExtent, cityRates])
 
   const annotationCostItems = useMemo(() => {
     if (!manualAnnotation || manualAnnotation.paintedPixels <= 0) {
@@ -110,27 +116,29 @@ export function ElementCostBreakdown() {
       })
 
     if (manualAnnotation.investigationRequired) {
+      const investigationCost = cityRates?.investigationCost ?? 65000
       severityRows.push({
         item: "Detailed structural investigation",
         quantity: "Lump sum",
-        unitCost: 65000,
-        total: 65000,
+        unitCost: investigationCost,
+        total: investigationCost,
         icon: Info,
       })
     }
 
     if (manualAnnotation.replacementRecommended) {
+      const replacementCost = cityRates?.replacementAllowance ?? 210000
       severityRows.push({
         item: "High-severity replacement allowance",
         quantity: "Lump sum",
-        unitCost: 210000,
-        total: 210000,
+        unitCost: replacementCost,
+        total: replacementCost,
         icon: AlertTriangle,
       })
     }
 
     return severityRows
-  }, [complexityMultiplier, locationMultiplier, manualAnnotation])
+  }, [complexityMultiplier, locationMultiplier, manualAnnotation, cityRates])
 
   const costItems = annotationCostItems.length > 0 ? annotationCostItems : deterministicCostItems
 
@@ -141,9 +149,11 @@ export function ElementCostBreakdown() {
     ? Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
     : Math.round(baseCost * locationMultiplier * complexityMultiplier * retrofitLevelFactor)
   
-  // Calculate contingency and overhead on adjusted subtotal
-  const contingency = Math.round(adjustedSubtotal * 0.1)
-  const overhead = Math.round(adjustedSubtotal * 0.15)
+  // Calculate contingency and overhead on adjusted subtotal using rates from cityRates
+  const contingencyPercent = (cityRates?.contingencyPercent ?? 10) / 100
+  const overheadPercent = (cityRates?.overheadPercent ?? 15) / 100
+  const contingency = Math.round(adjustedSubtotal * contingencyPercent)
+  const overhead = Math.round(adjustedSubtotal * overheadPercent)
 
   // Total = Adjusted Subtotal + Contingency + Overhead
   const calculatedTotal = adjustedSubtotal + contingency + overhead
@@ -545,7 +555,7 @@ export function ElementCostBreakdown() {
           )}
         </motion.div>
       </div>
-      </div> {/* Close content wrapper */}
-    </div> {/* Close main background div */}
+      </div>
+    </div>
   )
 }

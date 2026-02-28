@@ -752,7 +752,7 @@ export function FinalReport() {
           </button>
         </motion.div>
       </div>
-      </div> {/* Close content wrapper */}
-    </div> {/* Close main background div */}
+      </div>
+    </div>
   )
 }

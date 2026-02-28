@@ -14,45 +14,6 @@ type SeverityBrush = {
   action: string
 }
 
-const severityBrushes: SeverityBrush[] = [
-  {
-    severity: "severe",
-    label: "Severe damage",
-    color: "#EF4444",
-    unitCost: 9200,
-    multiplier: 1.55,
-    strategy: "Structural strengthening",
-    action: "RC jacketing / Steel jacketing / FRP wrapping",
-  },
-  {
-    severity: "moderate",
-    label: "Moderate damage",
-    color: "#C4A484",
-    unitCost: 4200,
-    multiplier: 1.2,
-    strategy: "Crack repair + partial strengthening",
-    action: "Epoxy injection + section repair",
-  },
-  {
-    severity: "low",
-    label: "Low damage",
-    color: "#FACC15",
-    unitCost: 1800,
-    multiplier: 1,
-    strategy: "Surface crack repair",
-    action: "Sealant / minor repair",
-  },
-  {
-    severity: "veryLow",
-    label: "Very low damage",
-    color: "#3B82F6",
-    unitCost: 650,
-    multiplier: 0.72,
-    strategy: "Monitoring + preventive maintenance",
-    action: "Periodic observation and preventive care",
-  },
-]
-
 const getRgbFromHex = (hex: string) => {
   const clean = hex.replace("#", "")
   const normalized = clean.length === 3 ? clean.split("").map((value) => `${value}${value}`).join("") : clean
@@ -65,7 +26,7 @@ const getRgbFromHex = (hex: string) => {
 
 export function AIDetectionResult() {
   const navigate = useNavigate()
-  const { imagePreview, formData, setFormData, detectionData, manualAnnotation, setManualAnnotation } = useAppContext()
+  const { imagePreview, formData, setFormData, detectionData, manualAnnotation, setManualAnnotation, cityRates } = useAppContext()
   const imageElementRef = useRef<HTMLImageElement | null>(null)
   const annotationCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [isPainting, setIsPainting] = useState(false)
@@ -82,6 +43,46 @@ export function AIDetectionResult() {
     heightCm: formData.heightCm,
   }))
 
+  // Define severity brushes with rates from cityRates
+  const severityBrushes: SeverityBrush[] = useMemo(() => [
+    {
+      severity: "severe",
+      label: "Severe damage",
+      color: "#EF4444",
+      unitCost: cityRates?.severeSurfaceRepairRate ?? 9200,
+      multiplier: 1.55,
+      strategy: "Structural strengthening",
+      action: "RC jacketing / Steel jacketing / FRP wrapping",
+    },
+    {
+      severity: "moderate",
+      label: "Moderate damage",
+      color: "#C4A484",
+      unitCost: cityRates?.moderateSurfaceRepairRate ?? 4200,
+      multiplier: 1.2,
+      strategy: "Crack repair + partial strengthening",
+      action: "Epoxy injection + section repair",
+    },
+    {
+      severity: "low",
+      label: "Low damage",
+      color: "#FACC15",
+      unitCost: cityRates?.lowSurfaceRepairRate ?? 1800,
+      multiplier: 1,
+      strategy: "Surface crack repair",
+      action: "Sealant / minor repair",
+    },
+    {
+      severity: "veryLow",
+      label: "Very low damage",
+      color: "#3B82F6",
+      unitCost: cityRates?.veryLowSurfaceRepairRate ?? 650,
+      multiplier: 0.72,
+      strategy: "Monitoring + preventive maintenance",
+      action: "Periodic observation and preventive care",
+    },
+  ], [cityRates])
+
   const severityTone = detectionData?.severity === "High"
     ? "bg-red-500"
     : detectionData?.severity === "Moderate"
@@ -94,7 +95,7 @@ export function AIDetectionResult() {
         ...brush,
         rgb: getRgbFromHex(brush.color),
       })),
-    [],
+    [severityBrushes],
   )
 
   const getClientPointFromTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -803,7 +804,8 @@ export function AIDetectionResult() {
             </motion.div>
           </div>
         </div>
-      </div> {/* Close content wrapper */}
-    </div> {/* Close main background div */}
+      </div>
+      </div>
+    </div>
   )
 }

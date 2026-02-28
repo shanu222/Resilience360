@@ -12,6 +12,25 @@ export type DetectionData = {
 
 export type AnnotationSeverity = "severe" | "moderate" | "low" | "veryLow" | "none"
 
+export type CityRateConfiguration = {
+  cityName: string
+  detectedAutomatically: boolean
+  surfacePreparationRate: number  // per m²
+  epoxyInjectionRate: number      // per meter
+  rcJacketingRate: number          // per m³
+  skilledLaborRate: number         // per hour
+  locationMultiplier: number
+  contingencyPercent: number
+  overheadPercent: number
+  severeSurfaceRepairRate: number
+  moderateSurfaceRepairRate: number
+  lowSurfaceRepairRate: number
+  veryLowSurfaceRepairRate: number
+  investigationCost: number
+  replacementAllowance: number
+  isConfirmed: boolean
+}
+
 export type ManualAnnotationZone = {
   severity: AnnotationSeverity
   label: string
@@ -85,6 +104,7 @@ type AppState = {
   selectedFile: File | null
   imagePreview: string | null
   location: string
+  cityRates: CityRateConfiguration | null
   isAnalyzing: boolean
   analysisError: string | null
   detectionData: DetectionData | null
@@ -98,6 +118,7 @@ type AppContextType = AppState & {
   setSelectedFile: (file: File | null) => void
   setImagePreview: (preview: string | null) => void
   setLocation: (location: string) => void
+  setCityRates: (rates: CityRateConfiguration | null) => void
   setIsAnalyzing: (isAnalyzing: boolean) => void
   setAnalysisError: (message: string | null) => void
   setDetectionData: (data: DetectionData | null) => void
@@ -136,6 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedFile: null,
     imagePreview: null,
     location: "Lahore, Pakistan",
+    cityRates: null,
     isAnalyzing: false,
     analysisError: null,
     detectionData: null,
@@ -155,6 +177,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setLocation = (location: string) => {
     setState((previous) => ({ ...previous, location }))
+  }
+
+  const setCityRates = (cityRates: CityRateConfiguration | null) => {
+    setState((previous) => ({ ...previous, cityRates }))
   }
 
   const setIsAnalyzing = (isAnalyzing: boolean) => {
@@ -209,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSelectedFile,
         setImagePreview,
         setLocation,
+        setCityRates,
         setIsAnalyzing,
         setAnalysisError,
         setDetectionData,
