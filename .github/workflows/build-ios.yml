@@ -1,0 +1,71 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Build web assets and sync to iOS
+        run: npm run mobile:prepare
+      
+      - name: Setup Ruby (for CocoaPods)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: ios/App
+      
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install --repo-update
+      
+      - name: Build iOS App
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -derivedDataPath build \
+            -arch arm64 \
+            -sdk iphoneos
+      
+      - name: Create IPA
+        run: |
+          cd ios/App
+          mkdir -p Payload
+          cp -r build/Release-iphoneos/App.app Payload/
+          zip -r App.ipa Payload/
+      
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-app-ipa
+          path: ios/App/App.ipa
+          retention-days: 30
+      
+      - name: Upload Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-logs
+          path: |
+            ios/App/build/logs/**
+            ~/Library/Logs/xcodebuild/**
