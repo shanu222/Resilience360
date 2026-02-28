@@ -9,6 +9,8 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
+      - key: GIT_LFS_SKIP_SMUDGE
+        value: "1"
       - key: OPENAI_API_KEY
         sync: false
       - key: RECOVERY_EMAIL_PROVIDER
