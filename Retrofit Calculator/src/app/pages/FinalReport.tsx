@@ -57,19 +57,6 @@ export function FinalReport() {
   const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
   const SEVERITY_COLORS = { Low: '#10B981', Moderate: '#F59E0B', High: '#EF4444' }
 
-  const reportPayload = {
-    generatedAt: new Date().toISOString(),
-    location,
-    detection: detectionData,
-    formData,
-    manualAnnotation,
-    activeEstimate,
-    defects: rows,
-    totalCost: total,
-    minEstimate,
-    maxEstimate,
-  }
-
   const loadImage = (source: string) =>
     new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image()
@@ -221,7 +208,7 @@ export function FinalReport() {
 
       try {
         if (imagePreview) {
-          const originalImg = await loadImage(imagePreview)
+          await loadImage(imagePreview)
           pdf.text("Original Condition", margin, y - 2)
           pdf.addImage(imagePreview, "JPEG", margin, y, imageWidth, imageHeight)
         }
@@ -344,7 +331,7 @@ export function FinalReport() {
   }
 
   // Helper functions for PDF
-  const hexToRgb = (hex: string) => {
+  const hexToRgb = (hex: string): [number, number, number] => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
     return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0]
   }
