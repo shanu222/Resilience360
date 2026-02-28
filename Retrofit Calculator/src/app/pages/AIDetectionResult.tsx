@@ -242,6 +242,49 @@ export function AIDetectionResult() {
       setAnnotationInsight("No painted damage zones detected yet.")
     }
 
+    // Add text labels for each severity zone with significant pixels
+    const context = annotationContext.context
+    const canvasWidth = annotationContext.canvas.width
+    const canvasHeight = annotationContext.canvas.height
+    
+    context.font = `bold ${Math.max(16, Math.round(canvasWidth / 45))}px sans-serif`
+    context.textAlign = "center"
+    context.textBaseline = "middle"
+    context.shadowColor = "rgba(0, 0, 0, 0.5)"
+    context.shadowBlur = 10
+    context.shadowOffsetX = 2
+    context.shadowOffsetY = 2
+
+    // Get bounding boxes for each severity region
+    zones.forEach((zone, index) => {
+      if (zone.pixelCount > 0 && zone.severity !== "none") {
+        // Calculate approximate label position (distribute labels evenly on canvas)
+        const rows = Math.ceil(Math.sqrt(zones.filter(z => z.pixelCount > 0).length))
+        const row = Math.floor(index / rows)
+        const col = index % rows
+        
+        const x = (col + 0.5) * (canvasWidth / rows) + Math.random() * 50 - 25
+        const y = (row + 0.5) * (canvasHeight / rows) + Math.random() * 50 - 25
+        
+        // Only draw label if position is within canvas
+        if (x > 20 && x < canvasWidth - 20 && y > 20 && y < canvasHeight - 20) {
+          context.fillStyle = "rgba(255, 255, 255, 0.95)"
+          const label = zone.label.toUpperCase()
+          const metrics = context.measureText(label)
+          const labelWidth = metrics.width + 20
+          const labelHeight = 40
+          
+          // Draw label background
+          context.fillRect(x - labelWidth / 2, y - labelHeight / 2, labelWidth, labelHeight)
+          
+          // Draw label text
+          context.fillStyle = zone.color
+          context.font = `bold ${Math.max(14, Math.round(canvasWidth / 50))}px sans-serif`
+          context.fillText(label, x, y)
+        }
+      }
+    })
+
     return {
       totalPixels,
       paintedPixels,
