@@ -109,15 +109,15 @@ type AppContextType = AppState & {
 }
 
 const initialFormData: FormDataState = {
-  widthCm: 45,
-  depthCm: 45,
-  heightCm: 300,
-  damageExtent: 30,
+  widthCm: 0,
+  depthCm: 0,
+  heightCm: 0,
+  damageExtent: 0,
   materialType: "Reinforced Concrete",
   floorLevel: "Ground",
   tightAccess: false,
   occupied: false,
-  scaffolding: true,
+  scaffolding: false,
   retrofitLevel: "structural",
 }
 

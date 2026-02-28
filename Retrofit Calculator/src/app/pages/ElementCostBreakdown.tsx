@@ -23,6 +23,19 @@ export function ElementCostBreakdown() {
   }
 
   const dimensions = useMemo(() => {
+    // If no dimensions are set (no image uploaded), return all zeros
+    if (formData.widthCm === 0 || formData.depthCm === 0 || formData.heightCm === 0) {
+      return {
+        widthM: 0,
+        depthM: 0,
+        heightM: 0,
+        perimeterM: 0,
+        surfaceAreaM2: 0,
+        jacketVolumeM3: 0,
+        crackLengthM: 0,
+      }
+    }
+
     const widthM = Math.max(0.1, formData.widthCm / 100)
     const depthM = Math.max(0.1, formData.depthCm / 100)
     const heightM = Math.max(0.2, formData.heightCm / 100)
@@ -135,9 +148,12 @@ export function ElementCostBreakdown() {
   // Total = Adjusted Subtotal + Contingency + Overhead
   const calculatedTotal = adjustedSubtotal + contingency + overhead
 
-  const areaSqft = Math.max(50, Math.round((dimensions.widthM * dimensions.depthM * 10.7639) * (formData.floorLevel === "Ground" ? 1 : 1.08)))
+  // Only calculate area if dimensions are set; otherwise return 0
+  const areaSqft = (dimensions.widthM === 0 || dimensions.depthM === 0) 
+    ? 0 
+    : Math.max(50, Math.round((dimensions.widthM * dimensions.depthM * 10.7639) * (formData.floorLevel === "Ground" ? 1 : 1.08)))
   const totalCost = calculatedTotal
-  const estimatedDurationWeeks = mlDurationWeeks ?? Math.max(1, Math.round(2 + formData.damageExtent / 14))
+  const estimatedDurationWeeks = mlDurationWeeks ?? (formData.damageExtent === 0 ? 0 : Math.max(1, Math.round(2 + formData.damageExtent / 14)))
 
   useEffect(() => {
     let isCancelled = false

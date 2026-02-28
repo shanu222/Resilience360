@@ -132,7 +132,9 @@ export function AIDetectionResult() {
     if (!selectedBrush) return
 
     annotationContext.context.save()
-    annotationContext.context.globalAlpha = brushOpacity
+    // Use source-over to replace colors completely (no blending/transparency)
+    annotationContext.context.globalCompositeOperation = 'source-over'
+    annotationContext.context.globalAlpha = 1.0
     annotationContext.context.strokeStyle = selectedBrush.color
     annotationContext.context.lineCap = "round"
     annotationContext.context.lineJoin = "round"
@@ -199,7 +201,10 @@ export function AIDetectionResult() {
     const replacementRecommended = severePercent > 40
     const investigationRequired = severePercent > 22 || damagePercent > 55
 
-    const elementFaceAreaM2 = Math.max(0.01, (Math.max(1, formData.widthCm) * Math.max(1, formData.heightCm)) / 10000)
+    // If no dimensions are set (no image uploaded), area should be 0
+    const elementFaceAreaM2 = (formData.widthCm === 0 || formData.heightCm === 0) 
+      ? 0 
+      : Math.max(0.01, (Math.max(1, formData.widthCm) * Math.max(1, formData.heightCm)) / 10000)
 
     const zones = severityBrushes.map((brush) => {
       const pixelCount = counters[brush.severity]
