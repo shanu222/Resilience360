@@ -209,16 +209,16 @@ export function Dashboard() {
   if (!cityRates || !cityRates.isConfirmed) {
     return (
       <div 
-        className="min-h-screen bg-[#F8FAFC] relative"
+        className="min-h-screen bg-transparent relative"
         style={{
-          backgroundImage: 'url(/background.png)',
+          backgroundImage: 'url(/retrofit-background.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',
           backgroundRepeat: 'no-repeat'
         }}
       >
-        <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+        <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px]" style={{ zIndex: 0 }} />
         
         <div className="relative" style={{ zIndex: 1 }}>
           <div className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] border-b border-blue-600 shadow-lg">
@@ -411,16 +411,16 @@ export function Dashboard() {
   // STAGE 2: Image Upload (after rates confirmed)
   return (
     <div 
-      className="min-h-screen bg-[#F8FAFC] relative"
+      className="min-h-screen bg-transparent relative"
       style={{
-        backgroundImage: 'url(/background.png)',
+        backgroundImage: 'url(/retrofit-background.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
         backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" style={{ zIndex: 0 }} />
+      <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px]" style={{ zIndex: 0 }} />
       
       <div className="relative" style={{ zIndex: 1 }}>
         <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
