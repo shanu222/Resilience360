@@ -84,5 +84,5 @@ export const fetchLiveClimateByCoordinates = async (lat: number, lng: number): P
     throw new Error('Valid GPS coordinates are required.')
   }
 
-  return fetchLiveClimate(`/api/climate/live?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}`)
+  return fetchLiveClimate(`/api/climate/live?latitude=${encodeURIComponent(String(lat))}&longitude=${encodeURIComponent(String(lng))}`)
 }
