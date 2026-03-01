@@ -5140,48 +5140,6 @@ function App() {
           <h2>{t.sections.readiness}</h2>
           <div className="readiness-layout">
             <aside className="readiness-sidebar">
-              <section className="readiness-card readiness-summary-card">
-                <h3>Readiness Summary</h3>
-                <div className="readiness-gauge-shell" aria-label={`Readiness score ${readinessScore} out of 100`}>
-                  <div className="readiness-gauge-track">
-                    <span className="readiness-gauge-pointer" style={{ transform: `translateX(-50%) rotate(${readinessGaugeAngle - 90}deg)` }} />
-                    <div className="readiness-gauge-hole" />
-                  </div>
-                  <p className="readiness-gauge-score">
-                    {readinessScore}
-                    <span>/100</span>
-                  </p>
-                  <p className="readiness-gauge-label">{readinessRiskLabel}</p>
-                </div>
-                <p className="readiness-recommendation">
-                  Custom Recommendation: Secure and add plinth freeboard, tie beams, and emergency response drills.
-                </p>
-              </section>
-
-              <section className="readiness-card">
-                <h3>Building Type</h3>
-                <label>
-                  Building Type
-                  <select value={buildingType} onChange={(event) => setBuildingType(event.target.value)}>
-                    <option>Residential</option>
-                    <option>Commercial</option>
-                    <option>Critical Infrastructure</option>
-                  </select>
-                </label>
-                <p className="readiness-meta">Location: {locationText}</p>
-              </section>
-
-              <section className="readiness-card">
-                <h3>Lifeline Presence</h3>
-                <label>
-                  Lifeline Presence
-                  <select value={lifeline} onChange={(event) => setLifeline(event.target.value)}>
-                    <option>No</option>
-                    <option>Yes</option>
-                  </select>
-                </label>
-              </section>
-
               <section className="readiness-card">
                 <h3>
                   <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('selfAssessment')} aria-expanded={expandedPanels.selfAssessment}>
@@ -5191,6 +5149,22 @@ function App() {
                 </h3>
                 {expandedPanels.selfAssessment && (
                   <>
+                    <label>
+                      Building Type
+                      <select value={buildingType} onChange={(event) => setBuildingType(event.target.value)}>
+                        <option>Residential</option>
+                        <option>Commercial</option>
+                        <option>Critical Infrastructure</option>
+                      </select>
+                    </label>
+                    <label>
+                      Lifeline Presence
+                      <select value={lifeline} onChange={(event) => setLifeline(event.target.value)}>
+                        <option>No</option>
+                        <option>Yes</option>
+                      </select>
+                    </label>
+                    <p className="readiness-meta">Location: {locationText}</p>
                     <label>
                       Year Built
                       <input
@@ -5261,6 +5235,24 @@ function App() {
                     </div>
                     <p className="readiness-assessment-note">
                       Structural Safety Rating: <strong>{buildingSafetyAssessment.rating}</strong> ({buildingSafetyAssessment.score}/100)
+                    </p>
+
+                    <div className="readiness-summary-divider" />
+                    
+                    <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Readiness Summary</h4>
+                    <div className="readiness-gauge-shell" aria-label={`Readiness score ${readinessScore} out of 100`}>
+                      <div className="readiness-gauge-track">
+                        <span className="readiness-gauge-pointer" style={{ transform: `translateX(-50%) rotate(${readinessGaugeAngle - 90}deg)` }} />
+                        <div className="readiness-gauge-hole" />
+                      </div>
+                      <p className="readiness-gauge-score">
+                        {readinessScore}
+                        <span>/100</span>
+                      </p>
+                      <p className="readiness-gauge-label">{readinessRiskLabel}</p>
+                    </div>
+                    <p className="readiness-recommendation">
+                      Custom Recommendation: Secure and add plinth freeboard, tie beams, and emergency response drills.
                     </p>
                   </>
                 )}
