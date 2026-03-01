@@ -5655,7 +5655,7 @@ function App() {
                 </div>
 
                 {/* Content */}
-                <div style={{ padding: '2.5rem', fontSize: '1rem', lineHeight: 1.9, color: '#2c3e50' }}>
+                <div className="readiness-logic-content" style={{ padding: '2.5rem', fontSize: '1rem', lineHeight: 1.9, color: '#2c3e50' }}>
                   <div style={{ backgroundColor: '#f8f9ff', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', borderLeft: '5px solid #007bff' }}>
                     <h3 style={{ marginTop: 0, color: '#007bff', fontSize: '1.2rem' }}>📊 Overview</h3>
                     <p style={{ margin: '0.5rem 0 0 0', color: '#34495e', lineHeight: 1.8 }}>

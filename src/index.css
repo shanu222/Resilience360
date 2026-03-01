@@ -2730,6 +2730,25 @@ progress {
   color: #edf5ff;
 }
 
+.section-readiness .readiness-logic-content,
+.section-readiness .readiness-logic-content p,
+.section-readiness .readiness-logic-content li,
+.section-readiness .readiness-logic-content span,
+.section-readiness .readiness-logic-content label,
+.section-readiness .readiness-logic-content h3,
+.section-readiness .readiness-logic-content h4 {
+  color: #2c3e50;
+}
+
+.section-readiness .readiness-logic-content p strong,
+.section-readiness .readiness-logic-content li strong {
+  color: #1f2d3d;
+}
+
+.section-readiness .readiness-logic-content li::marker {
+  color: #5a6a7a;
+}
+
 .readiness-layout {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
