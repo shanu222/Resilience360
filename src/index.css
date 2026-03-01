@@ -3378,10 +3378,14 @@ progress {
 
 /* Home page visual lock (matches attached design) */
 .app-shell.resilience-bg-shell.home-shell {
-  background:
-    radial-gradient(circle at 18% 10%, rgba(57, 105, 192, 0.18), transparent 34%),
-    radial-gradient(circle at 85% 83%, rgba(39, 92, 153, 0.2), transparent 42%),
-    rgba(8, 20, 46, 0.72);
+  background-image:
+    radial-gradient(circle at 18% 10%, rgba(57, 105, 192, 0.08), transparent 34%),
+    radial-gradient(circle at 85% 83%, rgba(39, 92, 153, 0.1), transparent 42%),
+    url('/app-background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   border: 1px solid rgba(129, 168, 230, 0.18);
   box-shadow: 0 16px 38px rgba(3, 10, 28, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(4px);
