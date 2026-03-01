@@ -1316,7 +1316,9 @@ function App() {
   const [isAskingAdvisory, setIsAskingAdvisory] = useState(false)
   const [advisoryError, setAdvisoryError] = useState<string | null>(null)
   const [advisoryCopyMsg, setAdvisoryCopyMsg] = useState<string | null>(null)
-  const [structureReviewType, setStructureReviewType] = useState<'Home' | 'School' | 'Clinic' | 'Bridge'>('Home')
+  const [structureReviewType, setStructureReviewType] = useState<'Home' | 'School' | 'Clinic' | 'Bridge' | 'Commercial' | 'Industrial'>('Home')
+  const [cadNumFloors, setCadNumFloors] = useState(1)
+  const [cadYearBuilt, setCadYearBuilt] = useState(2000)
   const [structureReviewGps, setStructureReviewGps] = useState('')
   const [structureReviewFile, setStructureReviewFile] = useState<File | null>(null)
   const [isSubmittingStructureReview, setIsSubmittingStructureReview] = useState(false)
@@ -1941,10 +1943,6 @@ function App() {
     } finally {
       setIsGeneratingGuidance(false)
     }
-  }
-
-  const handleApplyBestPracticeChange = (nextBestPractice: string) => {
-    setApplyBestPracticeTitle(nextBestPractice)
   }
 
   const downloadApplyGuidanceWordReport = async (reportLanguage: 'english' | 'urdu') => {
@@ -3774,7 +3772,7 @@ function App() {
 
   const submitStructureRiskReview = async () => {
     if (!structureReviewFile) {
-      setStructureReviewError('Please upload a structure image for review.')
+      setStructureReviewError('Please upload a CAD/BIM or structural drawing file for review.')
       return
     }
 
@@ -3790,8 +3788,8 @@ function App() {
         image: structureReviewFile,
         structureType: structureReviewType,
         province: selectedProvince,
-        location: `${selectedDistrict ?? 'District'} ${structureReviewGps ? `(${structureReviewGps})` : ''}`,
-        riskProfile: profileText,
+        location: `${selectedDistrict ?? 'District'} ${structureReviewGps ? `(${structureReviewGps})` : ''} | floors=${cadNumFloors} | built=${cadYearBuilt}`,
+        riskProfile: `${profileText}, cadFile=${structureReviewFile.name}, format=${structureReviewFile.type || 'unknown'}`,
       })
 
       setStructureReviewResult(result)
@@ -4341,51 +4339,107 @@ function App() {
             </div>
           </div>
 
-          <div className="retrofit-model-output risk-card">
-            <h3>🤳 Submit My Structure for Risk Review</h3>
-            <div className="inline-controls">
-              <label>
-                Structure Type
-                <select value={structureReviewType} onChange={(event) => setStructureReviewType(event.target.value as typeof structureReviewType)}>
-                  <option>Home</option>
-                  <option>School</option>
-                  <option>Clinic</option>
-                  <option>Bridge</option>
-                </select>
-              </label>
-              <label>
-                GPS (optional)
-                <input
-                  type="text"
-                  value={structureReviewGps}
-                  onChange={(event) => setStructureReviewGps(event.target.value)}
-                  placeholder="29.40, 71.68"
-                />
-              </label>
-              <label>
-                Upload image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setStructureReviewFile(event.target.files?.[0] ?? null)}
-                />
-              </label>
+          <div className="retrofit-model-output risk-card" style={{ padding: '1.1rem 1.2rem', lineHeight: 1.45 }}>
+            <h3 style={{ marginBottom: '0.45rem', fontSize: '1.08rem' }}>🏗️ Submit My Structure for Risk Review (CAD/BIM)</h3>
+            <p style={{ fontSize: '0.86rem', color: '#666', marginTop: 0, marginBottom: '0.9rem' }}>
+              Professional workflow for structural screening using civil engineering principles (ACI 318, FEMA 154, Capacity Design, Pakistan Building Code 2007/2023).
+            </p>
+
+            <div style={{ backgroundColor: '#f8f9ff', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #007bff' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#007bff', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 1 — File Upload</h4>
+              <p style={{ marginTop: 0, marginBottom: '0.4rem', fontSize: '0.84rem', lineHeight: 1.4 }}>Accepted files: <strong>.dwg, .dxf, .ifc, .pdf, image scans</strong></p>
+              <input
+                type="file"
+                accept=".dwg,.dxf,.ifc,.pdf,image/*"
+                onChange={(event) => setStructureReviewFile(event.target.files?.[0] ?? null)}
+              />
+              {structureReviewFile && <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: '#2d7d46' }}>✓ {structureReviewFile.name}</p>}
             </div>
-            <button onClick={submitStructureRiskReview} disabled={isSubmittingStructureReview}>
-              {isSubmittingStructureReview ? '🤖 Analyzing...' : '🤖 Run AI Risk Review'}
+
+            <div style={{ backgroundColor: '#fff8f0', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #fd7e14' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#fd7e14', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 2 — Building Information</h4>
+              <div className="inline-controls" style={{ alignItems: 'stretch', gap: '0.7rem' }}>
+                <label>
+                  Structure Type
+                  <select value={structureReviewType} onChange={(event) => setStructureReviewType(event.target.value as typeof structureReviewType)}>
+                    <option>Home</option>
+                    <option>School</option>
+                    <option>Clinic</option>
+                    <option>Bridge</option>
+                    <option>Commercial</option>
+                    <option>Industrial</option>
+                  </select>
+                </label>
+                <label>
+                  Floors
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={cadNumFloors}
+                    onChange={(event) => setCadNumFloors(Math.max(1, Number(event.target.value) || 1))}
+                  />
+                </label>
+                <label>
+                  Year Built
+                  <input
+                    type="number"
+                    min={1900}
+                    max={new Date().getFullYear()}
+                    value={cadYearBuilt}
+                    onChange={(event) => setCadYearBuilt(Math.min(new Date().getFullYear(), Math.max(1900, Number(event.target.value) || 2000)))}
+                  />
+                </label>
+                <label>
+                  GPS (optional)
+                  <input
+                    type="text"
+                    value={structureReviewGps}
+                    onChange={(event) => setStructureReviewGps(event.target.value)}
+                    placeholder="29.40, 71.68"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#f0fff4', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #28a745' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#198754', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 3 — Layer Intelligence</h4>
+              <p style={{ marginTop: 0, marginBottom: '0.35rem', fontSize: '0.84rem', lineHeight: 1.4 }}>Detected structural entities from drawing layers (or image inference):</p>
+              <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38 }}>
+                <li>Columns (size, spacing, continuity)</li>
+                <li>Beams (depth, span, framing compatibility)</li>
+                <li>Slabs and diaphragms (thickness, load path behavior)</li>
+                <li>Walls/openings (irregularity and torsion contribution)</li>
+              </ul>
+            </div>
+
+            <div style={{ backgroundColor: '#fff3f0', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.85rem', borderLeft: '4px solid #dc3545' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#dc3545', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 4 — Engineering Rule Engine</h4>
+              <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38 }}>
+                <li><strong>Minimum Column Size (ACI 318):</strong> column adequacy check against building height and seismic demand.</li>
+                <li><strong>Soft Story (FEMA 154):</strong> detects risky stiffness discontinuity in ground storey.</li>
+                <li><strong>Beam-Column Capacity Design:</strong> flags weak-column/strong-beam risk pattern.</li>
+                <li><strong>Plan Regularity and Torsion (PBC 2007/2023):</strong> identifies mass/stiffness asymmetry risk.</li>
+                <li><strong>Column Grid/Spacing:</strong> checks long spans requiring intermediate support.</li>
+                <li><strong>Vertical Continuity:</strong> validates uninterrupted gravity and lateral load path.</li>
+              </ul>
+            </div>
+
+            <button onClick={submitStructureRiskReview} disabled={isSubmittingStructureReview || !structureReviewFile}>
+              {isSubmittingStructureReview ? '🤖 Running CAD/BIM Engineering Analysis...' : '🤖 Run Engineering Risk Review'}
             </button>
             {structureReviewError && <p>{structureReviewError}</p>}
             {structureReviewResult && (
-              <div className="retrofit-ai-guidance">
-                <p>
-                  <strong>AI Risk Summary:</strong> {structureReviewResult.summary}
+              <div className="retrofit-ai-guidance" style={{ marginTop: '0.7rem' }}>
+                <p style={{ margin: '0.1rem 0 0.35rem 0' }}>
+                  <strong>Engineering Risk Summary:</strong> {structureReviewResult.summary}
                 </p>
-                <p>
+                <p style={{ margin: '0.1rem 0 0.5rem 0' }}>
                   <strong>Risk score:</strong>{' '}
                   {Math.min(100, Math.max(30, 45 + structureReviewResult.defects.length * 9 + (riskValue === 'Very High' ? 22 : riskValue === 'High' ? 14 : 8)))}/100
                 </p>
-                <ul>
-                  {structureReviewResult.priorityActions.slice(0, 3).map((item) => (
+                <ul style={{ margin: 0, paddingLeft: '1rem', lineHeight: 1.35 }}>
+                  {structureReviewResult.priorityActions.slice(0, 6).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -5095,30 +5149,9 @@ function App() {
                   </header>
                   <p className="infra-model-detail-description">{selectedInfraModel.description}</p>
                   <img src={selectedInfraModel.imageDataUrl} alt={`${selectedInfraModel.title} AI visual`} className="retrofit-preview infra-model-preview-image" />
-                  <div className="infra-model-insights-grid">
-                    <section className="infra-model-insight-card">
-                      <h4>Key Features</h4>
-                      <ul>
-                        {selectedInfraModel.features.map((item) => (
-                          <li key={item}>✔ {item}</li>
-                        ))}
-                      </ul>
-                    </section>
-                    <section className="infra-model-insight-card">
-                      <h4>Benefits for Pakistan</h4>
-                      <ul>
-                        {selectedInfraModel.advantagesPakistan.map((item) => (
-                          <li key={item}>✔ {item}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  </div>
+
                 </article>
-              ) : (
-                <div className="retrofit-model-output infra-model-selection-hint">
-                  <p>Select a model to preview its image and resilience details.</p>
-                </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>
@@ -5127,76 +5160,7 @@ function App() {
 
     if (activeSection === 'applyRegion') {
       return (
-        <div className="panel section-panel section-apply-region">
-          <header className="apply-region-head">
-            <h2 className="apply-region-title">
-              Construct in my Region —
-              <span>{applyBestPracticeTitle}</span>
-            </h2>
-            <div className="apply-region-meta-pills" aria-label="Selected area and hazard">
-              <span>📍 {applyCity}, {applyProvince}</span>
-              <span>💧 {applyHazard}</span>
-            </div>
-          </header>
-
-          <div className="apply-region-shell">
-            <section className="apply-region-summary-card" aria-label="Selection Summary">
-              <div className="apply-region-card-head">
-                <h3>🧾 Selection Summary</h3>
-                <p>Adjust your location and best-practice package before generating guidance.</p>
-              </div>
-              <div className="apply-region-summary-grid">
-                <div className="apply-region-summary-copy">
-                  <p>
-                    <strong>Best Practice (Construct in my Region):</strong>
-                  </p>
-                  <p className="apply-region-practice-name">{applyBestPracticeTitle}</p>
-                  <p>
-                    📍 <strong>Area:</strong> {applyCity}, {applyProvince}
-                  </p>
-                  <p>
-                    💧 <strong>Hazard:</strong> {applyHazard}
-                  </p>
-                </div>
-
-                <div className="apply-region-controls-grid">
-                  <div className="apply-region-control">
-                    <label htmlFor="apply-region-province">Province</label>
-                    <select
-                      id="apply-region-province"
-                      aria-label="Province"
-                      value={applyProvince}
-                      onChange={(event) => {
-                        const province = event.target.value
-                        setApplyProvince(province)
-                        setApplyCity((pakistanCitiesByProvince[province] ?? [])[0] ?? '')
-                      }}
-                    >
-                      {Object.keys(provinceRisk).map((province) => (
-                        <option key={province}>{province}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="apply-region-control">
-                    <label htmlFor="apply-region-city">City</label>
-                    <select id="apply-region-city" aria-label="City" value={applyCity} onChange={(event) => setApplyCity(event.target.value)}>
-                      {availableApplyCities.map((city) => (
-                        <option key={city}>{city}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="apply-region-control apply-region-control-wide">
-                    <label htmlFor="apply-region-practice">Best Practice</label>
-                    <select id="apply-region-practice" aria-label="Best Practice" value={applyBestPracticeTitle} onChange={(event) => handleApplyBestPracticeChange(event.target.value)}>
-                      {availableApplyBestPractices.map((item) => (
-                        <option key={item.title} value={item.title}>{item.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </section>
-
+        <div className="panel section-panel section-apply">
             <section className="apply-region-live-card" aria-label="Live location">
                 <div className="apply-region-card-head">
                 <h3>📍 Live Location for Auto-Fill</h3>
@@ -5351,12 +5315,11 @@ function App() {
                   </div>
                   {isGeneratingStepImages && <p>Generating AI stepwise construction images...</p>}
                 </div>
+
               )}
           </div>
-        </div>
       )
     }
-
     if (activeSection === 'readiness') {
       return (
         <div className="panel section-panel section-readiness">
