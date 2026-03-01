@@ -2477,23 +2477,246 @@ function App() {
   }
 
   const readinessScore = useMemo(() => {
-    let score = 50
-    if (buildingType === 'Critical Infrastructure') score += 20
-    if (materialType === 'Unreinforced Masonry') score += 15
-    if (lifeline === 'Yes') score += 10
-    if (locationText.toLowerCase().includes('karachi') || locationText.toLowerCase().includes('sukkur')) {
-      score += 10
+    // Start with base score of 100 (perfect building)
+    let score = 100
+    
+    // 1. AGE FACTOR (Based on building codes evolution in Pakistan)
+    // Pakistan adopted seismic provisions in Building Code of Pakistan 1986
+    // Building Code of Pakistan revised in 2007 with stricter standards
+    const currentYear = new Date().getFullYear()
+    const buildingAge = currentYear - selfAssessmentYearBuilt
+    
+    if (selfAssessmentYearBuilt >= 2007) {
+      // Modern codes (BCP 2007+): minimal penalty
+      score -= Math.min(buildingAge * 0.3, 5) // Max 5 points for aging
+    } else if (selfAssessmentYearBuilt >= 1990) {
+      // Post-1986 BCP adoption, pre-2007 revision
+      score -= 12 + Math.min(buildingAge * 0.5, 10) // 12-22 point penalty
+    } else if (selfAssessmentYearBuilt >= 1975) {
+      // Pre-code era with some engineering standards
+      score -= 25 + Math.min(buildingAge * 0.3, 8) // 25-33 point penalty
+    } else {
+      // Very old structures, pre-modern engineering
+      score -= 35 // Maximum age penalty
     }
-    return Math.min(score, 100)
-  }, [buildingType, materialType, lifeline, locationText])
+    
+    // 2. CONSTRUCTION TYPE (Structural system performance)
+    // Based on seismic performance data from Pakistan earthquakes (2005 Kashmir, etc.)
+    if (selfAssessmentConstruction === 'Reinforced Concrete') {
+      // RC frames: good ductility when properly designed
+      score -= 0 // Reference case
+    } else if (selfAssessmentConstruction === 'Steel Frame') {
+      // Steel: excellent ductility, better performance
+      score += 5 // Bonus for superior system
+    } else if (selfAssessmentConstruction === 'Unreinforced Masonry') {
+      // URM: brittle failure, poor seismic performance
+      score -= 25 // Major penalty for high-risk system
+    }
+    
+    // 3. MATERIAL TYPE (Additional material considerations)
+    if (materialType === 'Unreinforced Masonry') {
+      score -= 15 // Additional penalty if URM confirmed in materials
+    } else if (materialType === 'Steel Frame') {
+      score += 3 // Additional bonus for verified steel
+    }
+    
+    // 4. DRAINAGE (Flood resilience and foundation protection)
+    // Based on Pakistan's monsoon flooding patterns and soil degradation
+    if (selfAssessmentDrainage === 'Good') {
+      score += 5 // Well-protected foundation
+    } else if (selfAssessmentDrainage === 'Average') {
+      score -= 8 // Moderate flood risk
+    } else if (selfAssessmentDrainage === 'Poor') {
+      // Poor drainage: waterlogging, foundation undermining, soil bearing capacity loss
+      score -= 18 // Significant risk factor
+    }
+    
+    // 5. SEISMIC ZONE (Based on Pakistan Seismic Hazard Map)
+    // Zone 4: High (Balochistan, KPK, Northern Areas, AJK)
+    // Zone 3: Medium (Punjab border regions)
+    // Zone 2: Low (Southern Sindh, Central Punjab)
+    if (selfAssessmentSeismicZone === 'High') {
+      // Zone 4: PGA 0.32g-0.48g, MMI VIII-IX expected
+      score -= 15 // Maximum seismic hazard
+    } else if (selfAssessmentSeismicZone === 'Medium') {
+      // Zone 3: PGA 0.16g-0.32g, MMI VII-VIII expected
+      score -= 8 // Moderate seismic hazard
+    } else {
+      // Zone 2: PGA <0.16g, MMI VI-VII expected
+      score -= 3 // Low but non-zero seismic risk
+    }
+    
+    // 6. FOUNDATION TYPE (Load transfer and stability)
+    if (selfAssessmentFoundation === 'Raft') {
+      // Mat foundation: best for poor soil, distributes load uniformly
+      score += 8 // Best foundation system
+    } else if (selfAssessmentFoundation === 'Isolated Footing') {
+      // Spread footings: good for competent soil
+      score += 3 // Standard good practice
+    } else if (selfAssessmentFoundation === 'Stone Masonry') {
+      // Traditional masonry: susceptible to differential settlement
+      score -= 10 // Substandard foundation
+    } else if (selfAssessmentFoundation === 'Unknown') {
+      // Unknown foundation: cannot assess structural integrity
+      score -= 15 // Major uncertainty penalty
+    }
+    
+    // 7. BUILDING TYPE (Occupancy and consequence factor)
+    if (buildingType === 'Residential') {
+      // Lower occupancy, simpler systems
+      score += 0 // Reference case
+    } else if (buildingType === 'Commercial') {
+      // Higher occupancy, more complex systems
+      score -= 5 // Requires higher standards
+    } else if (buildingType === 'Critical Infrastructure') {
+      // Hospitals, fire stations, emergency centers
+      // Must remain operational post-disaster (Importance Factor 1.5)
+      score -= 12 // Much higher performance requirements
+    }
+    
+    // 8. LIFELINE PRESENCE (Backup systems and resilience)
+    if (lifeline === 'Yes') {
+      // Backup power, water, communications
+      score += 8 // Significant resilience improvement
+    } else {
+      score -= 5 // Dependent on external utilities
+    }
+    
+    // 9. LOCATION-SPECIFIC HAZARDS (Multi-hazard considerations)
+    const location = locationText.toLowerCase()
+    
+    // Karachi: Coastal flooding, cyclones, urban density
+    if (location.includes('karachi')) {
+      score -= 8
+    }
+    // Quetta: High seismic zone + water scarcity
+    else if (location.includes('quetta')) {
+      score -= 10
+    }
+    // Muzaffarabad/AJK: Very high seismic (2005 earthquake epicenter)
+    else if (location.includes('muzaffarabad') || location.includes('ajk')) {
+      score -= 12
+    }
+    // Peshawar/KPK: High seismic + flood-prone
+    else if (location.includes('peshawar') || location.includes('kpk')) {
+      score -= 10
+    }
+    // Sukkur/Larkana: Extreme flooding (2010, 2022 floods)
+    else if (location.includes('sukkur') || location.includes('larkana') || location.includes('jacobabad')) {
+      score -= 12
+    }
+    // Gilgit-Baltistan: High seismic + landslides + extreme weather
+    else if (location.includes('gilgit') || location.includes('skardu')) {
+      score -= 11
+    }
+    // Lahore/Rawalpindi/Islamabad: Moderate hazards
+    else if (location.includes('lahore') || location.includes('rawalpindi') || location.includes('islamabad')) {
+      score -= 5
+    }
+    
+    // Ensure score stays within valid range
+    const finalScore = Math.max(0, Math.min(100, Math.round(score)))
+    
+    return finalScore
+  }, [
+    selfAssessmentYearBuilt,
+    selfAssessmentConstruction,
+    materialType,
+    selfAssessmentDrainage,
+    selfAssessmentSeismicZone,
+    selfAssessmentFoundation,
+    buildingType,
+    lifeline,
+    locationText,
+  ])
 
   const readinessRiskLabel = useMemo(() => {
-    if (readinessScore >= 80) return 'HIGH RISK'
-    if (readinessScore >= 60) return 'MEDIUM RISK'
-    return 'LOW RISK'
+    // Higher score = better readiness = lower risk
+    if (readinessScore >= 80) return 'LOW RISK'
+    if (readinessScore >= 60) return 'MODERATE RISK'
+    if (readinessScore >= 40) return 'HIGH RISK'
+    return 'VERY HIGH RISK'
   }, [readinessScore])
 
   const readinessGaugeAngle = useMemo(() => Math.round((readinessScore / 100) * 180), [readinessScore])
+
+  const readinessCustomRecommendation = useMemo(() => {
+    const recommendations: string[] = []
+    
+    // Critical issues first (immediate action required)
+    if (selfAssessmentConstruction === 'Unreinforced Masonry' || materialType === 'Unreinforced Masonry') {
+      recommendations.push('URGENT: Schedule professional structural assessment for unreinforced masonry')
+      recommendations.push('Consider seismic retrofitting with confining bands or steel bracing')
+    }
+    
+    if (selfAssessmentFoundation === 'Unknown') {
+      recommendations.push('Conduct subsurface investigation to identify foundation type')
+    }
+    
+    if (selfAssessmentFoundation === 'Stone Masonry') {
+      recommendations.push('Evaluate foundation for differential settlement and consider underpinning')
+    }
+    
+    // Age-related recommendations
+    if (selfAssessmentYearBuilt < 1990) {
+      recommendations.push('Building predates modern seismic codes - retrofit assessment recommended')
+    }
+    
+    // Drainage and flood protection
+    if (selfAssessmentDrainage === 'Poor') {
+      recommendations.push('PRIORITY: Improve drainage system to prevent foundation undermining')
+      recommendations.push('Install perimeter drains and slope grading away from structure')
+    } else if (selfAssessmentDrainage === 'Average') {
+      recommendations.push('Enhance drainage with french drains or channel improvements')
+    }
+    
+    // Seismic zone specific
+    if (selfAssessmentSeismicZone === 'High') {
+      recommendations.push('High seismic zone: Verify lateral force-resisting system adequacy')
+      recommendations.push('Secure heavy furniture, water heaters, and non-structural elements')
+      if (buildingType === 'Critical Infrastructure') {
+        recommendations.push('Critical facility in high seismic zone requires immediate structural evaluation')
+      }
+    }
+    
+    // Lifeline improvements
+    if (lifeline === 'No') {
+      recommendations.push('Install backup power (generator or solar) and water storage')
+      recommendations.push('Establish emergency communication systems')
+    }
+    
+    // Building type specific
+    if (buildingType === 'Critical Infrastructure') {
+      recommendations.push('Critical infrastructure requires higher performance standards - conduct detailed evaluation')
+    }
+    
+    // Location-specific hazards
+    const location = locationText.toLowerCase()
+    if (location.includes('karachi')) {
+      recommendations.push('Coastal location: inspect for corrosion and saltwater damage')
+    } else if (location.includes('sukkur') || location.includes('larkana') || location.includes('jacobabad')) {
+      recommendations.push('Flood-prone area: elevate critical utilities and install flood barriers')
+    } else if (location.includes('muzaffarabad') || location.includes('quetta')) {
+      recommendations.push('Very high seismic risk area: prioritize structural strengthening')
+    }
+    
+    // General maintenance
+    recommendations.push('Conduct annual structural inspection and maintain documentation')
+    recommendations.push('Develop and practice emergency evacuation plan')
+    
+    // Return top 3-4 most relevant recommendations
+    return recommendations.slice(0, 4).join('. ') + '.'
+  }, [
+    selfAssessmentYearBuilt,
+    selfAssessmentConstruction,
+    materialType,
+    selfAssessmentDrainage,
+    selfAssessmentSeismicZone,
+    selfAssessmentFoundation,
+    buildingType,
+    lifeline,
+    locationText,
+  ])
 
   const isQuotaError = useCallback(
     (message: string): boolean =>
@@ -5252,7 +5475,7 @@ function App() {
                       <p className="readiness-gauge-label">{readinessRiskLabel}</p>
                     </div>
                     <p className="readiness-recommendation">
-                      Custom Recommendation: Secure and add plinth freeboard, tie beams, and emergency response drills.
+                      <strong>Custom Recommendations:</strong> {readinessCustomRecommendation}
                     </p>
                   </>
                 )}
