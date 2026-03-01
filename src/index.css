@@ -110,15 +110,11 @@ body {
 }
 
 .best-practices-view {
-  background:
-    linear-gradient(180deg, rgba(22, 10, 63, 0.68) 0%, rgba(18, 12, 58, 0.5) 100%),
-    radial-gradient(circle at top right, rgba(111, 65, 183, 0.4), transparent 45%);
+  background: transparent;
 }
 
 .readiness-view {
-  background:
-    linear-gradient(180deg, rgba(22, 10, 63, 0.74) 0%, rgba(18, 12, 58, 0.58) 100%),
-    radial-gradient(circle at top right, rgba(111, 65, 183, 0.38), transparent 45%);
+  background: transparent;
 }
 
 .lightweight * {
@@ -133,7 +129,8 @@ body {
   flex-wrap: wrap;
   margin-bottom: var(--space-4);
   padding: var(--space-3);
-  background: var(--navy);
+  background: rgba(11, 31, 58, 0.5);
+  backdrop-filter: blur(8px);
   border-bottom: 2px solid var(--turquoise);
   border-radius: var(--radius-card);
 }
@@ -144,7 +141,8 @@ body {
 
 .home-navbar {
   border-radius: 18px;
-  background: var(--navy);
+  background: rgba(11, 31, 58, 0.6);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -160,18 +158,16 @@ body {
 
 .best-practices-navbar {
   border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(30, 26, 74, 0.86) 0%, rgba(51, 39, 106, 0.72) 58%, rgba(61, 40, 117, 0.78) 100%),
-    radial-gradient(circle at top right, rgba(151, 107, 217, 0.3), transparent 48%);
+  background: rgba(30, 26, 74, 0.4);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(142, 120, 201, 0.45);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .readiness-navbar {
   border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(27, 24, 67, 0.9) 0%, rgba(47, 33, 96, 0.76) 58%, rgba(54, 36, 107, 0.8) 100%),
-    radial-gradient(circle at top right, rgba(126, 89, 197, 0.28), transparent 48%);
+  background: rgba(27, 24, 67, 0.4);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(138, 119, 201, 0.46);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
@@ -463,9 +459,9 @@ button:disabled,
   align-items: center;
   gap: var(--space-3);
   text-align: left;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(11, 31, 58, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   color: var(--white);
@@ -514,9 +510,7 @@ button:disabled,
 .tone-f,
 .tone-g,
 .tone-h {
-  background:
-    linear-gradient(115deg, rgba(247, 252, 255, 0.86), rgba(225, 241, 252, 0.84)),
-    radial-gradient(circle at bottom right, rgba(146, 186, 214, 0.28), transparent 55%);
+  background: transparent;
 }
 
 .home-bottom-strip {
@@ -527,7 +521,8 @@ button:disabled,
   justify-content: space-between;
   align-items: center;
   gap: var(--space-3);
-  background: var(--navy);
+  background: rgba(11, 31, 58, 0.5);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--golden-yellow);
   color: var(--white);
 }
@@ -553,10 +548,11 @@ button:disabled,
 
 .panel {
   margin-top: var(--space-3);
-  background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
+  background: rgba(11, 31, 58, 0.35);
+  backdrop-filter: blur(8px);
   border-radius: 14px;
   padding: var(--space-4);
-  border: 1px solid #d5e5f3;
+  border: 1px solid rgba(100, 181, 246, 0.3);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   transition:
@@ -571,10 +567,10 @@ button:disabled,
 
 /* Glass Card Effect */
 .glass-card {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(11, 31, 58, 0.3);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(100, 181, 246, 0.2);
   border-radius: 14px;
   padding: 20px;
   color: var(--white);
@@ -2223,16 +2219,13 @@ summary {
 }
 
 .risk-maps-view {
-  background:
-    linear-gradient(180deg, rgba(9, 19, 52, 0.78) 0%, rgba(7, 15, 42, 0.6) 100%),
-    radial-gradient(circle at top right, rgba(43, 103, 205, 0.25), transparent 42%);
+  background: transparent;
 }
 
 .risk-maps-navbar {
   border-radius: 16px;
-  background:
-    linear-gradient(140deg, rgba(13, 32, 77, 0.9) 0%, rgba(17, 42, 96, 0.8) 56%, rgba(20, 53, 112, 0.84) 100%),
-    radial-gradient(circle at top right, rgba(97, 163, 255, 0.22), transparent 45%);
+  background: rgba(13, 32, 77, 0.4);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(82, 134, 219, 0.4);
   box-shadow: inset 0 1px 0 rgba(214, 235, 255, 0.14);
 }
@@ -2266,17 +2259,13 @@ summary {
 }
 
 .warning-view {
-  background:
-    linear-gradient(180deg, rgba(24, 12, 63, 0.78) 0%, rgba(17, 10, 50, 0.64) 100%),
-    radial-gradient(circle at top right, rgba(143, 109, 225, 0.36), transparent 45%),
-    radial-gradient(circle at 10% 25%, rgba(116, 186, 255, 0.14), transparent 48%);
+  background: transparent;
 }
 
 .warning-navbar {
   border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(36, 22, 84, 0.9) 0%, rgba(51, 33, 107, 0.78) 56%, rgba(57, 36, 117, 0.84) 100%),
-    radial-gradient(circle at top right, rgba(149, 198, 255, 0.22), transparent 45%);
+  background: rgba(36, 22, 84, 0.4);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(145, 128, 205, 0.48);
   box-shadow: inset 0 1px 0 rgba(230, 223, 255, 0.15);
 }
