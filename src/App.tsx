@@ -1402,6 +1402,7 @@ function App() {
   const [structuralDesignError, setStructuralDesignError] = useState<string | null>(null)
   const [structuralDesignReport, setStructuralDesignReport] = useState<StructuralDesignReport | null>(null)
   const [showInfraLayoutVideo, setShowInfraLayoutVideo] = useState(false)
+  const [showReadinessLogicModal, setShowReadinessLogicModal] = useState(false)
   const [sectionHistory, setSectionHistory] = useState<Array<SectionKey | null>>([])
   const [designProvince, setDesignProvince] = useState('Punjab')
   const [designCity, setDesignCity] = useState('Lahore')
@@ -5363,12 +5364,32 @@ function App() {
           <div className="readiness-layout">
             <aside className="readiness-sidebar">
               <section className="readiness-card">
-                <h3>
-                  <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('selfAssessment')} aria-expanded={expandedPanels.selfAssessment}>
-                    <span>Is My Building Safe? Self-Assessment</span>
-                    <span>{expandedPanels.selfAssessment ? '▾' : '▸'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <h3 style={{ margin: 0, flex: 1 }}>
+                    <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('selfAssessment')} aria-expanded={expandedPanels.selfAssessment}>
+                      <span>Is My Building Safe? Self-Assessment</span>
+                      <span>{expandedPanels.selfAssessment ? '▾' : '▸'}</span>
+                    </button>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowReadinessLogicModal(true)}
+                    style={{
+                      padding: '0.4rem 0.8rem',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap',
+                    }}
+                    aria-label="Show readiness calculator logic"
+                  >
+                    📋 Logic
                   </button>
-                </h3>
+                </div>
                 {expandedPanels.selfAssessment && (
                   <>
                     <label>
@@ -5569,6 +5590,157 @@ function App() {
               </button>
             </section>
           </div>
+
+          {showReadinessLogicModal && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                padding: '1rem',
+              }}
+              onClick={() => setShowReadinessLogicModal(false)}
+            >
+              <div
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  maxWidth: '900px',
+                  maxHeight: '90vh',
+                  overflow: 'auto',
+                  padding: '2rem',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ margin: 0 }}>🔍 Readiness Calculator Logic</h2>
+                  <button
+                    onClick={() => setShowReadinessLogicModal(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.5rem',
+                      cursor: 'pointer',
+                      padding: '0',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div style={{ fontSize: '0.95rem', lineHeight: 1.8, color: '#333' }}>
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>📊 Overview</h3>
+                  <p>
+                    The readiness calculator evaluates your building's resilience to earthquakes and floods using a scientifically-based 0-100 score system.
+                    Higher scores indicate better readiness and lower risk. The system is grounded in Pakistan's Building Codes and seismic hazard maps.
+                  </p>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🏗️ Factor 1: Building Age</h3>
+                  <ul>
+                    <li><strong>Post-2007 (Modern BCP codes):</strong> -0-5 points | Follows latest seismic standards</li>
+                    <li><strong>1990-2007 (BCP 1986 era):</strong> -12-22 points | Some code compliance</li>
+                    <li><strong>1975-1990 (Early engineering):</strong> -25-33 points | Limited seismic provisions</li>
+                    <li><strong>Pre-1975:</strong> -35 points | Pre-code structures, major risk</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🏢 Factor 2: Construction Type</h3>
+                  <ul>
+                    <li><strong>Steel Frame:</strong> +5 bonus | Excellent ductility and energy absorption</li>
+                    <li><strong>Reinforced Concrete:</strong> Baseline | Good ductility when properly designed</li>
+                    <li><strong>Unreinforced Masonry:</strong> -25 points | Brittle failure, high seismic risk</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>💧 Factor 3: Drainage System</h3>
+                  <ul>
+                    <li><strong>Good:</strong> +5 points | Foundation well-protected from water damage</li>
+                    <li><strong>Average:</strong> -8 points | Moderate flood and waterlogging risk</li>
+                    <li><strong>Poor:</strong> -18 points | Foundation undermining and soil degradation risk</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🌍 Factor 4: Seismic Zone (Pakistan Hazard Map)</h3>
+                  <ul>
+                    <li><strong>Low (Zone 2):</strong> -3 points | PGA &lt;0.16g, MMI VI-VII</li>
+                    <li><strong>Medium (Zone 3):</strong> -8 points | PGA 0.16-0.32g, MMI VII-VIII</li>
+                    <li><strong>High (Zone 4):</strong> -15 points | PGA 0.32-0.48g, MMI VIII-IX</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🔧 Factor 5: Foundation Type</h3>
+                  <ul>
+                    <li><strong>Raft (Mat):</strong> +8 points | Best load distribution, handles poor soil</li>
+                    <li><strong>Isolated Footing:</strong> +3 points | Standard good practice for competent soil</li>
+                    <li><strong>Stone Masonry:</strong> -10 points | Differential settlement risk</li>
+                    <li><strong>Unknown:</strong> -15 points | Cannot assess structural integrity</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🏛️ Factor 6: Building Type</h3>
+                  <ul>
+                    <li><strong>Residential:</strong> Baseline | Lower occupancy requirements</li>
+                    <li><strong>Commercial:</strong> -5 points | Complex systems, higher standards</li>
+                    <li><strong>Critical Infrastructure:</strong> -12 points | Must remain operational post-disaster (Importance Factor 1.5)</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>⚡ Factor 7: Lifeline Systems</h3>
+                  <ul>
+                    <li><strong>Yes:</strong> +8 points | Backup power, water, and communications available</li>
+                    <li><strong>No:</strong> -5 points | Dependent on external utilities</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>📍 Factor 8: Location Hazards</h3>
+                  <ul>
+                    <li><strong>Karachi:</strong> -8 pts | Coastal flooding, cyclones, urban density</li>
+                    <li><strong>Sukkur/Larkana:</strong> -12 pts | Extreme flooding (2010, 2022 events)</li>
+                    <li><strong>Muzaffarabad/AJK:</strong> -12 pts | Very high seismic (2005 epicenter)</li>
+                    <li><strong>Quetta:</strong> -10 pts | High seismic zone, water scarcity</li>
+                    <li><strong>Peshawar/KPK:</strong> -10 pts | High seismic + flood-prone</li>
+                    <li><strong>Gilgit-Baltistan:</strong> -11 pts | Multi-hazard: seismic, landslides, extreme weather</li>
+                    <li><strong>Lahore/Islamabad:</strong> -5 pts | Moderate hazards</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>📈 Risk Level Interpretation</h3>
+                  <ul>
+                    <li><strong>80-100:</strong> 🟢 LOW RISK | Excellent readiness, well-built structure</li>
+                    <li><strong>60-79:</strong> 🟡 MODERATE RISK | Some vulnerabilities, improvements recommended</li>
+                    <li><strong>40-59:</strong> 🔴 HIGH RISK | Significant vulnerabilities, retrofitting advised</li>
+                    <li><strong>0-39:</strong> 🔴🔴 VERY HIGH RISK | Critical vulnerabilities, urgent action needed</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>💡 Custom Recommendations</h3>
+                  <p>
+                    Based on your inputs, the calculator generates prioritized recommendations addressing critical issues:
+                  </p>
+                  <ul>
+                    <li>Structural vulnerabilities (URM, unknown foundations)</li>
+                    <li>Drainage and water protection measures</li>
+                    <li>Seismic zone-specific strengthening</li>
+                    <li>Lifeline system installations</li>
+                    <li>Location-specific hazard mitigation</li>
+                  </ul>
+
+                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🎯 How It Works</h3>
+                  <ol>
+                    <li>Start with a base score of 100 (perfect building)</li>
+                    <li>Apply penalties based on negative factors (age, poor drainage, etc.)</li>
+                    <li>Apply bonuses for positive factors (good foundation, lifelines, etc.)</li>
+                    <li>Ensure final score stays between 0-100</li>
+                    <li>Generate recommendations based on identified vulnerabilities</li>
+                  </ol>
+
+                  <p style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f0f8ff', borderLeft: '4px solid #007bff', borderRadius: '4px' }}>
+                    <strong>Note:</strong> This calculator provides a preliminary assessment. For critical infrastructure or high-risk structures,
+                    always consult with qualified structural engineers and follow local building authorities' guidelines.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )
     }
