@@ -5599,144 +5599,194 @@ function App() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 1000,
                 padding: '1rem',
+                backdropFilter: 'blur(2px)',
               }}
               onClick={() => setShowReadinessLogicModal(false)}
             >
               <div
                 style={{
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  maxWidth: '900px',
-                  maxHeight: '90vh',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  maxWidth: '950px',
+                  maxHeight: '95vh',
                   overflow: 'auto',
-                  padding: '2rem',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1)',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ margin: 0 }}>🔍 Readiness Calculator Logic</h2>
+                {/* Header */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)',
+                    padding: '2rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '3px solid #004085',
+                    borderRadius: '12px 12px 0 0',
+                  }}
+                >
+                  <h2 style={{ margin: 0, color: 'white', fontSize: '1.8rem', fontWeight: 700 }}>
+                    🔍 Readiness Calculator Logic
+                  </h2>
                   <button
                     onClick={() => setShowReadinessLogicModal(false)}
                     style={{
-                      background: 'none',
-                      border: 'none',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      border: '2px solid white',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '40px',
+                      height: '40px',
                       fontSize: '1.5rem',
                       cursor: 'pointer',
-                      padding: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
                     }}
                   >
                     ✕
                   </button>
                 </div>
 
-                <div style={{ fontSize: '0.95rem', lineHeight: 1.8, color: '#333' }}>
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>📊 Overview</h3>
-                  <p>
-                    The readiness calculator evaluates your building's resilience to earthquakes and floods using a scientifically-based 0-100 score system.
-                    Higher scores indicate better readiness and lower risk. The system is grounded in Pakistan's Building Codes and seismic hazard maps.
-                  </p>
+                {/* Content */}
+                <div style={{ padding: '2.5rem', fontSize: '1rem', lineHeight: 1.9, color: '#2c3e50' }}>
+                  <div style={{ backgroundColor: '#f8f9ff', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', borderLeft: '5px solid #007bff' }}>
+                    <h3 style={{ marginTop: 0, color: '#007bff', fontSize: '1.2rem' }}>📊 Overview</h3>
+                    <p style={{ margin: '0.5rem 0 0 0', color: '#34495e', lineHeight: 1.8 }}>
+                      The readiness calculator evaluates your building's resilience to earthquakes and floods using a scientifically-based 0-100 score system.
+                      Higher scores indicate better readiness and lower risk. The system is grounded in Pakistan's Building Codes and seismic hazard maps.
+                    </p>
+                  </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🏗️ Factor 1: Building Age</h3>
-                  <ul>
-                    <li><strong>Post-2007 (Modern BCP codes):</strong> -0-5 points | Follows latest seismic standards</li>
-                    <li><strong>1990-2007 (BCP 1986 era):</strong> -12-22 points | Some code compliance</li>
-                    <li><strong>1975-1990 (Early engineering):</strong> -25-33 points | Limited seismic provisions</li>
-                    <li><strong>Pre-1975:</strong> -35 points | Pre-code structures, major risk</li>
-                  </ul>
+                  <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: '#007bff', fontSize: '1.3rem', fontWeight: 700, borderBottom: '3px solid #007bff', paddingBottom: '0.5rem' }}>
+                    🏗️ The 8 Scoring Factors
+                  </h3>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🏢 Factor 2: Construction Type</h3>
-                  <ul>
-                    <li><strong>Steel Frame:</strong> +5 bonus | Excellent ductility and energy absorption</li>
-                    <li><strong>Reinforced Concrete:</strong> Baseline | Good ductility when properly designed</li>
-                    <li><strong>Unreinforced Masonry:</strong> -25 points | Brittle failure, high seismic risk</li>
-                  </ul>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                    <div style={{ backgroundColor: '#f0f7ff', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #28a745' }}>
+                      <h4 style={{ marginTop: 0, color: '#28a745', fontSize: '1.1rem', fontWeight: 700 }}>Factor 1: Building Age</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Post-2007:</strong> -0-5 pts (Modern codes)</li>
+                        <li><strong>1990-2007:</strong> -12-22 pts (BCP 1986)</li>
+                        <li><strong>1975-1990:</strong> -25-33 pts (Basic engineering)</li>
+                        <li><strong>Pre-1975:</strong> -35 pts (Pre-code)</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>💧 Factor 3: Drainage System</h3>
-                  <ul>
-                    <li><strong>Good:</strong> +5 points | Foundation well-protected from water damage</li>
-                    <li><strong>Average:</strong> -8 points | Moderate flood and waterlogging risk</li>
-                    <li><strong>Poor:</strong> -18 points | Foundation undermining and soil degradation risk</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#fff3f0', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #dc3545' }}>
+                      <h4 style={{ marginTop: 0, color: '#dc3545', fontSize: '1.1rem', fontWeight: 700 }}>Factor 2: Construction Type</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Steel Frame:</strong> +5 pts (Excellent)</li>
+                        <li><strong>Reinforced Concrete:</strong> Baseline</li>
+                        <li><strong>URM:</strong> -25 pts (High risk)</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🌍 Factor 4: Seismic Zone (Pakistan Hazard Map)</h3>
-                  <ul>
-                    <li><strong>Low (Zone 2):</strong> -3 points | PGA &lt;0.16g, MMI VI-VII</li>
-                    <li><strong>Medium (Zone 3):</strong> -8 points | PGA 0.16-0.32g, MMI VII-VIII</li>
-                    <li><strong>High (Zone 4):</strong> -15 points | PGA 0.32-0.48g, MMI VIII-IX</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#f0f8ff', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #17a2b8' }}>
+                      <h4 style={{ marginTop: 0, color: '#17a2b8', fontSize: '1.1rem', fontWeight: 700 }}>Factor 3: Drainage System</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Good:</strong> +5 pts</li>
+                        <li><strong>Average:</strong> -8 pts</li>
+                        <li><strong>Poor:</strong> -18 pts</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🔧 Factor 5: Foundation Type</h3>
-                  <ul>
-                    <li><strong>Raft (Mat):</strong> +8 points | Best load distribution, handles poor soil</li>
-                    <li><strong>Isolated Footing:</strong> +3 points | Standard good practice for competent soil</li>
-                    <li><strong>Stone Masonry:</strong> -10 points | Differential settlement risk</li>
-                    <li><strong>Unknown:</strong> -15 points | Cannot assess structural integrity</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#fff8f0', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #fd7e14' }}>
+                      <h4 style={{ marginTop: 0, color: '#fd7e14', fontSize: '1.1rem', fontWeight: 700 }}>Factor 4: Seismic Zone</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Low (Zone 2):</strong> -3 pts</li>
+                        <li><strong>Medium (Zone 3):</strong> -8 pts</li>
+                        <li><strong>High (Zone 4):</strong> -15 pts</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🏛️ Factor 6: Building Type</h3>
-                  <ul>
-                    <li><strong>Residential:</strong> Baseline | Lower occupancy requirements</li>
-                    <li><strong>Commercial:</strong> -5 points | Complex systems, higher standards</li>
-                    <li><strong>Critical Infrastructure:</strong> -12 points | Must remain operational post-disaster (Importance Factor 1.5)</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#f0fff4', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #20c997' }}>
+                      <h4 style={{ marginTop: 0, color: '#20c997', fontSize: '1.1rem', fontWeight: 700 }}>Factor 5: Foundation Type</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Raft:</strong> +8 pts</li>
+                        <li><strong>Isolated Footing:</strong> +3 pts</li>
+                        <li><strong>Stone Masonry:</strong> -10 pts</li>
+                        <li><strong>Unknown:</strong> -15 pts</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>⚡ Factor 7: Lifeline Systems</h3>
-                  <ul>
-                    <li><strong>Yes:</strong> +8 points | Backup power, water, and communications available</li>
-                    <li><strong>No:</strong> -5 points | Dependent on external utilities</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#f8f0ff', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #6f42c1' }}>
+                      <h4 style={{ marginTop: 0, color: '#6f42c1', fontSize: '1.1rem', fontWeight: 700 }}>Factor 6: Building Type</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Residential:</strong> Baseline</li>
+                        <li><strong>Commercial:</strong> -5 pts</li>
+                        <li><strong>Critical:</strong> -12 pts</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>📍 Factor 8: Location Hazards</h3>
-                  <ul>
-                    <li><strong>Karachi:</strong> -8 pts | Coastal flooding, cyclones, urban density</li>
-                    <li><strong>Sukkur/Larkana:</strong> -12 pts | Extreme flooding (2010, 2022 events)</li>
-                    <li><strong>Muzaffarabad/AJK:</strong> -12 pts | Very high seismic (2005 epicenter)</li>
-                    <li><strong>Quetta:</strong> -10 pts | High seismic zone, water scarcity</li>
-                    <li><strong>Peshawar/KPK:</strong> -10 pts | High seismic + flood-prone</li>
-                    <li><strong>Gilgit-Baltistan:</strong> -11 pts | Multi-hazard: seismic, landslides, extreme weather</li>
-                    <li><strong>Lahore/Islamabad:</strong> -5 pts | Moderate hazards</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#fff0f5', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #e83e8c' }}>
+                      <h4 style={{ marginTop: 0, color: '#e83e8c', fontSize: '1.1rem', fontWeight: 700 }}>Factor 7: Lifeline Systems</h4>
+                      <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50' }}>
+                        <li><strong>Yes:</strong> +8 pts</li>
+                        <li><strong>No:</strong> -5 pts</li>
+                      </ul>
+                    </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>📈 Risk Level Interpretation</h3>
-                  <ul>
-                    <li><strong>80-100:</strong> 🟢 LOW RISK | Excellent readiness, well-built structure</li>
-                    <li><strong>60-79:</strong> 🟡 MODERATE RISK | Some vulnerabilities, improvements recommended</li>
-                    <li><strong>40-59:</strong> 🔴 HIGH RISK | Significant vulnerabilities, retrofitting advised</li>
-                    <li><strong>0-39:</strong> 🔴🔴 VERY HIGH RISK | Critical vulnerabilities, urgent action needed</li>
-                  </ul>
+                    <div style={{ backgroundColor: '#f0f4ff', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #0d6efd' }}>
+                      <h4 style={{ marginTop: 0, color: '#0d6efd', fontSize: '1.1rem', fontWeight: 700 }}>Factor 8: Location Hazards</h4>
+                      <p style={{ margin: '0.5rem 0 0 0', color: '#2c3e50', fontSize: '0.95rem' }}>
+                        Hotspots: Muzaffarabad (-12), Sukkur (-12), Quetta (-10), Peshawar (-10), Gilgit (-11), Karachi (-8)
+                      </p>
+                    </div>
+                  </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>💡 Custom Recommendations</h3>
-                  <p>
-                    Based on your inputs, the calculator generates prioritized recommendations addressing critical issues:
-                  </p>
-                  <ul>
-                    <li>Structural vulnerabilities (URM, unknown foundations)</li>
-                    <li>Drainage and water protection measures</li>
-                    <li>Seismic zone-specific strengthening</li>
-                    <li>Lifeline system installations</li>
-                    <li>Location-specific hazard mitigation</li>
-                  </ul>
+                  <div style={{ backgroundColor: '#f0f4ff', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', borderLeft: '5px solid #007bff' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#007bff', fontSize: '1.1rem', fontWeight: 700 }}>📈 Risk Level Interpretation</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                      <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '6px', borderLeft: '4px solid #28a745' }}>
+                        <strong style={{ color: '#155724' }}>80-100: 🟢 LOW RISK</strong>
+                        <p style={{ margin: '0.3rem 0 0 0', color: '#155724', fontSize: '0.95rem' }}>Excellent readiness, well-built structure</p>
+                      </div>
+                      <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '6px', borderLeft: '4px solid #ffc107' }}>
+                        <strong style={{ color: '#856404' }}>60-79: 🟡 MODERATE RISK</strong>
+                        <p style={{ margin: '0.3rem 0 0 0', color: '#856404', fontSize: '0.95rem' }}>Improvements recommended</p>
+                      </div>
+                      <div style={{ backgroundColor: '#f8d7da', padding: '1rem', borderRadius: '6px', borderLeft: '4px solid #dc3545' }}>
+                        <strong style={{ color: '#721c24' }}>40-59: 🔴 HIGH RISK</strong>
+                        <p style={{ margin: '0.3rem 0 0 0', color: '#721c24', fontSize: '0.95rem' }}>Retrofitting advised</p>
+                      </div>
+                      <div style={{ backgroundColor: '#f5c6cb', padding: '1rem', borderRadius: '6px', borderLeft: '4px solid #bd2130' }}>
+                        <strong style={{ color: '#721c24' }}>0-39: 🔴🔴 VERY HIGH RISK</strong>
+                        <p style={{ margin: '0.3rem 0 0 0', color: '#721c24', fontSize: '0.95rem' }}>Urgent action needed</p>
+                      </div>
+                    </div>
+                  </div>
 
-                  <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: '#007bff' }}>🎯 How It Works</h3>
-                  <ol>
-                    <li>Start with a base score of 100 (perfect building)</li>
-                    <li>Apply penalties based on negative factors (age, poor drainage, etc.)</li>
-                    <li>Apply bonuses for positive factors (good foundation, lifelines, etc.)</li>
-                    <li>Ensure final score stays between 0-100</li>
-                    <li>Generate recommendations based on identified vulnerabilities</li>
-                  </ol>
+                  <div style={{ backgroundColor: '#f1f3f5', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', borderLeft: '5px solid #6c757d' }}>
+                    <h3 style={{ marginTop: 0, color: '#495057', fontSize: '1.1rem', fontWeight: 700 }}>🎯 How It Works</h3>
+                    <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', color: '#2c3e50', lineHeight: 1.9 }}>
+                      <li>Start with a <strong>base score of 100</strong> (perfect building)</li>
+                      <li><strong>Apply penalties</strong> for risk factors (age, poor drainage, seismic zone, etc.)</li>
+                      <li><strong>Apply bonuses</strong> for protective factors (good foundation, lifelines, etc.)</li>
+                      <li><strong>Constrain</strong> final score between 0-100</li>
+                      <li><strong>Generate recommendations</strong> addressing your specific vulnerabilities</li>
+                    </ol>
+                  </div>
 
-                  <p style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f0f8ff', borderLeft: '4px solid #007bff', borderRadius: '4px' }}>
-                    <strong>Note:</strong> This calculator provides a preliminary assessment. For critical infrastructure or high-risk structures,
-                    always consult with qualified structural engineers and follow local building authorities' guidelines.
-                  </p>
+                  <div style={{ backgroundColor: '#e7f5ff', padding: '1.5rem', borderRadius: '8px', borderLeft: '5px solid #007bff', borderRight: '5px solid #0056b3' }}>
+                    <p style={{ margin: 0, color: '#004085', fontSize: '0.95rem', lineHeight: 1.8 }}>
+                      <strong>⚠️ Important Disclaimer:</strong> This calculator provides a preliminary assessment based on general civil engineering principles. For <strong>critical infrastructure</strong> or <strong>high-risk structures</strong>, always consult with qualified structural engineers and follow local building authorities' guidelines. This tool does not replace professional engineering evaluation.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
