@@ -1324,6 +1324,7 @@ function App() {
   const [isSubmittingStructureReview, setIsSubmittingStructureReview] = useState(false)
   const [structureReviewResult, setStructureReviewResult] = useState<VisionAnalysisResult | null>(null)
   const [structureReviewError, setStructureReviewError] = useState<string | null>(null)
+  const [isStructureReviewExpanded, setIsStructureReviewExpanded] = useState(false)
   const [buildingType, setBuildingType] = useState('Residential')
   const [materialType, setMaterialType] = useState('Reinforced Concrete')
   const [locationText, setLocationText] = useState('Lahore, Punjab')
@@ -4339,117 +4340,145 @@ function App() {
             </div>
           </div>
 
-          <div className="retrofit-model-output risk-card" style={{ padding: '1.1rem 1.2rem', lineHeight: 1.45 }}>
-            <h3 style={{ marginBottom: '0.45rem', fontSize: '1.08rem' }}>🏗️ Submit My Structure for Risk Review (CAD/BIM)</h3>
-            <p style={{ fontSize: '0.86rem', color: '#666', marginTop: 0, marginBottom: '0.9rem' }}>
-              Professional workflow for structural screening using civil engineering principles (ACI 318, FEMA 154, Capacity Design, Pakistan Building Code 2007/2023).
-            </p>
-
-            <div style={{ backgroundColor: '#f8f9ff', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #007bff' }}>
-              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#007bff', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 1 — File Upload</h4>
-              <p style={{ marginTop: 0, marginBottom: '0.4rem', fontSize: '0.84rem', lineHeight: 1.4 }}>Accepted files: <strong>.dwg, .dxf, .ifc, .pdf, image scans</strong></p>
-              <input
-                type="file"
-                accept=".dwg,.dxf,.ifc,.pdf,image/*"
-                onChange={(event) => setStructureReviewFile(event.target.files?.[0] ?? null)}
-              />
-              {structureReviewFile && <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: '#2d7d46' }}>✓ {structureReviewFile.name}</p>}
-            </div>
-
-            <div style={{ backgroundColor: '#fff8f0', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #fd7e14' }}>
-              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#fd7e14', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 2 — Building Information</h4>
-              <div className="inline-controls" style={{ alignItems: 'stretch', gap: '0.7rem' }}>
-                <label>
-                  Structure Type
-                  <select value={structureReviewType} onChange={(event) => setStructureReviewType(event.target.value as typeof structureReviewType)}>
-                    <option>Home</option>
-                    <option>School</option>
-                    <option>Clinic</option>
-                    <option>Bridge</option>
-                    <option>Commercial</option>
-                    <option>Industrial</option>
-                  </select>
-                </label>
-                <label>
-                  Floors
-                  <input
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={cadNumFloors}
-                    onChange={(event) => setCadNumFloors(Math.max(1, Number(event.target.value) || 1))}
-                  />
-                </label>
-                <label>
-                  Year Built
-                  <input
-                    type="number"
-                    min={1900}
-                    max={new Date().getFullYear()}
-                    value={cadYearBuilt}
-                    onChange={(event) => setCadYearBuilt(Math.min(new Date().getFullYear(), Math.max(1900, Number(event.target.value) || 2000)))}
-                  />
-                </label>
-                <label>
-                  GPS (optional)
-                  <input
-                    type="text"
-                    value={structureReviewGps}
-                    onChange={(event) => setStructureReviewGps(event.target.value)}
-                    placeholder="29.40, 71.68"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div style={{ backgroundColor: '#f0fff4', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #28a745' }}>
-              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#198754', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 3 — Layer Intelligence</h4>
-              <p style={{ marginTop: 0, marginBottom: '0.35rem', fontSize: '0.84rem', lineHeight: 1.4 }}>Detected structural entities from drawing layers (or image inference):</p>
-              <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38 }}>
-                <li>Columns (size, spacing, continuity)</li>
-                <li>Beams (depth, span, framing compatibility)</li>
-                <li>Slabs and diaphragms (thickness, load path behavior)</li>
-                <li>Walls/openings (irregularity and torsion contribution)</li>
-              </ul>
-            </div>
-
-            <div style={{ backgroundColor: '#fff3f0', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.85rem', borderLeft: '4px solid #dc3545' }}>
-              <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#dc3545', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 4 — Engineering Rule Engine</h4>
-              <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38 }}>
-                <li><strong>Minimum Column Size (ACI 318):</strong> column adequacy check against building height and seismic demand.</li>
-                <li><strong>Soft Story (FEMA 154):</strong> detects risky stiffness discontinuity in ground storey.</li>
-                <li><strong>Beam-Column Capacity Design:</strong> flags weak-column/strong-beam risk pattern.</li>
-                <li><strong>Plan Regularity and Torsion (PBC 2007/2023):</strong> identifies mass/stiffness asymmetry risk.</li>
-                <li><strong>Column Grid/Spacing:</strong> checks long spans requiring intermediate support.</li>
-                <li><strong>Vertical Continuity:</strong> validates uninterrupted gravity and lateral load path.</li>
-              </ul>
-            </div>
-
-            <button onClick={submitStructureRiskReview} disabled={isSubmittingStructureReview || !structureReviewFile}>
-              {isSubmittingStructureReview ? '🤖 Running CAD/BIM Engineering Analysis...' : '🤖 Run Engineering Risk Review'}
+          <div className="retrofit-model-output risk-card cad-review-card" style={{ padding: '1.1rem 1.2rem', lineHeight: 1.45 }}>
+            <button
+              type="button"
+              onClick={() => setIsStructureReviewExpanded((prev) => !prev)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.22)',
+                color: '#ffffff',
+                boxShadow: 'none',
+                padding: '0.6rem 0.7rem',
+                borderRadius: '8px',
+                marginBottom: '0.55rem',
+              }}
+              aria-expanded={isStructureReviewExpanded}
+              aria-controls="structure-review-panel"
+            >
+              <span style={{ fontSize: '1.08rem', fontWeight: 700, textAlign: 'left' }}>🏗️ Submit My Structure for Risk Review (CAD/BIM)</span>
+              <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>{isStructureReviewExpanded ? '▲ Click to Collapse' : '▼ Click to Expand'}</span>
             </button>
-            {structureReviewError && <p>{structureReviewError}</p>}
-            {structureReviewResult && (
-              <div className="retrofit-ai-guidance" style={{ marginTop: '0.7rem' }}>
-                <p style={{ margin: '0.1rem 0 0.35rem 0' }}>
-                  <strong>Engineering Risk Summary:</strong> {structureReviewResult.summary}
+
+            {isStructureReviewExpanded && (
+              <div id="structure-review-panel">
+                <p style={{ fontSize: '0.88rem', color: '#dbe6f5', marginTop: 0, marginBottom: '0.9rem' }}>
+                  Professional workflow for structural screening using civil engineering principles (ACI 318, FEMA 154, Capacity Design, Pakistan Building Code 2007/2023).
                 </p>
-                <p style={{ margin: '0.1rem 0 0.5rem 0' }}>
-                  <strong>Risk score:</strong>{' '}
-                  {Math.min(100, Math.max(30, 45 + structureReviewResult.defects.length * 9 + (riskValue === 'Very High' ? 22 : riskValue === 'High' ? 14 : 8)))}/100
-                </p>
-                <ul style={{ margin: 0, paddingLeft: '1rem', lineHeight: 1.35 }}>
-                  {structureReviewResult.priorityActions.slice(0, 6).map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => {
-                    navigateToSection('designToolkit')
-                  }}
-                >
-                  🔗 Open Design Guide Links
+
+                <div className="cad-step-card" style={{ backgroundColor: '#f8f9ff', color: '#1b2430', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #007bff' }}>
+                  <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#005fd1', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 1 — File Upload</h4>
+                  <p style={{ marginTop: 0, marginBottom: '0.4rem', fontSize: '0.84rem', lineHeight: 1.4, color: '#1b2430' }}>
+                    Accepted files: <strong>.dwg, .dxf, .ifc, .pdf, image scans</strong>
+                  </p>
+                  <input
+                    type="file"
+                    accept=".dwg,.dxf,.ifc,.pdf,image/*"
+                    onChange={(event) => setStructureReviewFile(event.target.files?.[0] ?? null)}
+                  />
+                  {structureReviewFile && <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: '#2d7d46' }}>✓ {structureReviewFile.name}</p>}
+                </div>
+
+                <div className="cad-step-card" style={{ backgroundColor: '#fff8f0', color: '#1b2430', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #fd7e14' }}>
+                  <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#c65d00', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 2 — Building Information</h4>
+                  <div className="inline-controls" style={{ alignItems: 'stretch', gap: '0.7rem' }}>
+                    <label style={{ color: '#1b2430' }}>
+                      Structure Type
+                      <select value={structureReviewType} onChange={(event) => setStructureReviewType(event.target.value as typeof structureReviewType)}>
+                        <option>Home</option>
+                        <option>School</option>
+                        <option>Clinic</option>
+                        <option>Bridge</option>
+                        <option>Commercial</option>
+                        <option>Industrial</option>
+                      </select>
+                    </label>
+                    <label style={{ color: '#1b2430' }}>
+                      Floors
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={cadNumFloors}
+                        onChange={(event) => setCadNumFloors(Math.max(1, Number(event.target.value) || 1))}
+                      />
+                    </label>
+                    <label style={{ color: '#1b2430' }}>
+                      Year Built
+                      <input
+                        type="number"
+                        min={1900}
+                        max={new Date().getFullYear()}
+                        value={cadYearBuilt}
+                        onChange={(event) => setCadYearBuilt(Math.min(new Date().getFullYear(), Math.max(1900, Number(event.target.value) || 2000)))}
+                      />
+                    </label>
+                    <label style={{ color: '#1b2430' }}>
+                      GPS (optional)
+                      <input
+                        type="text"
+                        value={structureReviewGps}
+                        onChange={(event) => setStructureReviewGps(event.target.value)}
+                        placeholder="29.40, 71.68"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="cad-step-card" style={{ backgroundColor: '#f0fff4', color: '#1b2430', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.8rem', borderLeft: '4px solid #28a745' }}>
+                  <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#157347', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 3 — Layer Intelligence</h4>
+                  <p style={{ marginTop: 0, marginBottom: '0.35rem', fontSize: '0.84rem', lineHeight: 1.4, color: '#1b2430' }}>Detected structural entities from drawing layers (or image inference):</p>
+                  <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38, color: '#1b2430' }}>
+                    <li>Columns (size, spacing, continuity)</li>
+                    <li>Beams (depth, span, framing compatibility)</li>
+                    <li>Slabs and diaphragms (thickness, load path behavior)</li>
+                    <li>Walls/openings (irregularity and torsion contribution)</li>
+                  </ul>
+                </div>
+
+                <div className="cad-step-card" style={{ backgroundColor: '#fff3f0', color: '#1b2430', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.85rem', borderLeft: '4px solid #dc3545' }}>
+                  <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#b42318', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 4 — Engineering Rule Engine</h4>
+                  <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38, color: '#1b2430' }}>
+                    <li><strong>Minimum Column Size (ACI 318):</strong> column adequacy check against building height and seismic demand.</li>
+                    <li><strong>Soft Story (FEMA 154):</strong> detects risky stiffness discontinuity in ground storey.</li>
+                    <li><strong>Beam-Column Capacity Design:</strong> flags weak-column/strong-beam risk pattern.</li>
+                    <li><strong>Plan Regularity and Torsion (PBC 2007/2023):</strong> identifies mass/stiffness asymmetry risk.</li>
+                    <li><strong>Column Grid/Spacing:</strong> checks long spans requiring intermediate support.</li>
+                    <li><strong>Vertical Continuity:</strong> validates uninterrupted gravity and lateral load path.</li>
+                  </ul>
+                </div>
+
+                <button onClick={submitStructureRiskReview} disabled={isSubmittingStructureReview || !structureReviewFile}>
+                  {isSubmittingStructureReview ? '🤖 Running CAD/BIM Engineering Analysis...' : '🤖 Run Engineering Risk Review'}
                 </button>
+                {structureReviewError && <p style={{ color: '#ffd4d4' }}>{structureReviewError}</p>}
+                {structureReviewResult && (
+                  <div className="retrofit-ai-guidance" style={{ marginTop: '0.7rem' }}>
+                    <p style={{ margin: '0.1rem 0 0.35rem 0' }}>
+                      <strong>Engineering Risk Summary:</strong> {structureReviewResult.summary}
+                    </p>
+                    <p style={{ margin: '0.1rem 0 0.5rem 0' }}>
+                      <strong>Risk score:</strong>{' '}
+                      {Math.min(100, Math.max(30, 45 + structureReviewResult.defects.length * 9 + (riskValue === 'Very High' ? 22 : riskValue === 'High' ? 14 : 8)))}/100
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: '1rem', lineHeight: 1.35 }}>
+                      {structureReviewResult.priorityActions.slice(0, 6).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => {
+                        navigateToSection('designToolkit')
+                      }}
+                    >
+                      🔗 Open Design Guide Links
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -2049,6 +2049,16 @@ img {
   margin-bottom: 10px;
 }
 
+.section-retrofit .cad-review-card .cad-step-card,
+.section-retrofit .cad-review-card .cad-step-card h4,
+.section-retrofit .cad-review-card .cad-step-card p,
+.section-retrofit .cad-review-card .cad-step-card ul,
+.section-retrofit .cad-review-card .cad-step-card li,
+.section-retrofit .cad-review-card .cad-step-card label,
+.section-retrofit .cad-review-card .cad-step-card strong {
+  color: #1b2430 !important;
+}
+
 .retrofit-location-target,
 .retrofit-location-msg,
 .retrofit-selected-photos {
