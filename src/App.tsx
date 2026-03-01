@@ -24,7 +24,6 @@ import {
   type CommunityIssueRecord,
   type CommunityIssueStatus,
 } from './services/communityIssues'
-import readinessFloodHousingImage from './assets/infra-models/flood-housing-cluster-pk.jpg'
 import {
   generateConstructionGuidance,
   generateGuidanceStepImages,
@@ -5483,19 +5482,6 @@ function App() {
             </aside>
 
             <section className="readiness-main-content">
-              <article className="readiness-card readiness-image-card">
-                <h3>ELEVATED FLOOD-RESILIENT HOUSING CLUSTER</h3>
-                <img src={readinessFloodHousingImage} alt="Elevated flood-resilient housing cluster" />
-              </article>
-
-              <article className="readiness-card readiness-features-card">
-                <h3>Key Features</h3>
-                <ul>
-                  <li>Elevated housing 1.5m (5ft) above flooding</li>
-                  <li>Self-sufficient with rainwater harvesting, raised borewell, and kitchen garden.</li>
-                </ul>
-              </article>
-
               <article className="readiness-card readiness-reporting-card">
                 <h3>Community Infrastructure Issue Reporting</h3>
                 <div className="readiness-reporting-grid">
