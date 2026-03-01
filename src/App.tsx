@@ -16,7 +16,6 @@ import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
 import { fetchPmdLiveSnapshot, type PmdLiveSnapshot } from './services/pmdLive'
 import { buildApiTargets } from './services/apiBase'
 import {
-  fetchLiveClimateByCity,
   fetchLiveClimateByCoordinates,
   type LiveClimateSnapshot,
 } from './services/climateLive'
@@ -1289,6 +1288,50 @@ const evacuationAssetsByDistrict: Record<
   ],
 }
 
+// Major Pakistani cities with coordinates for live weather data
+const PAKISTANI_CITIES = [
+  { name: 'Karachi', province: 'Sindh', lat: 24.8607, lng: 67.0011 },
+  { name: 'Lahore', province: 'Punjab', lat: 31.5497, lng: 74.3436 },
+  { name: 'Islamabad', province: 'Islamabad Capital Territory', lat: 33.6844, lng: 73.0479 },
+  { name: 'Rawalpindi', province: 'Punjab', lat: 33.5651, lng: 73.0169 },
+  { name: 'Faisalabad', province: 'Punjab', lat: 31.4504, lng: 73.1350 },
+  { name: 'Multan', province: 'Punjab', lat: 30.1575, lng: 71.5249 },
+  { name: 'Hyderabad', province: 'Sindh', lat: 25.3960, lng: 68.3578 },
+  { name: 'Gujranwala', province: 'Punjab', lat: 32.1617, lng: 74.1883 },
+  { name: 'Peshawar', province: 'Khyber Pakhtunkhwa', lat: 34.0151, lng: 71.5249 },
+  { name: 'Quetta', province: 'Balochistan', lat: 30.1798, lng: 66.9750 },
+  { name: 'Sialkot', province: 'Punjab', lat: 32.4945, lng: 74.5229 },
+  { name: 'Bahawalpur', province: 'Punjab', lat: 29.3956, lng: 71.6836 },
+  { name: 'Sargodha', province: 'Punjab', lat: 32.0836, lng: 72.6711 },
+  { name: 'Sukkur', province: 'Sindh', lat: 27.7052, lng: 68.8574 },
+  { name: 'Larkana', province: 'Sindh', lat: 27.5590, lng: 68.2120 },
+  { name: 'Sheikhupura', province: 'Punjab', lat: 31.7130, lng: 73.9850 },
+  { name: 'Jhang', province: 'Punjab', lat: 31.2687, lng: 72.3169 },
+  { name: 'Rahim Yar Khan', province: 'Punjab', lat: 28.4202, lng: 70.2952 },
+  { name: 'Gujrat', province: 'Punjab', lat: 32.5742, lng: 74.0789 },
+  { name: 'Kasur', province: 'Punjab', lat: 31.1181, lng: 74.4500 },
+  { name: 'Mardan', province: 'Khyber Pakhtunkhwa', lat: 34.1958, lng: 72.0447 },
+  { name: 'Mingora', province: 'Khyber Pakhtunkhwa', lat: 34.7797, lng: 72.3603 },
+  { name: 'Nawabshah', province: 'Sindh', lat: 26.2483, lng: 68.4100 },
+  { name: 'Sahiwal', province: 'Punjab', lat: 30.6682, lng: 73.1114 },
+  { name: 'Mirpur Khas', province: 'Sindh', lat: 25.5277, lng: 69.0111 },
+  { name: 'Okara', province: 'Punjab', lat: 30.8081, lng: 73.4450 },
+  { name: 'Gilgit', province: 'Gilgit-Baltistan', lat: 35.9208, lng: 74.3144 },
+  { name: 'Skardu', province: 'Gilgit-Baltistan', lat: 35.2977, lng: 75.6333 },
+  { name: 'Muzaffarabad', province: 'Azad Kashmir', lat: 34.3700, lng: 73.4711 },
+  { name: 'Abbottabad', province: 'Khyber Pakhtunkhwa', lat: 34.1495, lng: 73.1995 },
+  { name: 'Jhelum', province: 'Punjab', lat: 32.9425, lng: 73.7257 },
+  { name: 'Sadiqabad', province: 'Punjab', lat: 28.3089, lng: 70.1261 },
+  { name: 'Jacobabad', province: 'Sindh', lat: 28.2769, lng: 68.4514 },
+  { name: 'Shikarpur', province: 'Sindh', lat: 27.9556, lng: 68.6383 },
+  { name: 'Khanewal', province: 'Punjab', lat: 30.3017, lng: 71.9321 },
+  { name: 'Hafizabad', province: 'Punjab', lat: 32.0708, lng: 73.6878 },
+  { name: 'Kohat', province: 'Khyber Pakhtunkhwa', lat: 33.5869, lng: 71.4414 },
+  { name: 'Dera Ghazi Khan', province: 'Punjab', lat: 30.0561, lng: 70.6345 },
+  { name: 'Dera Ismail Khan', province: 'Khyber Pakhtunkhwa', lat: 31.8314, lng: 70.9017 },
+  { name: 'Mirpur', province: 'Azad Kashmir', lat: 33.1480, lng: 73.7516 },
+] as const
+
 function App() {
   const [isQaRoute, setIsQaRoute] = useState<boolean>(() => window.location.hash === '#qa-responsive')
   const [language, setLanguage] = useState<Language>('en')
@@ -1833,31 +1876,6 @@ function App() {
     liveClimateSnapshot?.heatwaveRiskZone ?? (selectedProvince === 'Sindh' || selectedProvince === 'Punjab' ? 'High' : 'Moderate')
   const displayedAirQualityLevel = liveClimateSnapshot?.airQualityLevel ?? (selectedProvince === 'Punjab' ? 'Moderate-Unhealthy' : 'Moderate')
   const displayedClimatePrecautions = liveClimateSnapshot?.precautions?.length ? liveClimateSnapshot.precautions : climatePrecautions
-
-  const loadLiveClimateByCity = useCallback(
-    async (cityName: string) => {
-      const query = cityName.trim()
-      if (!query) {
-        setLiveClimateError('Enter a city/area first.')
-        return
-      }
-
-      setIsLoadingLiveClimate(true)
-      setLiveClimateError(null)
-
-      try {
-        const snapshot = await fetchLiveClimateByCity(query)
-        setLiveClimateSnapshot(snapshot)
-        setLocationText(`${snapshot.location.name}, ${snapshot.location.admin1 || snapshot.location.country}`)
-        setClimateLocationInput(snapshot.location.name)
-      } catch (error) {
-        setLiveClimateError(error instanceof Error ? error.message : 'Unable to fetch live climate data for this city.')
-      } finally {
-        setIsLoadingLiveClimate(false)
-      }
-    },
-    [],
-  )
 
   const loadLiveClimateByCoordinates = useCallback(async (lat: number, lng: number) => {
     setIsLoadingLiveClimate(true)
@@ -4138,26 +4156,35 @@ function App() {
               </h3>
               {expandedPanels.riskFloodClimateExplorer && (
                 <>
+                  <p className="info-message">Select a city below to view real-time weather, air quality, and flood/climate risk information.</p>
                   <div className="inline-controls">
                     <label>
-                      Enter Location
-                      <input
+                      Select City
+                      <select
                         value={climateLocationInput}
-                        onChange={(event) => setClimateLocationInput(event.target.value)}
-                        placeholder="City / Area"
-                      />
+                        onChange={(event) => {
+                          const cityName = event.target.value
+                          setClimateLocationInput(cityName)
+                          const selectedCity = PAKISTANI_CITIES.find(c => c.name === cityName)
+                          if (selectedCity && cityName) {
+                            void loadLiveClimateByCoordinates(selectedCity.lat, selectedCity.lng)
+                          }
+                        }}
+                        disabled={isLoadingLiveClimate}
+                      >
+                        <option value="">-- Select a city to view live data --</option>
+                        {PAKISTANI_CITIES.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name} ({city.province})
+                          </option>
+                        ))}
+                      </select>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void loadLiveClimateByCity(climateLocationInput)
-                      }}
-                      disabled={isLoadingLiveClimate}
-                    >
-                      {isLoadingLiveClimate ? 'Applying...' : 'Apply Location'}
-                    </button>
                   </div>
-                  {liveClimateError && <p>{liveClimateError}</p>}
+                  {isLoadingLiveClimate && (
+                    <p className="loading-message">🔄 Loading live weather data...</p>
+                  )}
+                  {liveClimateError && <p className="error-message">{liveClimateError}</p>}
                   {liveClimateSnapshot && (
                     <p>
                       Live source: <strong>{liveClimateSnapshot.source}</strong> • Updated:{' '}
