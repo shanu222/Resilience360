@@ -15,10 +15,6 @@ import UserLocationMiniMap from './components/UserLocationMiniMap'
 import { fetchLiveAlerts, type LiveAlert } from './services/alerts'
 import { fetchPmdLiveSnapshot, type PmdLiveSnapshot } from './services/pmdLive'
 import { buildApiTargets } from './services/apiBase'
-import {
-  fetchLiveClimateByCoordinates,
-  type LiveClimateSnapshot,
-} from './services/climateLive'
 import { analyzeBuildingWithVision, type VisionAnalysisResult } from './services/vision'
 import { getMlRetrofitEstimate, type MlRetrofitEstimate } from './services/mlRetrofit'
 import {
@@ -1272,66 +1268,6 @@ const nearestHospitalsByProvince: Record<string, string[]> = {
   GB: ['DHQ Hospital Gilgit', 'DHQ Hospital Skardu', 'RHC Astore'],
 }
 
-const evacuationAssetsByDistrict: Record<
-  string,
-  Array<{ name: string; kind: 'Safe Shelter' | 'Raised Road' | 'Health Post'; lat: number; lng: number }>
-> = {
-  Bahawalpur: [
-    { name: 'Government High School Shelter', kind: 'Safe Shelter', lat: 29.42, lng: 71.7 },
-    { name: 'Canal Road Raised Segment', kind: 'Raised Road', lat: 29.36, lng: 71.67 },
-    { name: 'THQ Health Post', kind: 'Health Post', lat: 29.39, lng: 71.73 },
-  ],
-  Larkana: [
-    { name: 'District Shelter Hall', kind: 'Safe Shelter', lat: 27.57, lng: 68.22 },
-    { name: 'Embankment Access Road', kind: 'Raised Road', lat: 27.54, lng: 68.2 },
-    { name: 'Rural Health Unit Node', kind: 'Health Post', lat: 27.58, lng: 68.24 },
-  ],
-}
-
-// Major Pakistani cities with coordinates for live weather data
-const PAKISTANI_CITIES = [
-  { name: 'Karachi', province: 'Sindh', lat: 24.8607, lng: 67.0011 },
-  { name: 'Lahore', province: 'Punjab', lat: 31.5497, lng: 74.3436 },
-  { name: 'Islamabad', province: 'Islamabad Capital Territory', lat: 33.6844, lng: 73.0479 },
-  { name: 'Rawalpindi', province: 'Punjab', lat: 33.5651, lng: 73.0169 },
-  { name: 'Faisalabad', province: 'Punjab', lat: 31.4504, lng: 73.1350 },
-  { name: 'Multan', province: 'Punjab', lat: 30.1575, lng: 71.5249 },
-  { name: 'Hyderabad', province: 'Sindh', lat: 25.3960, lng: 68.3578 },
-  { name: 'Gujranwala', province: 'Punjab', lat: 32.1617, lng: 74.1883 },
-  { name: 'Peshawar', province: 'Khyber Pakhtunkhwa', lat: 34.0151, lng: 71.5249 },
-  { name: 'Quetta', province: 'Balochistan', lat: 30.1798, lng: 66.9750 },
-  { name: 'Sialkot', province: 'Punjab', lat: 32.4945, lng: 74.5229 },
-  { name: 'Bahawalpur', province: 'Punjab', lat: 29.3956, lng: 71.6836 },
-  { name: 'Sargodha', province: 'Punjab', lat: 32.0836, lng: 72.6711 },
-  { name: 'Sukkur', province: 'Sindh', lat: 27.7052, lng: 68.8574 },
-  { name: 'Larkana', province: 'Sindh', lat: 27.5590, lng: 68.2120 },
-  { name: 'Sheikhupura', province: 'Punjab', lat: 31.7130, lng: 73.9850 },
-  { name: 'Jhang', province: 'Punjab', lat: 31.2687, lng: 72.3169 },
-  { name: 'Rahim Yar Khan', province: 'Punjab', lat: 28.4202, lng: 70.2952 },
-  { name: 'Gujrat', province: 'Punjab', lat: 32.5742, lng: 74.0789 },
-  { name: 'Kasur', province: 'Punjab', lat: 31.1181, lng: 74.4500 },
-  { name: 'Mardan', province: 'Khyber Pakhtunkhwa', lat: 34.1958, lng: 72.0447 },
-  { name: 'Mingora', province: 'Khyber Pakhtunkhwa', lat: 34.7797, lng: 72.3603 },
-  { name: 'Nawabshah', province: 'Sindh', lat: 26.2483, lng: 68.4100 },
-  { name: 'Sahiwal', province: 'Punjab', lat: 30.6682, lng: 73.1114 },
-  { name: 'Mirpur Khas', province: 'Sindh', lat: 25.5277, lng: 69.0111 },
-  { name: 'Okara', province: 'Punjab', lat: 30.8081, lng: 73.4450 },
-  { name: 'Gilgit', province: 'Gilgit-Baltistan', lat: 35.9208, lng: 74.3144 },
-  { name: 'Skardu', province: 'Gilgit-Baltistan', lat: 35.2977, lng: 75.6333 },
-  { name: 'Muzaffarabad', province: 'Azad Kashmir', lat: 34.3700, lng: 73.4711 },
-  { name: 'Abbottabad', province: 'Khyber Pakhtunkhwa', lat: 34.1495, lng: 73.1995 },
-  { name: 'Jhelum', province: 'Punjab', lat: 32.9425, lng: 73.7257 },
-  { name: 'Sadiqabad', province: 'Punjab', lat: 28.3089, lng: 70.1261 },
-  { name: 'Jacobabad', province: 'Sindh', lat: 28.2769, lng: 68.4514 },
-  { name: 'Shikarpur', province: 'Sindh', lat: 27.9556, lng: 68.6383 },
-  { name: 'Khanewal', province: 'Punjab', lat: 30.3017, lng: 71.9321 },
-  { name: 'Hafizabad', province: 'Punjab', lat: 32.0708, lng: 73.6878 },
-  { name: 'Kohat', province: 'Khyber Pakhtunkhwa', lat: 33.5869, lng: 71.4414 },
-  { name: 'Dera Ghazi Khan', province: 'Punjab', lat: 30.0561, lng: 70.6345 },
-  { name: 'Dera Ismail Khan', province: 'Khyber Pakhtunkhwa', lat: 31.8314, lng: 70.9017 },
-  { name: 'Mirpur', province: 'Azad Kashmir', lat: 33.1480, lng: 73.7516 },
-] as const
-
 function App() {
   const [isQaRoute, setIsQaRoute] = useState<boolean>(() => window.location.hash === '#qa-responsive')
   const [language, setLanguage] = useState<Language>('en')
@@ -1358,10 +1294,6 @@ function App() {
   const [isLoadingCommunityIssues, setIsLoadingCommunityIssues] = useState(false)
   const [isUpdatingCommunityIssueId, setIsUpdatingCommunityIssueId] = useState<string | null>(null)
   const [isSubmittingCommunityIssue, setIsSubmittingCommunityIssue] = useState(false)
-  const [climateLocationInput, setClimateLocationInput] = useState('')
-  const [isLoadingLiveClimate, setIsLoadingLiveClimate] = useState(false)
-  const [liveClimateError, setLiveClimateError] = useState<string | null>(null)
-  const [liveClimateSnapshot, setLiveClimateSnapshot] = useState<LiveClimateSnapshot | null>(null)
   const [selfAssessmentYearBuilt, setSelfAssessmentYearBuilt] = useState(2000)
   const [selfAssessmentConstruction, setSelfAssessmentConstruction] = useState('Reinforced Concrete')
   const [selfAssessmentDrainage, setSelfAssessmentDrainage] = useState<'Good' | 'Average' | 'Poor'>('Average')
@@ -1493,9 +1425,7 @@ function App() {
     slopeStabilityEstimator: false,
     designKitCostEstimator: false,
     selfAssessment: false,
-    riskFloodClimateExplorer: false,
     riskLocalAdvisoryChatbot: false,
-    riskBuildBetterMaterialsGuide: false,
     designSafeShelterCapacityPlanner: false,
     designRecommendedFoundation: false,
     warningWhatToDoNow: false,
@@ -1759,10 +1689,6 @@ function App() {
     () => districtContacts[selectedDistrict ?? ''] ?? districtContacts.default,
     [selectedDistrict],
   )
-  const evacuationAssets = useMemo(
-    () => evacuationAssetsByDistrict[selectedDistrict ?? ''] ?? [],
-    [selectedDistrict],
-  )
   const availableDrawings = useMemo(() => engineeringDrawingLibrary[mapLayer], [mapLayer])
   const districtTopRisks = useMemo(() => {
     if (!selectedDistrictProfile) {
@@ -1774,19 +1700,6 @@ function App() {
       `Flood exposure: ${selectedDistrictProfile.flood}`,
     ]
   }, [selectedDistrictProfile])
-  const localMaterialGuide = useMemo(() => {
-    const profile = selectedDistrictProfile
-    const recommended = profile?.earthquake === 'Very High'
-      ? ['Ductile RCC frame with confined masonry infill', 'Stone masonry with full confinement bands', 'FRP wrapping for priority retrofit zones']
-      : ['Confined masonry', 'RCC with corrosion-protected reinforcement', 'Stabilized block walls with tie-beams']
-    const risky = ['Unreinforced adobe', 'Unanchored parapets', 'Light roof without wall ties']
-    const suppliers = [
-      `${selectedProvince} C&W approved material depots`,
-      'PDMA-partner vendor list (district emergency stores)',
-      'Local market: waterproofing membrane, anchor bolts, and mesh reinforcement',
-    ]
-    return { recommended, risky, suppliers }
-  }, [selectedDistrictProfile, selectedProvince])
   const districtRetrofitCostRange = useMemo(() => {
     const cityRate = cityRateByProvince[selectedProvince]?.[retrofitCity]?.laborDaily ?? 2800
     const profileFactor = selectedDistrictProfile?.infraRisk === 'Very High' ? 1.35 : selectedDistrictProfile?.infraRisk === 'High' ? 1.22 : 1.1
@@ -1840,59 +1753,6 @@ function App() {
       return alertFilterWindow === '24h' ? ageHours <= 24 : ageHours <= 24 * 7
     })
   }, [alertFilterWindow, hazardAlertOverlay])
-  const nearbyShelters = useMemo(
-    () => evacuationAssets.filter((asset) => asset.kind === 'Safe Shelter'),
-    [evacuationAssets],
-  )
-  const climateRiskScore = useMemo(() => {
-    const floodScore = riskValue === 'Very High' ? 92 : riskValue === 'High' ? 78 : riskValue === 'Medium' ? 62 : 45
-    const heatwaveScore = selectedProvince === 'Sindh' || selectedProvince === 'Punjab' ? 74 : 61
-    const earthquakeScore =
-      (selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'Very High'
-        ? 88
-        : (selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'High'
-          ? 74
-          : (selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'Medium'
-            ? 58
-            : 42
-    const airQualityScore = selectedProvince === 'Punjab' ? 68 : selectedProvince === 'Sindh' ? 64 : 54
-    return Math.round((floodScore + heatwaveScore + earthquakeScore + airQualityScore) / 4)
-  }, [riskValue, selectedDistrictProfile?.earthquake, selectedProvince])
-  const climatePrecautions = useMemo(() => {
-    const precautions = ['Keep go-bag ready with water, torch, and essential medicines.']
-    if (riskValue === 'High' || riskValue === 'Very High') {
-      precautions.push('Move valuables and electrical points above likely flood level.')
-      precautions.push('Avoid low-lying underpasses and blocked drainage corridors during rain.')
-    }
-    if ((selectedDistrictProfile?.earthquake ?? provinceRisk[selectedProvince].earthquake) === 'High') {
-      precautions.push('Secure heavy furniture/water tanks and identify safe drop-cover-hold points.')
-    }
-    precautions.push('Store district emergency numbers and nearest shelter routes offline.')
-    return precautions
-  }, [riskValue, selectedDistrictProfile?.earthquake, selectedProvince])
-
-  const displayedClimateRiskScore = liveClimateSnapshot?.riskScore ?? climateRiskScore
-  const displayedHeatwaveRiskZone =
-    liveClimateSnapshot?.heatwaveRiskZone ?? (selectedProvince === 'Sindh' || selectedProvince === 'Punjab' ? 'High' : 'Moderate')
-  const displayedAirQualityLevel = liveClimateSnapshot?.airQualityLevel ?? (selectedProvince === 'Punjab' ? 'Moderate-Unhealthy' : 'Moderate')
-  const displayedClimatePrecautions = liveClimateSnapshot?.precautions?.length ? liveClimateSnapshot.precautions : climatePrecautions
-
-  const loadLiveClimateByCoordinates = useCallback(async (lat: number, lng: number) => {
-    setIsLoadingLiveClimate(true)
-    setLiveClimateError(null)
-
-    try {
-      const snapshot = await fetchLiveClimateByCoordinates(lat, lng)
-      setLiveClimateSnapshot(snapshot)
-      setLocationText(`${snapshot.location.name}, ${snapshot.location.admin1 || snapshot.location.country}`)
-      setClimateLocationInput(snapshot.location.name)
-    } catch (error) {
-      setLiveClimateError(error instanceof Error ? error.message : 'Unable to fetch live climate data for this location.')
-    } finally {
-      setIsLoadingLiveClimate(false)
-    }
-  }, [])
-
   const buildingSafetyAssessment = useMemo(() => {
     let score = 78
     if (selfAssessmentYearBuilt < 1990) score -= 18
@@ -3479,7 +3339,6 @@ function App() {
         const nearestProvinceCities = nearestProvince ? (pakistanCitiesByProvince[nearestProvince] ?? []) : []
 
         setStructureReviewGps(gpsText)
-        void loadLiveClimateByCoordinates(rawLat, rawLng)
 
         if (nearestProvince) {
           setSelectedProvince(nearestProvince)
@@ -3574,7 +3433,7 @@ function App() {
     if (!detectedUserLocation) {
       requestCurrentUserLocation()
     }
-  }, [activeSection, detectedUserLocation, hasTriedApplyAutoLocation, loadLiveClimateByCoordinates])
+  }, [activeSection, detectedUserLocation, hasTriedApplyAutoLocation])
 
   const loadCommunityIssueReports = useCallback(async () => {
     setIsLoadingCommunityIssues(true)
@@ -4146,151 +4005,6 @@ function App() {
             </p>
           </div>
 
-          <div className="risk-insights-grid">
-            <div className="retrofit-model-output risk-card risk-climate-card">
-              <h3>
-                <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('riskFloodClimateExplorer')} aria-expanded={expandedPanels.riskFloodClimateExplorer}>
-                  <span>🌦️ Flood &amp; Climate Risk Explorer</span>
-                  <span>{expandedPanels.riskFloodClimateExplorer ? '▾' : '▸'}</span>
-                </button>
-              </h3>
-              {expandedPanels.riskFloodClimateExplorer && (
-                <>
-                  <p className="info-message">Select a city below to view real-time weather, air quality, and flood/climate risk information.</p>
-                  <div className="inline-controls">
-                    <label>
-                      Select City
-                      <select
-                        value={climateLocationInput}
-                        onChange={(event) => {
-                          const cityName = event.target.value
-                          setClimateLocationInput(cityName)
-                          const selectedCity = PAKISTANI_CITIES.find(c => c.name === cityName)
-                          if (selectedCity && cityName) {
-                            void loadLiveClimateByCoordinates(selectedCity.lat, selectedCity.lng)
-                          }
-                        }}
-                        disabled={isLoadingLiveClimate}
-                      >
-                        <option value="">-- Select a city to view live data --</option>
-                        {PAKISTANI_CITIES.map((city) => (
-                          <option key={city.name} value={city.name}>
-                            {city.name} ({city.province})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  {isLoadingLiveClimate && (
-                    <p className="loading-message">🔄 Loading live weather data...</p>
-                  )}
-                  {liveClimateError && <p className="error-message">{liveClimateError}</p>}
-                  {liveClimateSnapshot && (
-                    <p>
-                      Live source: <strong>{liveClimateSnapshot.source}</strong> • Updated:{' '}
-                      <strong>{new Date(liveClimateSnapshot.updatedAt).toLocaleString()}</strong>
-                    </p>
-                  )}
-                  <p>
-                    Risk Score: <strong>{displayedClimateRiskScore}/100</strong>
-                  </p>
-                  <p>
-                    Heatwave Risk Zone: <strong>{displayedHeatwaveRiskZone}</strong>
-                  </p>
-                  <p>
-                    Air Quality Level: <strong>{displayedAirQualityLevel}</strong>
-                  </p>
-                  {liveClimateSnapshot && (
-                    <p>
-                      Temperature / Feels Like: <strong>{liveClimateSnapshot.metrics.temperatureC.toFixed(1)}°C / {liveClimateSnapshot.metrics.apparentTemperatureC.toFixed(1)}°C</strong>{' '}
-                      • Rain Chance: <strong>{Math.round(liveClimateSnapshot.metrics.precipitationProbability)}%</strong> • AQI:{' '}
-                      <strong>{Math.round(liveClimateSnapshot.metrics.usAqi)}</strong>
-                    </p>
-                  )}
-                  <p>
-                    Safe Shelters Nearby: <strong>{nearbyShelters.length || 'No mapped shelter in current district'}</strong>
-                  </p>
-                  {nearbyShelters.length > 0 && (
-                    <ul>
-                      {nearbyShelters.slice(0, 3).map((asset) => (
-                        <li key={asset.name}>{asset.name}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <h4>Precautions</h4>
-                  <ul>
-                    {displayedClimatePrecautions.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                  <h4>Emergency Contacts</h4>
-                  <ul>
-                    {selectedDistrictContacts.map((contact) => (
-                      <li key={contact}>{contact}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-
-            <div className="risk-side-stack">
-              <div className="global-earthquake-panel global-earthquake-alerts-card risk-card risk-earthquake-card">
-                <div className="global-earthquake-alerts-head">
-                  <h3>🌍 Live Earthquake Alerts</h3>
-                </div>
-                <button
-                  type="button"
-                  className="global-earthquake-launch-btn"
-                  onClick={() => {
-                    const liveAlertsUrl = `${import.meta.env.BASE_URL}live-earthquake-alerts.html`
-                    window.open(liveAlertsUrl, '_blank', 'noopener,noreferrer')
-                  }}
-                >
-                  View Live Earthquake Alerts
-                </button>
-              </div>
-
-              <div className="retrofit-model-output risk-card risk-chatbot-card">
-                <h3>
-                  <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('riskLocalAdvisoryChatbot')} aria-expanded={expandedPanels.riskLocalAdvisoryChatbot}>
-                    <span>Local Advisory Chatbot</span>
-                    <span>{expandedPanels.riskLocalAdvisoryChatbot ? '▾' : '▸'}</span>
-                  </button>
-                </h3>
-                {expandedPanels.riskLocalAdvisoryChatbot && (
-                  <>
-                    <p>Ask for district-level action advice, retrofit priorities, or hazard-specific guidance.</p>
-                    <div className="inline-controls">
-                      <input
-                        type="text"
-                        value={advisoryQuestion}
-                        onChange={(event) => setAdvisoryQuestion(event.target.value)}
-                        placeholder="e.g., What should schools in this district do before monsoon?"
-                      />
-                      <button onClick={() => { void sendLocalAdvisoryQuestion() }} disabled={isAskingAdvisory}>
-                        {isAskingAdvisory ? '💬 Thinking...' : '💬 Ask'}
-                      </button>
-                    </div>
-                    {advisoryError && <p>{advisoryError}</p>}
-                    {advisoryMessages.length > 0 && (
-                      <div>
-                        {advisoryMessages.slice(-6).map((message, idx) => (
-                          <p key={`${message.role}-${idx}`}>
-                            <strong>{message.role === 'user' ? 'You' : 'Advisor'}:</strong> {message.text}
-                          </p>
-                        ))}
-                        <div className="inline-controls">
-                          <button onClick={downloadLatestAdvisoryAnswerPdf}>📄 Download Latest Answer (PDF)</button>
-                          <button onClick={() => { void copyLatestAdvisoryAnswer() }}>📋 Copy Answer</button>
-                        </div>
-                        {advisoryCopyMsg && <p>{advisoryCopyMsg}</p>}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
           {selectedDistrict && (
             <div className="retrofit-model-output risk-card">
               <h3>District Action Panel</h3>
@@ -4346,28 +4060,62 @@ function App() {
             </div>
           )}
 
-          <div className="retrofit-model-output risk-card">
-            <h3>
-              <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('riskBuildBetterMaterialsGuide')} aria-expanded={expandedPanels.riskBuildBetterMaterialsGuide}>
-                <span>🧱 Build Better: Local Materials Guide</span>
-                <span>{expandedPanels.riskBuildBetterMaterialsGuide ? '▾' : '▸'}</span>
+          <div className="risk-insights-grid">
+            <div className="global-earthquake-panel global-earthquake-alerts-card risk-card risk-earthquake-card">
+              <div className="global-earthquake-alerts-head">
+                <h3>🌍 Live Earthquake Alerts</h3>
+              </div>
+              <button
+                type="button"
+                className="global-earthquake-launch-btn"
+                onClick={() => {
+                  const liveAlertsUrl = `${import.meta.env.BASE_URL}live-earthquake-alerts.html`
+                  window.open(liveAlertsUrl, '_blank', 'noopener,noreferrer')
+                }}
+              >
+                View Live Earthquake Alerts
               </button>
-            </h3>
-            {expandedPanels.riskBuildBetterMaterialsGuide && (
-              <>
-                <p>
-                  Recommended: <strong>{localMaterialGuide.recommended.join(' | ')}</strong>
-                </p>
-                <p>
-                  Risky materials: <strong>{localMaterialGuide.risky.join(' | ')}</strong>
-                </p>
-                <ul>
-                  {localMaterialGuide.suppliers.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </>
-            )}
+            </div>
+
+            <div className="retrofit-model-output risk-card risk-chatbot-card">
+              <h3>
+                <button type="button" className="section-collapsible-toggle" onClick={() => togglePanel('riskLocalAdvisoryChatbot')} aria-expanded={expandedPanels.riskLocalAdvisoryChatbot}>
+                  <span>Local Advisory Chatbot</span>
+                  <span>{expandedPanels.riskLocalAdvisoryChatbot ? '▾' : '▸'}</span>
+                </button>
+              </h3>
+              {expandedPanels.riskLocalAdvisoryChatbot && (
+                <>
+                  <p>Ask for district-level action advice, retrofit priorities, or hazard-specific guidance.</p>
+                  <div className="inline-controls">
+                    <input
+                      type="text"
+                      value={advisoryQuestion}
+                      onChange={(event) => setAdvisoryQuestion(event.target.value)}
+                      placeholder="e.g., What should schools in this district do before monsoon?"
+                    />
+                    <button onClick={() => { void sendLocalAdvisoryQuestion() }} disabled={isAskingAdvisory}>
+                      {isAskingAdvisory ? '💬 Thinking...' : '💬 Ask'}
+                    </button>
+                  </div>
+                  {advisoryError && <p>{advisoryError}</p>}
+                  {advisoryMessages.length > 0 && (
+                    <div>
+                      {advisoryMessages.slice(-6).map((message, idx) => (
+                        <p key={`${message.role}-${idx}`}>
+                          <strong>{message.role === 'user' ? 'You' : 'Advisor'}:</strong> {message.text}
+                        </p>
+                      ))}
+                      <div className="inline-controls">
+                        <button onClick={downloadLatestAdvisoryAnswerPdf}>📄 Download Latest Answer (PDF)</button>
+                        <button onClick={() => { void copyLatestAdvisoryAnswer() }}>📋 Copy Answer</button>
+                      </div>
+                      {advisoryCopyMsg && <p>{advisoryCopyMsg}</p>}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="retrofit-model-output risk-card">
