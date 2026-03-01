@@ -85,18 +85,17 @@ body {
   margin: 0;
   padding: clamp(var(--space-2), 1.6vw, var(--space-4));
   min-height: 100dvh;
-  background: linear-gradient(
-    135deg,
-    var(--navy),
-    var(--deep-blue),
-    var(--purple)
-  );
+  background-image: url('/app-background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 .resilience-bg-shell {
   background-image:
     linear-gradient(180deg, rgba(14, 46, 70, 0.18) 0%, rgba(14, 46, 70, 0.06) 45%, rgba(14, 46, 70, 0.2) 100%),
-    url('/background-resilience.png');
+    url('/app-background.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -105,9 +104,7 @@ body {
 }
 
 .home-shell {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: transparent;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
