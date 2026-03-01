@@ -2,9 +2,9 @@
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
+  --background: transparent;
   --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
+  --card: rgba(255, 255, 255, 0.9);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -140,7 +140,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-transparent text-foreground;
+    min-height: 100vh;
   }
 
   /**
@@ -150,6 +151,12 @@
 
   html {
     font-size: var(--font-size);
+    background-image: url('/retrofit-background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
   }
 
   h1 {
