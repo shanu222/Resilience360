@@ -1338,6 +1338,13 @@ function App() {
   const [shelterOccupancyType, setShelterOccupancyType] = useState<'School' | 'Mosque' | 'House'>('School')
   const [houseTypeForCost, setHouseTypeForCost] = useState<'Single-Storey' | 'Double-Storey' | 'School Block' | 'Clinic Unit'>('Single-Storey')
   const [floorAreaSqftCost, setFloorAreaSqftCost] = useState(1200)
+  const [estimatorFloors, setEstimatorFloors] = useState(1)
+  const [estimatorConstructionType, setEstimatorConstructionType] = useState<'Grey Structure' | 'Turnkey' | 'Premium'>('Turnkey')
+  const [estimatorStructuralSystem, setEstimatorStructuralSystem] = useState<'RC Frame' | 'Confined Masonry' | 'Load Bearing' | 'Steel Structure'>('Confined Masonry')
+  const [estimatorSoilType, setEstimatorSoilType] = useState<'Soft Soil' | 'Medium Soil' | 'Rock'>('Medium Soil')
+  const [estimatorSeismicToggle, setEstimatorSeismicToggle] = useState(true)
+  const [estimatorFloodToggle, setEstimatorFloodToggle] = useState(true)
+  const [estimatorWindToggle, setEstimatorWindToggle] = useState(true)
   const [designSummaryText, _setDesignSummaryText] = useState<string | null>(null)
   const [showTrainingPrograms] = useState(false)
   const [activeLearnVideoFile, setActiveLearnVideoFile] = useState<string | null>(null)
@@ -2137,33 +2144,96 @@ function App() {
 
   const designCostEstimate = useMemo(() => {
     const area = Math.max(300, floorAreaSqftCost)
+    
+    // Base cost by house type
     const baseByHouseType: Record<typeof houseTypeForCost, number> = {
       'Single-Storey': 850,
       'Double-Storey': 980,
       'School Block': 1220,
       'Clinic Unit': 1150,
     }
+    const baseCost = baseByHouseType[houseTypeForCost]
 
-    const hazardMultiplier =
+    // Floor multiplier (additional floors increase cost)
+    const floorMultiplier = 1 + (estimatorFloors - 1) * 0.15
+
+    // Soil multiplier
+    const soilMultiplier = estimatorSoilType === 'Soft Soil' ? 1.1 : estimatorSoilType === 'Rock' ? 0.95 : 1.0
+
+    // Structural system multiplier
+    const structuralMultiplier: Record<typeof estimatorStructuralSystem, number> = {
+      'RC Frame': 1.15,
+      'Confined Masonry': 1.0,
+      'Load Bearing': 0.9,
+      'Steel Structure': 1.25,
+    }
+
+    // Construction type multiplier
+    const constructionMultiplier: Record<typeof estimatorConstructionType, number> = {
+      'Grey Structure': 0.7,
+      'Turnkey': 1.0,
+      'Premium': 1.4,
+    }
+
+    // Hazard multiplier (base)
+    const baseHazardMultiplier =
       (designHazardOverlay.seismicZone >= 4 ? 1.12 : 1.03) *
       (designHazardOverlay.floodDepth100y >= 1.5 ? 1.1 : 1.02) *
       (designHazardOverlay.liquefaction === 'High' ? 1.08 : designHazardOverlay.liquefaction === 'Medium' ? 1.04 : 1)
 
+    // Location multiplier based on labor and material rates
     const locationMultiplier =
       (designCityRates.laborDaily / 2600) * 0.45 + designCityRates.materialIndex * 0.45 + designCityRates.logisticsIndex * 0.1
 
-    const unitCost = baseByHouseType[houseTypeForCost] * hazardMultiplier * locationMultiplier
+    // Calculate components
+    const unitCost = baseCost * floorMultiplier * soilMultiplier * structuralMultiplier[estimatorStructuralSystem] * constructionMultiplier[estimatorConstructionType] * baseHazardMultiplier * locationMultiplier
     const subtotal = area * unitCost
-    const contingency = subtotal * 0.1
-    const total = subtotal + contingency
+    
+    const seismicUpgradeCost = estimatorSeismicToggle && designHazardOverlay.seismicZone >= 4 ? subtotal * 0.08 : 0
+    const floodUpgradeCost = estimatorFloodToggle && designHazardOverlay.floodDepth100y >= 1.5 ? subtotal * 0.06 : 0
+    const windUpgradeCost = estimatorWindToggle ? subtotal * 0.05 : 0
+    const resillienceUpgradeCost = seismicUpgradeCost + floodUpgradeCost + windUpgradeCost
+    
+    const professionalFee = (subtotal + resillienceUpgradeCost) * 0.05
+    const contingency = (subtotal + resillienceUpgradeCost + professionalFee) * 0.1
+    const total = subtotal + resillienceUpgradeCost + professionalFee + contingency
+
+    // Breakdown by component (as percentages of subtotal)
+    const foundation = subtotal * 0.15
+    const structure = subtotal * 0.35
+    const brickwork = subtotal * 0.15
+    const finishing = subtotal * 0.2
+    const electrical = subtotal * 0.08
+    const plumbing = subtotal * 0.07
+
+    // Standard vs resilient comparison
+    const standardCost = subtotal + (subtotal * 0.1)
+    const resillientCost = total
+    const costDifference = resillientCost - standardCost
+    const percentIncrease = (costDifference / standardCost) * 100
 
     return {
       unitCost,
       subtotal,
+      seismicUpgradeCost,
+      floodUpgradeCost,
+      windUpgradeCost,
+      resillienceUpgradeCost,
+      professionalFee,
       contingency,
       total,
+      foundation,
+      structure,
+      brickwork,
+      finishing,
+      electrical,
+      plumbing,
+      standardCost,
+      resillientCost,
+      costDifference,
+      percentIncrease,
     }
-  }, [designCityRates.laborDaily, designCityRates.logisticsIndex, designCityRates.materialIndex, designHazardOverlay.floodDepth100y, designHazardOverlay.liquefaction, designHazardOverlay.seismicZone, floorAreaSqftCost, houseTypeForCost])
+  }, [designCityRates.laborDaily, designCityRates.logisticsIndex, designCityRates.materialIndex, designHazardOverlay.floodDepth100y, designHazardOverlay.liquefaction, designHazardOverlay.seismicZone, floorAreaSqftCost, houseTypeForCost, estimatorFloors, estimatorConstructionType, estimatorStructuralSystem, estimatorSoilType, estimatorSeismicToggle, estimatorFloodToggle, estimatorWindToggle])
 
   const loadResilienceInfraModels = async () => {
     setInfraModelsError(null)
@@ -4475,41 +4545,237 @@ function App() {
                 </h3>
                 {expandedPanels.designKitCostEstimator && (
                   <>
-                    <div className="inline-controls design-toolkit-compact-controls">
-                      <label>
-                        House Type
-                        <select value={houseTypeForCost} onChange={(event) => setHouseTypeForCost(event.target.value as typeof houseTypeForCost)}>
-                          <option>Single-Storey</option>
-                          <option>Double-Storey</option>
-                          <option>School Block</option>
-                          <option>Clinic Unit</option>
-                        </select>
-                      </label>
-                      <label>
-                        Floor Area (sq ft)
-                        <input
-                          type="number"
-                          min={300}
-                          value={floorAreaSqftCost}
-                          onChange={(event) => setFloorAreaSqftCost(Number(event.target.value) || 300)}
-                        />
-                      </label>
-                    </div>
-                    <div className="retrofit-insights-grid design-toolkit-cost-grid">
-                      <p>
-                        Unit Cost: <strong>PKR {Math.round(designCostEstimate.unitCost).toLocaleString()}/sq ft</strong>
-                      </p>
-                      <p>
-                        Subtotal: <strong>PKR {Math.round(designCostEstimate.subtotal).toLocaleString()}</strong>
-                      </p>
-                      <p>
-                        Contingency: <strong>PKR {Math.round(designCostEstimate.contingency).toLocaleString()}</strong>
-                      </p>
-                      <p>
-                        Total Estimate: <strong>PKR {Math.round(designCostEstimate.total).toLocaleString()}</strong>
-                      </p>
+                    {/* SECTION 1: Basic Inputs */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ color: '#2563eb', marginBottom: '12px' }}>🏠 SECTION 1 — Basic Inputs</h4>
+                      <div className="inline-controls design-toolkit-compact-controls">
+                        <label>
+                          City
+                          <select value={designCity} onChange={(event) => setDesignCity(event.target.value)}>
+                            {availableDesignCities.map((city) => (
+                              <option key={city}>{city}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          House Type
+                          <select value={houseTypeForCost} onChange={(event) => setHouseTypeForCost(event.target.value as typeof houseTypeForCost)}>
+                            <option>Single-Storey</option>
+                            <option>Double-Storey</option>
+                            <option>School Block</option>
+                            <option>Clinic Unit</option>
+                          </select>
+                        </label>
+                        <label>
+                          Covered Area (sq ft)
+                          <input
+                            type="number"
+                            min={300}
+                            value={floorAreaSqftCost}
+                            onChange={(event) => setFloorAreaSqftCost(Number(event.target.value) || 300)}
+                          />
+                        </label>
+                        <label>
+                          Floors
+                          <select value={estimatorFloors} onChange={(event) => setEstimatorFloors(Number(event.target.value) || 1)}>
+                            <option value={1}>1 Floor</option>
+                            <option value={2}>2 Floors</option>
+                            <option value={3}>3 Floors</option>
+                            <option value={4}>4+ Floors</option>
+                          </select>
+                        </label>
+                        <label>
+                          Construction Type
+                          <select value={estimatorConstructionType} onChange={(event) => setEstimatorConstructionType(event.target.value as typeof estimatorConstructionType)}>
+                            <option>Grey Structure</option>
+                            <option>Turnkey</option>
+                            <option>Premium</option>
+                          </select>
+                        </label>
+                      </div>
                     </div>
 
+                    {/* SECTION 2: Hazard-Based Adjustments */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ color: '#2563eb', marginBottom: '12px' }}>🌍 SECTION 2 — Hazard-Based Adjustments</h4>
+                      <p style={{ fontSize: '0.9em', color: '#666' }}>
+                        Auto-detected: Seismic Zone <strong>{designHazardOverlay.seismicZone}</strong> • Flood Risk <strong>{designHazardOverlay.floodDepth100y.toFixed(1)}m</strong>
+                      </p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '10px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={estimatorSeismicToggle}
+                            onChange={(event) => setEstimatorSeismicToggle(event.target.checked)}
+                          />
+                          <span>☐ Seismic-Resistant Design</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={estimatorFloodToggle}
+                            onChange={(event) => setEstimatorFloodToggle(event.target.checked)}
+                          />
+                          <span>☐ Flood-Resistant Plinth</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={estimatorWindToggle}
+                            onChange={(event) => setEstimatorWindToggle(event.target.checked)}
+                          />
+                          <span>☐ Wind Reinforcement</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: Structural System */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ color: '#2563eb', marginBottom: '12px' }}>🧱 SECTION 3 — Structural System</h4>
+                      <label>
+                        <select value={estimatorStructuralSystem} onChange={(event) => setEstimatorStructuralSystem(event.target.value as typeof estimatorStructuralSystem)}>
+                          <option>RC Frame</option>
+                          <option>Confined Masonry</option>
+                          <option>Load Bearing</option>
+                          <option>Steel Structure</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    {/* SECTION 4: Soil Type */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ color: '#2563eb', marginBottom: '12px' }}>🏗 SECTION 4 — Soil Type</h4>
+                      <label>
+                        <select value={estimatorSoilType} onChange={(event) => setEstimatorSoilType(event.target.value as typeof estimatorSoilType)}>
+                          <option>Soft Soil (+10%)</option>
+                          <option>Medium Soil</option>
+                          <option>Rock</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    {/* Cost Breakdown Summary */}
+                    <div style={{ backgroundColor: 'rgba(37, 99, 235, 0.08)', padding: '14px', borderRadius: '8px', marginBottom: '16px' }}>
+                      <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#1b2430' }}>💰 COST BREAKDOWN</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.95em' }}>
+                        <p>
+                          Unit Cost: <strong>PKR {Math.round(designCostEstimate.unitCost).toLocaleString()}/sq ft</strong>
+                        </p>
+                        <p>
+                          Base Cost: <strong>PKR {Math.round(designCostEstimate.subtotal).toLocaleString()}</strong>
+                        </p>
+                        {designCostEstimate.seismicUpgradeCost > 0 && (
+                          <p>
+                            Seismic Upgrade: <strong>PKR {Math.round(designCostEstimate.seismicUpgradeCost).toLocaleString()}</strong>
+                          </p>
+                        )}
+                        {designCostEstimate.floodUpgradeCost > 0 && (
+                          <p>
+                            Flood Plinth Raise: <strong>PKR {Math.round(designCostEstimate.floodUpgradeCost).toLocaleString()}</strong>
+                          </p>
+                        )}
+                        {designCostEstimate.windUpgradeCost > 0 && (
+                          <p>
+                            Wind Reinforcement: <strong>PKR {Math.round(designCostEstimate.windUpgradeCost).toLocaleString()}</strong>
+                          </p>
+                        )}
+                        <p>
+                          Professional Fee: <strong>PKR {Math.round(designCostEstimate.professionalFee).toLocaleString()}</strong>
+                        </p>
+                        <p>
+                          Contingency (10%): <strong>PKR {Math.round(designCostEstimate.contingency).toLocaleString()}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div style={{ backgroundColor: '#ea580c', color: '#fff', padding: '14px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                      <p style={{ marginBottom: '6px', fontSize: '0.9em' }}>Total Estimated Cost</p>
+                      <h3 style={{ marginTop: 0, marginBottom: 0 }}>PKR {Math.round(designCostEstimate.total).toLocaleString()}</h3>
+                    </div>
+
+                    {/* Detailed Component Breakdown Table */}
+                    <details style={{ marginBottom: '16px' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#2563eb', marginBottom: '10px' }}>
+                        📊 Detailed Component Breakdown
+                      </summary>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', fontSize: '0.9em', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
+                              <th style={{ padding: '8px', textAlign: 'left' }}>Component</th>
+                              <th style={{ padding: '8px', textAlign: 'right' }}>%</th>
+                              <th style={{ padding: '8px', textAlign: 'right' }}>Cost (PKR)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '8px' }}>Foundation</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>15%</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.foundation).toLocaleString()}</td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '8px' }}>Structure</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>35%</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.structure).toLocaleString()}</td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '8px' }}>Brickwork</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>15%</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.brickwork).toLocaleString()}</td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '8px' }}>Finishing</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>20%</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.finishing).toLocaleString()}</td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '8px' }}>Electrical</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>8%</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.electrical).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                              <td style={{ padding: '8px' }}>Plumbing</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>7%</td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.plumbing).toLocaleString()}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+
+                    {/* Comparison Panel */}
+                    <details style={{ marginBottom: '16px' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#2563eb', marginBottom: '10px' }}>
+                        📈 Standard vs Resilient Comparison
+                      </summary>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ backgroundColor: '#f3f4f6', padding: '12px', borderRadius: '6px' }}>
+                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Standard Design Cost</p>
+                          <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#1b2430', margin: 0 }}>
+                            PKR {Math.round(designCostEstimate.standardCost).toLocaleString()}
+                          </p>
+                        </div>
+                        <div style={{ backgroundColor: '#dcfce7', padding: '12px', borderRadius: '6px' }}>
+                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Resilient Design Cost</p>
+                          <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#16a34a', margin: 0 }}>
+                            PKR {Math.round(designCostEstimate.resillientCost).toLocaleString()}
+                          </p>
+                        </div>
+                        <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '6px' }}>
+                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Difference</p>
+                          <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#b45309', margin: 0 }}>
+                            PKR {Math.round(designCostEstimate.costDifference).toLocaleString()}
+                          </p>
+                        </div>
+                        <div style={{ backgroundColor: '#ffe7d9', padding: '12px', borderRadius: '6px' }}>
+                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Resilience Premium</p>
+                          <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#ea580c', margin: 0 }}>
+                            +{designCostEstimate.percentIncrease.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                    </details>
 
                   </>
                 )}
