@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.resilience360.app',
+  appId: 'com.resilience360.mobile',
   appName: 'Resilience360',
   webDir: 'dist',
   bundledWebRuntime: false,

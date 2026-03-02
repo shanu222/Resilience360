@@ -2081,6 +2081,23 @@ img {
   margin-top: 0;
 }
 
+.retrofit-model-output .alerts {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(151, 128, 208, 0.3);
+}
+
+.retrofit-model-output .alerts p,
+.retrofit-model-output .alerts strong,
+.retrofit-model-output .alerts label,
+.retrofit-model-output .alerts select,
+.retrofit-model-output .alerts div {
+  color: rgba(233, 228, 255, 0.95);
+}
+
+.retrofit-model-output .alerts a {
+  color: #a8d5ff;
+}
+
 .retrofit-defect-list {
   display: grid;
   gap: var(--space-2);

@@ -73,6 +73,23 @@ function executeCommand(command, description = '') {
 function verifyEnvironment() {
   logSection('Verifying Build Environment')
 
+  // Check for JAVA_HOME and set it if needed (Windows)
+  if (!process.env.JAVA_HOME) {
+    const potentialJavaHomes = [
+      'C:\\Program Files\\Java\\jdk-21.0.10',
+      'C:\\Program Files\\Java\\jdk-21',
+      'C:\\Program Files\\Java\\openjdk-21',
+      'C:\\Program Files\\OpenJDK\\openjdk-21',
+    ]
+    for (const javaHome of potentialJavaHomes) {
+      if (fs.existsSync(javaHome)) {
+        process.env.JAVA_HOME = javaHome
+        logInfo(`Set JAVA_HOME to ${javaHome}`)
+        break
+      }
+    }
+  }
+
   const checks = [
     {
       name: 'Node.js',
@@ -86,12 +103,12 @@ function verifyEnvironment() {
     },
     {
       name: 'Java/JDK',
-      command: 'java -version 2>&1 | head -1',
+      command: 'java -version',
       optional: false,
     },
     {
       name: 'Gradle',
-      command: 'cd android && ./gradlew --version 2>&1 | head -1',
+      command:process.platform === 'win32' ? 'android\\gradlew -version' : 'android/gradlew --version',
       optional: false,
     },
   ]
@@ -156,7 +173,7 @@ function copyWebAssetsToAndroid() {
 
   const androidWwwDir = path.join(
     androidDir,
-    'app/src/main/assets/www'
+    'app/src/main/assets/public'
   )
 
   if (fs.existsSync(androidWwwDir)) {
@@ -195,7 +212,8 @@ function buildAndroidApk(buildType = 'debug') {
   }
 
   // Run Gradle build
-  const gradleCommand = `cd android && ./gradlew assemble${
+  const gradleExecutable = process.platform === 'win32' ? 'gradlew.bat' : './gradlew'
+  const gradleCommand = `cd android && ${gradleExecutable} assemble${
     isRelease ? 'Release' : 'Debug'
   }`
 
