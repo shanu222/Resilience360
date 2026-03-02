@@ -4751,25 +4751,25 @@ function App() {
                       </summary>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div style={{ backgroundColor: '#f3f4f6', padding: '12px', borderRadius: '6px' }}>
-                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Standard Design Cost</p>
+                          <p style={{ fontSize: '0.9em', color: '#1b2430', marginBottom: '6px' }}>Standard Design Cost</p>
                           <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#1b2430', margin: 0 }}>
                             PKR {Math.round(designCostEstimate.standardCost).toLocaleString()}
                           </p>
                         </div>
                         <div style={{ backgroundColor: '#dcfce7', padding: '12px', borderRadius: '6px' }}>
-                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Resilient Design Cost</p>
+                          <p style={{ fontSize: '0.9em', color: '#1b2430', marginBottom: '6px' }}>Resilient Design Cost</p>
                           <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#16a34a', margin: 0 }}>
                             PKR {Math.round(designCostEstimate.resillientCost).toLocaleString()}
                           </p>
                         </div>
                         <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '6px' }}>
-                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Difference</p>
+                          <p style={{ fontSize: '0.9em', color: '#1b2430', marginBottom: '6px' }}>Difference</p>
                           <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#b45309', margin: 0 }}>
                             PKR {Math.round(designCostEstimate.costDifference).toLocaleString()}
                           </p>
                         </div>
                         <div style={{ backgroundColor: '#ffe7d9', padding: '12px', borderRadius: '6px' }}>
-                          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '6px' }}>Resilience Premium</p>
+                          <p style={{ fontSize: '0.9em', color: '#1b2430', marginBottom: '6px' }}>Resilience Premium</p>
                           <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#ea580c', margin: 0 }}>
                             +{designCostEstimate.percentIncrease.toFixed(1)}%
                           </p>
