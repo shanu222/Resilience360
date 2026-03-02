@@ -135,13 +135,6 @@ type HazardAlertOverlay = {
   lng: number
 }
 
-type EngineeringDrawing = {
-  id: string
-  title: string
-  summary: string
-  annotation: string
-}
-
 type GlobalEarthquake = {
   id: string
   magnitude: number
@@ -1185,79 +1178,7 @@ const getProvinceForDistrict = (district: string) => {
   return findNearestCenterName(districtPoint, provinceCenters)
 }
 
-const engineeringDrawingLibrary: Record<'earthquake' | 'flood' | 'infraRisk', EngineeringDrawing[]> = {
-  earthquake: [
-    {
-      id: 'school-seismic-retrofit',
-      title: 'Retrofitted School Design',
-      summary: 'Classroom block with seismic bands, confined columns, and safer evacuation corridor.',
-      annotation: 'Add lintel/roof bands, corner reinforcement, and braced stair core for life safety.',
-    },
-    {
-      id: 'mudhouse-tiebeam',
-      title: 'Seismic Mud House with Tie-Beams',
-      summary: 'Low-cost mud masonry strengthened with horizontal tie beams and vertical corner ties.',
-      annotation: 'Use plinth/lintel/roof bands and tie roof diaphragm to walls to reduce out-of-plane failure.',
-    },
-    {
-      id: 'adobe-reinforced-section',
-      title: 'Adobe-Reinforced Wall Section',
-      summary: 'Adobe wall with mesh reinforcement, improved plaster, and moisture-resistant base treatment.',
-      annotation: 'Provide mesh jacketing around crack-prone zones and anchor to roof/wall junctions.',
-    },
-  ],
-  flood: [
-    {
-      id: 'raised-foundation-home',
-      title: 'Raised Flood-Resilient House Plinth',
-      summary: 'Elevated plinth and protected utility route for recurrent flood districts.',
-      annotation: 'Keep socket level above local flood mark and seal service entry points.',
-    },
-    {
-      id: 'flood-safe-school',
-      title: 'Flood-Safe School Block',
-      summary: 'Raised access, protected WASH systems, and compartmentalized evacuation room.',
-      annotation: 'Add perimeter drain, sump backup, and protected emergency circulation paths.',
-    },
-    {
-      id: 'community-drain-cross',
-      title: 'Community Drain + Road Cross-Section',
-      summary: 'Drainage-first layout for roads and settlements in heavy-rain corridors.',
-      annotation: 'Maintain drain slope and include backflow prevention at low points.',
-    },
-  ],
-  infraRisk: [
-    {
-      id: 'lifeline-clinic-retrofit',
-      title: 'Primary Clinic Lifeline Retrofit',
-      summary: 'Critical facility package combining seismic, flood, and non-structural strengthening.',
-      annotation: 'Secure medical equipment, water/power backup, and safe egress continuity.',
-    },
-    {
-      id: 'bridge-approach-hardening',
-      title: 'Bridge Approach Hardening',
-      summary: 'Slope, embankment, and transition slab retrofit to maintain emergency access.',
-      annotation: 'Use toe protection, drainage control, and constrained movement joints.',
-    },
-    {
-      id: 'multihazard-housing-core',
-      title: 'Multi-Hazard Housing Core Unit',
-      summary: 'Household core design with resilient walls, tied roof, and flood-resistant detailing.',
-      annotation: 'Avoid weak wall openings near corners and ensure roof-to-wall anchorage.',
-    },
-  ],
-}
 
-const districtContacts: Record<string, string[]> = {
-  default: [
-    'NDMA Control Room: 051-9205037',
-    'PDMA Provincial Helpline: 1700',
-    'Tehsil Emergency Desk: via local Assistant Commissioner Office',
-  ],
-  Bahawalpur: ['PDMA South Punjab: 1700', 'Rescue 1122 Bahawalpur: 1122', 'Tehsil Disaster Desk Bahawalpur: 062-9250452'],
-  Larkana: ['PDMA Sindh: 1700', 'Rescue 1122 Larkana: 1122', 'Deputy Commissioner Office Larkana: 074-9410701'],
-  Karachi: ['PDMA Sindh: 1700', 'Rescue 1122 Karachi: 1122', 'Commissioner Karachi Emergency Cell: 021-99203443'],
-}
 
 const nearestHospitalsByProvince: Record<string, string[]> = {
   Punjab: ['Mayo Hospital Lahore', 'DHQ Hospital Rawalpindi', 'Nishtar Hospital Multan'],
@@ -1688,28 +1609,6 @@ function App() {
     [selectedDistrict, selectedProvince],
   )
   const riskValue = selectedDistrictProfile?.[mapLayer] ?? provinceRisk[selectedProvince][mapLayer]
-  const selectedDistrictContacts = useMemo(
-    () => districtContacts[selectedDistrict ?? ''] ?? districtContacts.default,
-    [selectedDistrict],
-  )
-  const availableDrawings = useMemo(() => engineeringDrawingLibrary[mapLayer], [mapLayer])
-  const districtTopRisks = useMemo(() => {
-    if (!selectedDistrictProfile) {
-      return ['Unreinforced masonry in lifeline buildings', 'Poor drainage around settlements', 'Limited emergency access routes']
-    }
-    return [
-      `${selectedDistrictProfile.dominantStructure} vulnerability hotspot`,
-      `Earthquake exposure: ${selectedDistrictProfile.earthquake}`,
-      `Flood exposure: ${selectedDistrictProfile.flood}`,
-    ]
-  }, [selectedDistrictProfile])
-  const districtRetrofitCostRange = useMemo(() => {
-    const cityRate = cityRateByProvince[selectedProvince]?.[retrofitCity]?.laborDaily ?? 2800
-    const profileFactor = selectedDistrictProfile?.infraRisk === 'Very High' ? 1.35 : selectedDistrictProfile?.infraRisk === 'High' ? 1.22 : 1.1
-    const base = Math.max(1800000, Math.round(cityRate * 720 * profileFactor))
-    const high = Math.round(base * (selectedDistrictProfile?.infraRisk === 'Very High' ? 1.42 : 1.28))
-    return { min: base, max: high }
-  }, [selectedDistrictProfile, selectedProvince, retrofitCity])
   const hazardAlertOverlay = useMemo<HazardAlertOverlay[]>(() => {
     const basePoint = selectedDistrict ? districtCenters[selectedDistrict] : provinceCenters[selectedProvince]
     const fallbackLat = basePoint?.lat ?? 30.2
@@ -3285,117 +3184,6 @@ function App() {
     doc.save(filename)
   }
 
-  const downloadDistrictRiskReport = () => {
-    const doc = new jsPDF()
-    const profile = selectedDistrictProfile
-    const districtName = selectedDistrict ?? 'Not selected'
-    const hazardLabel = mapLayer === 'infraRisk' ? 'Infrastructure Risk' : mapLayer
-    const lines = profile
-      ? profile.resilienceActions
-      : [
-          'Collect local structure inventory and prioritize lifeline assets.',
-          'Prepare ward-level evacuation routes and shelter fallback sites.',
-          'Run seasonal preparedness drills with local volunteers.',
-        ]
-
-    const isUrduReport = districtReportLanguage === 'Urdu'
-    const heading = isUrduReport ? 'Resilience360 - ضلعی رسک و ریزیلینس رپورٹ' : 'Resilience360 - District Risk Atlas Report'
-    const actionLabel = isUrduReport ? 'عملی ضلعی اقدامات' : 'Practical District Actions'
-
-    doc.setFontSize(16)
-    doc.text(heading, 14, 18)
-    doc.setFontSize(11)
-    doc.text(`Language: ${districtReportLanguage}`, 14, 28)
-    doc.text(`Province: ${selectedProvince}`, 14, 36)
-    doc.text(`District: ${districtName}`, 14, 44)
-    doc.text(`Layer: ${hazardLabel}`, 14, 52)
-    doc.text(`Risk Level: ${riskValue}`, 14, 60)
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 68)
-
-    if (profile) {
-      doc.text(`Dominant Vulnerable Structure: ${profile.dominantStructure}`, 14, 78)
-      doc.text(
-        `Structure Score (EQ/Flood): ${profile.structureScores.earthquake.toFixed(2)} / ${profile.structureScores.flood.toFixed(2)}`,
-        14,
-        86,
-      )
-    }
-
-    doc.text('Top 3 Structural Risks:', 14, 98)
-    let y = 106
-    districtTopRisks.forEach((risk) => {
-      const wrapped = doc.splitTextToSize(`- ${risk}`, 178)
-      doc.text(wrapped, 14, y)
-      y += wrapped.length * 7
-    })
-
-    doc.text(actionLabel + ':', 14, y + 2)
-    y += 10
-
-    lines.forEach((item) => {
-      const wrapped = doc.splitTextToSize(`- ${item}`, 178)
-      doc.text(wrapped, 14, y)
-      y += wrapped.length * 7
-    })
-
-    doc.text(`Recommended Drawings: ${availableDrawings.map((item) => item.title).join(' | ')}`, 14, y + 6)
-    doc.text(
-      `Retrofit Cost Range: PKR ${districtRetrofitCostRange.min.toLocaleString()} - ${districtRetrofitCostRange.max.toLocaleString()}`,
-      14,
-      y + 14,
-    )
-    doc.text('NDMA/PDMA/Tehsil Contacts:', 14, y + 22)
-    selectedDistrictContacts.forEach((contact, index) => {
-      doc.text(`- ${contact}`, 18, y + 30 + index * 8)
-    })
-
-    doc.text('Atlas Alignment Note: Risk profile is integrated for offline district planning workflows.', 14, y + 54)
-    doc.save(`resilience360-district-risk-${selectedProvince}-${districtName}-${Date.now()}.pdf`)
-  }
-
-  const downloadPrintableToolkit = () => {
-    const doc = new jsPDF()
-    const districtName = selectedDistrict ?? 'District not selected'
-    const profile = selectedDistrictProfile
-
-    doc.setFontSize(16)
-    doc.text('Resilience360 - Printable Resilience Toolkit', 14, 18)
-    doc.setFontSize(11)
-    doc.text(`Province: ${selectedProvince}`, 14, 28)
-    doc.text(`District: ${districtName}`, 14, 36)
-    doc.text(`Primary Layer: ${mapLayer === 'infraRisk' ? 'Infrastructure Risk' : mapLayer}`, 14, 44)
-    doc.text(`Priority Risk: ${riskValue}`, 14, 52)
-
-    const checklist = [
-      'Mark safe route signs to nearest shelter and health facility.',
-      'Prepare household and school-level emergency contact board.',
-      'Protect electrical panel above flood mark and seal low openings.',
-      'Check roof/wall anchorage and unsafe parapets before monsoon season.',
-      'Store first-aid, clean water, torch, and basic communication backup.',
-    ]
-
-    doc.text('Community Action Checklist:', 14, 64)
-    let y = 72
-    checklist.forEach((item) => {
-      const wrapped = doc.splitTextToSize(`□ ${item}`, 178)
-      doc.text(wrapped, 14, y)
-      y += wrapped.length * 7
-    })
-
-    if (profile) {
-      doc.text(`Local Structural Focus: ${profile.dominantStructure}`, 14, y + 2)
-      y += 10
-      profile.resilienceActions.forEach((item) => {
-        const wrapped = doc.splitTextToSize(`• ${item}`, 178)
-        doc.text(wrapped, 14, y)
-        y += wrapped.length * 7
-      })
-    }
-
-    doc.text('Print and post this page at schools, mosques, and union council offices.', 14, y + 6)
-    doc.save(`resilience360-print-toolkit-${selectedProvince}-${districtName}-${Date.now()}.pdf`)
-  }
-
   const answerLocalAdvisory = (question: string) => {
     const lower = question.toLowerCase()
     const profile = selectedDistrictProfile
@@ -4230,31 +4018,6 @@ function App() {
                   'Display evacuation routes and communication points in public places.',
                 ]).map((action) => (
                   <li key={action}>{action}</li>
-                ))}
-              </ul>
-              <div className="inline-controls">
-                <button onClick={downloadDistrictRiskReport}>📄 View My District Report (PDF)</button>
-                <button onClick={downloadPrintableToolkit}>🧰 Printable Resilience Toolkit</button>
-                <button
-                  onClick={() => {
-                    setApplyProvince(selectedProvince)
-                    if (selectedDistrict) {
-                      setApplyCity(selectedDistrict)
-                    }
-                    setApplyHazard(mapLayer === 'infraRisk' ? 'flood' : mapLayer)
-                    navigateToSection('applyRegion')
-                  }}
-                >
-                  🏗️ Open Local Construction Guide
-                </button>
-              </div>
-              <p>
-                Retrofit cost range: <strong>PKR {districtRetrofitCostRange.min.toLocaleString()} - {districtRetrofitCostRange.max.toLocaleString()}</strong>
-              </p>
-              <p>NDMA / PDMA / Tehsil Contacts:</p>
-              <ul>
-                {selectedDistrictContacts.map((contact) => (
-                  <li key={contact}>{contact}</li>
                 ))}
               </ul>
             </div>
