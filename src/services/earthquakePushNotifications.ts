@@ -1,5 +1,3 @@
-import { PushNotifications } from '@capacitor/push-notifications'
-import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor } from '@capacitor/core'
 
 export type EarthquakeNotificationPayload = {
@@ -13,12 +11,27 @@ export type EarthquakeNotificationPayload = {
   url?: string
 }
 
+interface RegistrationToken {
+  value: string
+}
+
+interface RegistrationError {
+  error: string
+}
+
+interface PushNotificationData {
+  data?: Record<string, unknown>
+  notification?: {
+    data?: Record<string, unknown>
+  }
+}
+
 class EarthquakePushNotificationService {
   private deviceToken: string | null = null
-  private isInitialized = false
+  private initialized = false
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return
+    if (this.initialized) return
 
     try {
       // Only initialize on native platforms
@@ -27,26 +40,26 @@ class EarthquakePushNotificationService {
         return
       }
 
+      // Dynamically import Capacitor plugins only on native platforms
+      const { PushNotifications } = await import('@capacitor/push-notifications')
+
       // Request notification permissions
-      await this.requestPermissions()
+      await this.requestPermissions(PushNotifications)
 
-      // Register with push notifications
-      await PushNotifications.setup()
-
-      // Get device token
-      await this.registerDevice()
+      // Get device token (no setup() needed in v6+)
+      await this.registerDevice(PushNotifications)
 
       // Listen for incoming notifications
-      this.setupNotificationListeners()
+      this.setupNotificationListeners(PushNotifications)
 
-      this.isInitialized = true
+      this.initialized = true
       console.log('✅ Push notification service initialized')
     } catch (error) {
       console.error('❌ Failed to initialize push notifications:', error)
     }
   }
 
-  private async requestPermissions(): Promise<void> {
+  private async requestPermissions(PushNotifications: any): Promise<void> {
     try {
       const result = await PushNotifications.requestPermissions()
 
@@ -60,18 +73,20 @@ class EarthquakePushNotificationService {
     }
   }
 
-  private async registerDevice(): Promise<void> {
+  private async registerDevice(PushNotifications: any): Promise<void> {
     try {
-      PushNotifications.addListener('registration', (token) => {
+      PushNotifications.addListener('registration', (token: RegistrationToken) => {
         this.deviceToken = token.value
         console.log('✅ Device registered for push notifications')
         console.log(`Device Token: ${this.deviceToken}`)
 
         // Send token to backend for subscription
-        this.sendTokenToBackend(this.deviceToken)
+        if (this.deviceToken) {
+          this.sendTokenToBackend(this.deviceToken)
+        }
       })
 
-      PushNotifications.addListener('registrationError', (error: any) => {
+      PushNotifications.addListener('registrationError', (error: RegistrationError) => {
         console.error('❌ Push registration error:', error.error)
       })
     } catch (error) {
@@ -79,31 +94,37 @@ class EarthquakePushNotificationService {
     }
   }
 
-  private setupNotificationListeners(): void {
+  private setupNotificationListeners(PushNotifications: any): void {
     // Listener for notifications when app is in foreground
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationData) => {
       console.log('📬 Push notification received (foreground):', notification)
-      this.handleNotification(notification.data as any)
+      const data = notification.data as Record<string, unknown> | undefined
+      if (data) {
+        this.handleNotification(data)
+      }
     })
 
     // Listener for notifications when app is in background
-    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+    PushNotifications.addListener('pushNotificationActionPerformed', (notification: PushNotificationData) => {
       console.log('📢 Push notification action performed:', notification)
-      this.handleNotification(notification.notification.data as any)
+      const data = notification.notification?.data as Record<string, unknown> | undefined
+      if (data) {
+        this.handleNotification(data)
+      }
     })
   }
 
-  private handleNotification(data: any): void {
+  private handleNotification(data: Record<string, unknown>): void {
     try {
       const payload: EarthquakeNotificationPayload = {
-        magnitude: parseFloat(data.magnitude || '0'),
-        location: data.location || 'Unknown',
-        latitude: parseFloat(data.latitude || '0'),
-        longitude: parseFloat(data.longitude || '0'),
-        depth: parseFloat(data.depth || '0'),
-        timestamp: data.timestamp || new Date().toISOString(),
-        eventId: data.eventId || '',
-        url: data.url,
+        magnitude: parseFloat(String(data.magnitude || '0')),
+        location: String(data.location || 'Unknown'),
+        latitude: parseFloat(String(data.latitude || '0')),
+        longitude: parseFloat(String(data.longitude || '0')),
+        depth: parseFloat(String(data.depth || '0')),
+        timestamp: String(data.timestamp || new Date().toISOString()),
+        eventId: String(data.eventId || ''),
+        url: typeof data.url === 'string' ? data.url : undefined,
       }
 
       // Show local notification with details
@@ -122,21 +143,23 @@ class EarthquakePushNotificationService {
 
   private async displayLocalNotification(payload: EarthquakeNotificationPayload): Promise<void> {
     try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications')
+
       await LocalNotifications.schedule({
         notifications: [
           {
-            title: `🌍 Earthquake Alert`,
+            title: '🌍 Earthquake Alert',
             body: `Magnitude ${payload.magnitude.toFixed(1)} - ${payload.location}`,
             id: parseInt(payload.eventId) || Date.now(),
             schedule: { at: new Date(Date.now() + 1000) },
             smallIcon: 'ic_stat_icon_config_sample',
             largeIcon: 'ic_launcher_foreground',
             extra: {
-              magnitude: payload.magnitude,
+              magnitude: String(payload.magnitude),
               location: payload.location,
-              latitude: payload.latitude,
-              longitude: payload.longitude,
-              depth: payload.depth,
+              latitude: String(payload.latitude),
+              longitude: String(payload.longitude),
+              depth: String(payload.depth),
               timestamp: payload.timestamp,
             },
           },
@@ -218,7 +241,7 @@ class EarthquakePushNotificationService {
   }
 
   isInitialized(): boolean {
-    return this.isInitialized
+    return this.initialized
   }
 }
 

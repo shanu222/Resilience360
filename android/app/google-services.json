@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "87406335066",
+    "project_id": "resilience360-27f15",
+    "storage_bucket": "resilience360-27f15.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:87406335066:android:b7d608d0fff239153e7463",
+        "android_client_info": {
+          "package_name": "com.resilience360.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuL6S7kOcDB7CA0QlIQ3ymght9v7CRlyM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
