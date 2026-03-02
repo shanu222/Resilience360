@@ -2079,6 +2079,38 @@ img {
 
 .retrofit-model-output h3 {
   margin-top: 0;
+  color: rgba(233, 228, 255, 0.95);
+}
+
+.retrofit-model-output p {
+  color: rgba(233, 228, 255, 0.85);
+}
+
+.retrofit-model-output strong {
+  color: rgba(233, 228, 255, 0.95);
+}
+
+.retrofit-model-output label {
+  color: rgba(233, 228, 255, 0.9);
+}
+
+.retrofit-model-output input,
+.retrofit-model-output select {
+  color: #1a1a1a;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(233, 228, 255, 0.3);
+}
+
+.retrofit-model-output input::placeholder {
+  color: rgba(100, 100, 100, 0.7);
+}
+
+.retrofit-model-output button {
+  color: white;
+}
+
+.retrofit-model-output button:hover {
+  opacity: 0.9;
 }
 
 .retrofit-model-output .alerts {
