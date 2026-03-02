@@ -4655,34 +4655,34 @@ function App() {
                     </div>
 
                     {/* Cost Breakdown Summary */}
-                    <div style={{ backgroundColor: 'rgba(37, 99, 235, 0.08)', padding: '14px', borderRadius: '8px', marginBottom: '16px' }}>
-                      <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#1b2430' }}>💰 COST BREAKDOWN</h4>
+                    <div style={{ backgroundColor: 'rgba(37, 99, 235, 0.18)', padding: '14px', borderRadius: '8px', marginBottom: '16px' }}>
+                      <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#ffffff', fontWeight: 'bold' }}>💰 COST BREAKDOWN</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.95em' }}>
-                        <p style={{ color: '#1b2430' }}>
+                        <p style={{ color: '#ffffff', margin: '4px 0' }}>
                           Unit Cost: <strong>PKR {Math.round(designCostEstimate.unitCost).toLocaleString()}/sq ft</strong>
                         </p>
-                        <p style={{ color: '#1b2430' }}>
+                        <p style={{ color: '#ffffff', margin: '4px 0' }}>
                           Base Cost: <strong>PKR {Math.round(designCostEstimate.subtotal).toLocaleString()}</strong>
                         </p>
                         {designCostEstimate.seismicUpgradeCost > 0 && (
-                          <p style={{ color: '#1b2430' }}>
+                          <p style={{ color: '#ffffff', margin: '4px 0' }}>
                             Seismic Upgrade: <strong>PKR {Math.round(designCostEstimate.seismicUpgradeCost).toLocaleString()}</strong>
                           </p>
                         )}
                         {designCostEstimate.floodUpgradeCost > 0 && (
-                          <p style={{ color: '#1b2430' }}>
+                          <p style={{ color: '#ffffff', margin: '4px 0' }}>
                             Flood Plinth Raise: <strong>PKR {Math.round(designCostEstimate.floodUpgradeCost).toLocaleString()}</strong>
                           </p>
                         )}
                         {designCostEstimate.windUpgradeCost > 0 && (
-                          <p style={{ color: '#1b2430' }}>
+                          <p style={{ color: '#ffffff', margin: '4px 0' }}>
                             Wind Reinforcement: <strong>PKR {Math.round(designCostEstimate.windUpgradeCost).toLocaleString()}</strong>
                           </p>
                         )}
-                        <p style={{ color: '#1b2430' }}>
+                        <p style={{ color: '#ffffff', margin: '4px 0' }}>
                           Professional Fee: <strong>PKR {Math.round(designCostEstimate.professionalFee).toLocaleString()}</strong>
                         </p>
-                        <p style={{ color: '#1b2430' }}>
+                        <p style={{ color: '#ffffff', margin: '4px 0' }}>
                           Contingency (10%): <strong>PKR {Math.round(designCostEstimate.contingency).toLocaleString()}</strong>
                         </p>
                       </div>
