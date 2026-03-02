@@ -49,6 +49,15 @@ const GLOBAL_EARTHQUAKE_FEED_URL =
 const GLOBAL_EARTHQUAKE_FEED_URL_BACKUP =
   process.env.GLOBAL_EARTHQUAKE_FEED_URL_BACKUP ??
   'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
+const EMSC_EARTHQUAKE_FEED_URL =
+  process.env.EMSC_EARTHQUAKE_FEED_URL ??
+  'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=100'
+const PAKISTAN_EARTHQUAKE_BOUNDS = {
+  minlatitude: 23.0,
+  maxlatitude: 37.0,
+  minlongitude: 60.0,
+  maxlongitude: 78.0,
+}
 const RECOVERY_EMAIL_PROVIDER = String(process.env.RECOVERY_EMAIL_PROVIDER ?? '').trim().toLowerCase()
 const RECOVERY_FROM_EMAIL = String(process.env.RECOVERY_FROM_EMAIL ?? '').trim()
 const RECOVERY_FROM_NAME = String(process.env.RECOVERY_FROM_NAME ?? 'Resilience360 Recovery').trim()
@@ -861,27 +870,212 @@ const writeSentEarthquakeAlerts = async (ids) => {
   await fs.writeFile(earthquakeSentAlertsFile, JSON.stringify(unique, null, 2), 'utf8')
 }
 
-const fetchLiveEarthquakeFeaturesForAlerts = async () => {
-  const feeds = [GLOBAL_EARTHQUAKE_FEED_URL, GLOBAL_EARTHQUAKE_FEED_URL_BACKUP]
-  let lastError = null
+// ======================================
+// HYBRID EARTHQUAKE SYSTEM (USGS + EMSC)
+// ======================================
 
+/**
+ * Fetch earthquakes from USGS feed
+ */
+const fetchUSGSEarthquakes = async () => {
+  const feeds = [GLOBAL_EARTHQUAKE_FEED_URL, GLOBAL_EARTHQUAKE_FEED_URL_BACKUP]
+  
   for (const feed of feeds) {
     try {
       const payload = await fetchRemoteJson(feed, 20000)
       const features = safeArray(payload?.features)
       if (features.length > 0) {
-        return features
+        return features.map(normalizeUSGSEvent).filter(Boolean)
       }
     } catch (error) {
-      lastError = error
+      console.error('USGS fetch error:', error?.message || error)
     }
   }
-
-  if (lastError) throw lastError
+  
   return []
 }
 
+/**
+ * Fetch earthquakes from EMSC feed
+ */
+const fetchEMSCEarthquakes = async () => {
+  try {
+    const starttime = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const url = `${EMSC_EARTHQUAKE_FEED_URL}&starttime=${starttime}`
+    
+    const payload = await fetchRemoteJson(url, 20000)
+    const features = safeArray(payload?.features)
+    
+    if (features.length > 0) {
+      return features.map(normalizeEMSCEvent).filter(Boolean)
+    }
+  } catch (error) {
+    console.error('EMSC fetch error:', error?.message || error)
+  }
+  
+  return []
+}
+
+/**
+ * Normalize USGS event to common format
+ */
+const normalizeUSGSEvent = (feature) => {
+  try {
+    const properties = feature?.properties ?? {}
+    const geometry = feature?.geometry ?? {}
+    const coordinates = safeArray(geometry.coordinates)
+    
+    return {
+      source: 'USGS',
+      id: String(feature?.id ?? '').trim(),
+      magnitude: Number(properties.mag ?? 0),
+      time: new Date(Number(properties.time ?? Date.now())),
+      latitude: Number(coordinates[1]),
+      longitude: Number(coordinates[0]),
+      depth: Number(coordinates[2]),
+      place: String(properties.place ?? 'Unknown location').trim(),
+      url: String(properties.url ?? 'https://earthquake.usgs.gov/').trim(),
+      originalFeature: feature,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Normalize EMSC event to common format
+ */
+const normalizeEMSCEvent = (feature) => {
+  try {
+    const properties = feature?.properties ?? {}
+    const geometry = feature?.geometry ?? {}
+    const coordinates = safeArray(geometry.coordinates)
+    
+    return {
+      source: 'EMSC',
+      id: String(feature?.id ?? '').trim(),
+      magnitude: Number(properties.mag ?? 0),
+      time: new Date(properties.time ?? Date.now()),
+      latitude: Number(coordinates[1]),
+      longitude: Number(coordinates[0]),
+      depth: Number(coordinates[2]),
+      place: String(properties.flynn_region ?? properties.place ?? 'Unknown location').trim(),
+      url: `https://www.emsc-csem.org/Earthquake/earthquake.php?id=${feature?.id ?? ''}`,
+      originalFeature: feature,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Calculate distance between two coordinates (Haversine formula)
+ */
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371 // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+/**
+ * Check if two earthquakes are duplicates
+ */
+const areEarthquakesDuplicate = (eq1, eq2) => {
+  // Check time difference (within 60 seconds)
+  const timeDiff = Math.abs(eq1.time.getTime() - eq2.time.getTime())
+  if (timeDiff > 60000) return false
+  
+  // Check coordinate proximity (within 25 km)
+  const distance = calculateDistance(eq1.latitude, eq1.longitude, eq2.latitude, eq2.longitude)
+  if (distance > 25) return false
+  
+  // Check magnitude similarity (within 0.3)
+  const magDiff = Math.abs(eq1.magnitude - eq2.magnitude)
+  if (magDiff > 0.3) return false
+  
+  return true
+}
+
+/**
+ * Merge and deduplicate earthquakes from multiple sources
+ * Priority: Keep earliest reported source
+ */
+const mergeAndDeduplicateEarthquakes = (usgsEvents, emscEvents) => {
+  const combined = [...usgsEvents, ...emscEvents]
+  const uniqueEvents = []
+  
+  for (const event of combined) {
+    // Skip invalid events
+    if (!event.id || Number.isNaN(event.magnitude)) continue
+    
+    // Find if this is a duplicate
+    const duplicate = uniqueEvents.find((existing) => areEarthquakesDuplicate(existing, event))
+    
+    if (!duplicate) {
+      // New unique event
+      uniqueEvents.push(event)
+    } else {
+      // Keep the earliest reported (older time)
+      if (event.time < duplicate.time) {
+        Object.assign(duplicate, event)
+      }
+    }
+  }
+  
+  // Sort by time (newest first)
+  return uniqueEvents.sort((a, b) => b.time.getTime() - a.time.getTime())
+}
+
+/**
+ * Fetch merged earthquakes from both USGS and EMSC
+ */
+const fetchHybridEarthquakes = async () => {
+  const [usgsEvents, emscEvents] = await Promise.all([
+    fetchUSGSEarthquakes(),
+    fetchEMSCEarthquakes(),
+  ])
+  
+  const merged = mergeAndDeduplicateEarthquakes(usgsEvents, emscEvents)
+  
+  console.log(`Earthquake fetch: USGS=${usgsEvents.length}, EMSC=${emscEvents.length}, Merged=${merged.length}`)
+  
+  return merged
+}
+
+const fetchLiveEarthquakeFeaturesForAlerts = async () => {
+  // Use hybrid earthquake system (USGS + EMSC merged)
+  const mergedEvents = await fetchHybridEarthquakes()
+  
+  // Convert back to feature format for compatibility with existing code
+  return mergedEvents.map((event) => event.originalFeature)
+}
+
 const extractQuakeAlertEvent = (feature) => {
+  // Handle both original feature format and normalized format
+  if (feature.source && feature.id && feature.magnitude !== undefined) {
+    // Already normalized format
+    return {
+      id: feature.id,
+      mag: feature.magnitude,
+      place: feature.place,
+      time: feature.time instanceof Date ? feature.time.getTime() : Date.now(),
+      detailUrl: feature.url,
+      latitude: Number.isFinite(feature.latitude) ? feature.latitude : null,
+      longitude: Number.isFinite(feature.longitude) ? feature.longitude : null,
+      depthKm: Number.isFinite(feature.depth) ? feature.depth : null,
+      source: feature.source,
+    }
+  }
+  
+  // Original USGS feature format
   const id = String(feature?.id ?? '').trim()
   const mag = Number(feature?.properties?.mag ?? 0)
   const place = String(feature?.properties?.place ?? 'Unknown location').trim()
@@ -903,6 +1097,7 @@ const extractQuakeAlertEvent = (feature) => {
     latitude: Number.isFinite(latitude) ? latitude : null,
     longitude: Number.isFinite(longitude) ? longitude : null,
     depthKm: Number.isFinite(depthKm) ? depthKm : null,
+    source: 'USGS',
   }
 }
 
@@ -910,16 +1105,18 @@ const buildEarthquakeAlertEmailContent = ({ event }) => {
   const eventDate = new Date(event.time)
   const eventTimeText = Number.isNaN(eventDate.getTime()) ? 'Unknown time' : eventDate.toUTCString()
   const locationLine = event.place || 'Unknown location'
+  const sourceLine = event.source ? ` [${event.source}]` : ''
   const coordsLine =
     event.latitude === null || event.longitude === null
       ? 'Coordinates unavailable'
       : `${event.latitude.toFixed(3)}, ${event.longitude.toFixed(3)}${event.depthKm === null ? '' : ` | Depth ${event.depthKm.toFixed(1)} km`}`
 
-  const subject = `🚨 Earthquake Alert: M ${event.mag.toFixed(1)} near ${locationLine}`
+  const subject = `🚨 Earthquake Alert: M ${event.mag.toFixed(1)} near ${locationLine}${sourceLine}`
   const text =
     `Resilience360 Earthquake Alert\n\n` +
     `Magnitude: M ${event.mag.toFixed(1)}\n` +
     `Location: ${locationLine}\n` +
+    (event.source ? `Source: ${event.source}\n` : '') +
     `Time (UTC): ${eventTimeText}\n` +
     `Coordinates: ${coordsLine}\n` +
     `Details: ${event.detailUrl}\n\n` +
@@ -930,6 +1127,7 @@ const buildEarthquakeAlertEmailContent = ({ event }) => {
     `<h2 style="margin:0 0 10px;color:#b91c1c">🚨 Resilience360 Earthquake Alert</h2>` +
     `<p><strong>Magnitude:</strong> M ${event.mag.toFixed(1)}</p>` +
     `<p><strong>Location:</strong> ${escapeHtml(locationLine)}</p>` +
+    (event.source ? `<p><strong>Source:</strong> ${escapeHtml(event.source)}</p>` : '') +
     `<p><strong>Time (UTC):</strong> ${escapeHtml(eventTimeText)}</p>` +
     `<p><strong>Coordinates:</strong> ${escapeHtml(coordsLine)}</p>` +
     `<p><a href="${escapeHtml(event.detailUrl)}" target="_blank" rel="noreferrer">Open event details</a></p>` +
@@ -1294,6 +1492,8 @@ app.get('/health', (_req, res) => {
     openAiFallbackToHuggingFace: hasHuggingFaceFallback,
     earthquakeAlertThreshold: EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD,
     earthquakeAlertPollMs: EARTHQUAKE_ALERT_POLL_INTERVAL_MS,
+    earthquakeSources: ['USGS', 'EMSC'],
+    earthquakeSystem: 'HYBRID (merged + deduplicated)',
   })
 })
 
@@ -1529,31 +1729,36 @@ app.get('/api/climate/live', async (req, res) => {
 })
 
 app.get('/api/global-earthquakes', async (_req, res) => {
-  const candidates = [GLOBAL_EARTHQUAKE_FEED_URL, GLOBAL_EARTHQUAKE_FEED_URL_BACKUP]
-
-  for (const candidate of candidates) {
-    try {
-      const payload = await fetchRemoteJson(candidate, 22000)
-      const features = safeArray(payload?.features)
-
-      if (features.length === 0) {
-        continue
-      }
-
-      res.setHeader('Cache-Control', 'no-store')
-      res.json({
-        source: 'USGS',
-        feedUrl: candidate,
-        fetchedAt: new Date().toISOString(),
-        features,
-      })
+  try {
+    // Fetch from both USGS and EMSC, merge and deduplicate
+    const mergedEvents = await fetchHybridEarthquakes()
+    
+    if (mergedEvents.length === 0) {
+      res.status(502).json({ error: 'No earthquake data available from sources.' })
       return
-    } catch {
-      // try next source
     }
-  }
+    
+    // Convert normalized events back to GeoJSON features for API compatibility
+    const features = mergedEvents.map((event) => event.originalFeature)
+    
+    // Count sources
+    const sources = {
+      USGS: mergedEvents.filter(e => e.source === 'USGS').length,
+      EMSC: mergedEvents.filter(e => e.source === 'EMSC').length,
+    }
 
-  res.status(502).json({ error: 'Unable to fetch global earthquake feed from upstream sources.' })
+    res.setHeader('Cache-Control', 'no-store')
+    res.json({
+      source: 'HYBRID (USGS + EMSC)',
+      sources,
+      fetchedAt: new Date().toISOString(),
+      total: mergedEvents.length,
+      features,
+    })
+  } catch (error) {
+    console.error('Hybrid earthquake fetch error:', error?.message || error)
+    res.status(502).json({ error: 'Unable to fetch global earthquake feed from upstream sources.' })
+  }
 })
 
 app.get('/api/ndma/advisories', async (_req, res) => {
