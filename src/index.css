@@ -2057,6 +2057,17 @@ img {
 .section-retrofit .cad-review-card .cad-step-card label,
 .section-retrofit .cad-review-card .cad-step-card strong {
   color: #1b2430 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.section-retrofit .cad-review-card .cad-step-card ul li {
+  color: #1b2430 !important;
+}
+
+.section-retrofit .cad-review-card .cad-step-card ul li strong {
+  color: #1b2430 !important;
+  font-weight: 600 !important;
 }
 
 .retrofit-location-target,
