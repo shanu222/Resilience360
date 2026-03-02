@@ -4433,22 +4433,22 @@ function App() {
                   <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#157347', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 3 — Layer Intelligence</h4>
                   <p style={{ marginTop: 0, marginBottom: '0.35rem', fontSize: '0.84rem', lineHeight: 1.4, color: '#1b2430' }}>Detected structural entities from drawing layers (or image inference):</p>
                   <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38, color: '#1b2430' }}>
-                    <li>Columns (size, spacing, continuity)</li>
-                    <li>Beams (depth, span, framing compatibility)</li>
-                    <li>Slabs and diaphragms (thickness, load path behavior)</li>
-                    <li>Walls/openings (irregularity and torsion contribution)</li>
+                    <li style={{ color: '#1b2430' }}>Columns (size, spacing, continuity)</li>
+                    <li style={{ color: '#1b2430' }}>Beams (depth, span, framing compatibility)</li>
+                    <li style={{ color: '#1b2430' }}>Slabs and diaphragms (thickness, load path behavior)</li>
+                    <li style={{ color: '#1b2430' }}>Walls/openings (irregularity and torsion contribution)</li>
                   </ul>
                 </div>
 
                 <div className="cad-step-card" style={{ backgroundColor: '#fff3f0', color: '#1b2430', padding: '0.85rem 0.95rem', borderRadius: '8px', marginBottom: '0.85rem', borderLeft: '4px solid #dc3545' }}>
                   <h4 style={{ marginTop: 0, marginBottom: '0.3rem', color: '#b42318', fontSize: '0.95rem', lineHeight: 1.3 }}>STEP 4 — Engineering Rule Engine</h4>
                   <ul style={{ margin: 0, paddingLeft: '1rem', fontSize: '0.85rem', lineHeight: 1.38, color: '#1b2430' }}>
-                    <li><strong>Minimum Column Size (ACI 318):</strong> column adequacy check against building height and seismic demand.</li>
-                    <li><strong>Soft Story (FEMA 154):</strong> detects risky stiffness discontinuity in ground storey.</li>
-                    <li><strong>Beam-Column Capacity Design:</strong> flags weak-column/strong-beam risk pattern.</li>
-                    <li><strong>Plan Regularity and Torsion (PBC 2007/2023):</strong> identifies mass/stiffness asymmetry risk.</li>
-                    <li><strong>Column Grid/Spacing:</strong> checks long spans requiring intermediate support.</li>
-                    <li><strong>Vertical Continuity:</strong> validates uninterrupted gravity and lateral load path.</li>
+                    <li style={{ color: '#1b2430' }}><strong style={{ color: '#1b2430' }}>Minimum Column Size (ACI 318):</strong> column adequacy check against building height and seismic demand.</li>
+                    <li style={{ color: '#1b2430' }}><strong style={{ color: '#1b2430' }}>Soft Story (FEMA 154):</strong> detects risky stiffness discontinuity in ground storey.</li>
+                    <li style={{ color: '#1b2430' }}><strong style={{ color: '#1b2430' }}>Beam-Column Capacity Design:</strong> flags weak-column/strong-beam risk pattern.</li>
+                    <li style={{ color: '#1b2430' }}><strong style={{ color: '#1b2430' }}>Plan Regularity and Torsion (PBC 2007/2023):</strong> identifies mass/stiffness asymmetry risk.</li>
+                    <li style={{ color: '#1b2430' }}><strong style={{ color: '#1b2430' }}>Column Grid/Spacing:</strong> checks long spans requiring intermediate support.</li>
+                    <li style={{ color: '#1b2430' }}><strong style={{ color: '#1b2430' }}>Vertical Continuity:</strong> validates uninterrupted gravity and lateral load path.</li>
                   </ul>
                 </div>
 
