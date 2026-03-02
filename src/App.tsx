@@ -1286,7 +1286,7 @@ function App() {
   const [, setGlobalEarthquakesSyncedAt] = useState<string | null>(() =>
     localStorage.getItem('r360-global-earthquakes-synced-at'),
   )
-  const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(true)
+  const [showGlobalEarthquakesOnMap, setShowGlobalEarthquakesOnMap] = useState(false)
   const [globalEarthquakeMapFocusToken, setGlobalEarthquakeMapFocusToken] = useState(0)
   const [selectedGlobalEarthquakeId, setSelectedGlobalEarthquakeId] = useState<string | null>(null)
   const [bestPracticeHazard, setBestPracticeHazard] = useState<'flood' | 'earthquake'>('flood')
@@ -3742,7 +3742,7 @@ function App() {
       if (latest.length > 0) {
         const stillExists = latest.some((item) => item.id === selectedGlobalEarthquakeId)
         setSelectedGlobalEarthquakeId(stillExists ? selectedGlobalEarthquakeId : latest[0].id)
-        setShowGlobalEarthquakesOnMap(true)
+        setShowGlobalEarthquakesOnMap(false)
         setGlobalEarthquakeMapFocusToken((value) => value + 1)
       }
     } catch {
