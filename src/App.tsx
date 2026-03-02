@@ -1338,7 +1338,7 @@ function App() {
   const [shelterOccupancyType, setShelterOccupancyType] = useState<'School' | 'Mosque' | 'House'>('School')
   const [houseTypeForCost, setHouseTypeForCost] = useState<'Single-Storey' | 'Double-Storey' | 'School Block' | 'Clinic Unit'>('Single-Storey')
   const [floorAreaSqftCost, setFloorAreaSqftCost] = useState(1200)
-  const [designSummaryText, setDesignSummaryText] = useState<string | null>(null)
+  const [designSummaryText, _setDesignSummaryText] = useState<string | null>(null)
   const [showTrainingPrograms] = useState(false)
   const [activeLearnVideoFile, setActiveLearnVideoFile] = useState<string | null>(null)
   const [isLearnVideoVisible, setIsLearnVideoVisible] = useState(false)
@@ -2164,56 +2164,6 @@ function App() {
       total,
     }
   }, [designCityRates.laborDaily, designCityRates.logisticsIndex, designCityRates.materialIndex, designHazardOverlay.floodDepth100y, designHazardOverlay.liquefaction, designHazardOverlay.seismicZone, floorAreaSqftCost, houseTypeForCost])
-
-  const handleEstimateTotalUpgradeCost = () => {
-    setDesignSummaryText(
-      `Estimated total resilient upgrade cost for ${designCity}, ${designProvince}: PKR ${Math.round(designCostEstimate.total).toLocaleString()} (including contingency).`,
-    )
-  }
-
-  const downloadConstructionDrawings = () => {
-    const doc = new jsPDF()
-    doc.setFontSize(15)
-    doc.text('Resilience360 - Construction Drawings Pack (Concept Notes)', 14, 16)
-    doc.setFontSize(11)
-    doc.text(`Location: ${designCity}, ${designProvince}`, 14, 26)
-    doc.text(`Foundation Recommendation: ${foundationRecommendation.type}`, 14, 34)
-    doc.text(`Retaining Wall: ${slopeEstimator.wallType}`, 14, 42)
-    doc.text(`Embedment: ${slopeEstimator.embedment} m`, 14, 50)
-    doc.text(`Wind Guide: Roof ${windStormGuide.roofAngle}`, 14, 58)
-    doc.text(`Tie Beam Detail: ${windStormGuide.tieBeams}`, 14, 66)
-    doc.save('resilience360-construction-drawings.pdf')
-  }
-
-  const generateFieldImplementationChecklist = () => {
-    const doc = new jsPDF()
-    doc.setFontSize(15)
-    doc.text('Field Implementation Checklist', 14, 16)
-    doc.setFontSize(11)
-    doc.text(`Area: ${designCity}, ${designProvince}`, 14, 26)
-    doc.text('- Verify soil and hazard inputs before layout', 14, 36)
-    doc.text('- Mark foundation lines and flood-safe plinth level', 14, 44)
-    doc.text('- Install drainage + moisture barriers before walling', 14, 52)
-    doc.text('- Apply confinement/tie elements at required levels', 14, 60)
-    doc.text('- Anchor non-structural components before handover', 14, 68)
-    doc.save('resilience360-field-checklist.pdf')
-  }
-
-  const shareDesignWithCommunity = async () => {
-    const message = `Resilience360 design summary for ${designCity}, ${designProvince}: estimated upgrade cost PKR ${Math.round(designCostEstimate.total).toLocaleString()}, foundation ${foundationRecommendation.type}, hazard overlay SZ-${designHazardOverlay.seismicZone}.`
-    let wasShared = false
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Resilience360 Community Design', text: message })
-        wasShared = true
-      } catch {
-        wasShared = false
-      }
-    }
-    if (wasShared) return
-    await navigator.clipboard.writeText(message)
-    setDesignSummaryText('Design summary copied to clipboard for community sharing.')
-  }
 
   const loadResilienceInfraModels = async () => {
     setInfraModelsError(null)
@@ -4560,12 +4510,7 @@ function App() {
                       </p>
                     </div>
 
-                    <div className="inline-controls design-toolkit-actions">
-                      <button onClick={handleEstimateTotalUpgradeCost}>📦 Estimate My Total Upgrade Cost</button>
-                      <button onClick={downloadConstructionDrawings}>🧰 Download Construction Drawings</button>
-                      <button onClick={generateFieldImplementationChecklist}>📋 Generate Field Implementation Checklist</button>
-                      <button onClick={() => void shareDesignWithCommunity()}>🌍 Share Design with Community</button>
-                    </div>
+
                   </>
                 )}
               </div>
