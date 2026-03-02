@@ -1598,6 +1598,32 @@ function App() {
     localStorage.setItem('r360-community-admin-token', communityAdminToken)
   }, [communityAdminToken])
 
+  // Initialize push notifications for earthquake alerts
+  useEffect(() => {
+    const initPushNotifications = async () => {
+      try {
+        const { earthquakePushNotificationService } = await import('./services/earthquakePushNotifications')
+        await earthquakePushNotificationService.initialize()
+
+        // Subscribe to app-level earthquake alert events
+        const handleEarthquakeAlert = (event: CustomEvent) => {
+          console.log('🌍 Received earthquake alert event:', event.detail)
+          // Could trigger app-level UI notification or state update here
+        }
+
+        window.addEventListener('earthquake-alert', handleEarthquakeAlert as EventListener)
+
+        return () => {
+          window.removeEventListener('earthquake-alert', handleEarthquakeAlert as EventListener)
+        }
+      } catch (error) {
+        console.log('ℹ️ Push notifications not available on this platform')
+      }
+    }
+
+    initPushNotifications()
+  }, [])
+
   useEffect(() => {
     setCommunityIssueStatusDrafts((previous) => {
       const next = { ...previous }
