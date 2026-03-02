@@ -1282,7 +1282,7 @@ function App() {
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null)
   const [mapLayer, setMapLayer] = useState<'earthquake' | 'flood' | 'infraRisk'>('earthquake')
   const [districtReportLanguage, setDistrictReportLanguage] = useState<'English' | 'Urdu'>('English')
-  const [districtUiLanguage, setDistrictUiLanguage] = useState<'English' | 'Urdu'>('English')
+  const [districtUiLanguage, _setDistrictUiLanguage] = useState<'English' | 'Urdu'>('English')
   const [alertFilterWindow, setAlertFilterWindow] = useState<AlertFilterWindow>('24h')
   const [communityIssueCategory, setCommunityIssueCategory] = useState<CommunityIssueCategory>('Broken roads')
   const [communityIssueNotes, setCommunityIssueNotes] = useState('')
@@ -1304,7 +1304,7 @@ function App() {
     return cached ? (JSON.parse(cached) as Record<string, boolean>) : {}
   })
   const [smartDrainageStatus, setSmartDrainageStatus] = useState<string | null>(null)
-  const [colorblindFriendlyMap, setColorblindFriendlyMap] = useState(false)
+  const [colorblindFriendlyMap, _setColorblindFriendlyMap] = useState(false)
   const [districtProfileSavedMsg, setDistrictProfileSavedMsg] = useState<string | null>(null)
   const [locationAccessMsg, setLocationAccessMsg] = useState<string | null>(null)
   const [isDetectingLocation, setIsDetectingLocation] = useState(false)
@@ -3522,20 +3522,6 @@ function App() {
     }
   }
 
-  const saveDistrictProfileLocally = () => {
-    const payload = {
-      province: selectedProvince,
-      district: selectedDistrict,
-      mapLayer,
-      riskValue,
-      profile: selectedDistrictProfile,
-      savedAt: new Date().toISOString(),
-    }
-    localStorage.setItem('r360-saved-district-profile', JSON.stringify(payload))
-    setDistrictProfileSavedMsg('District profile saved locally.')
-    window.setTimeout(() => setDistrictProfileSavedMsg(null), 2500)
-  }
-
   const requestCurrentUserLocation = () => {
     if (!('geolocation' in navigator)) {
       setLocationAccessMsg('Geolocation is not supported on this device/browser.')
@@ -4147,42 +4133,6 @@ function App() {
             <button onClick={requestCurrentUserLocation} disabled={isDetectingLocation}>
               {isDetectingLocation ? '📡 Detecting Location...' : '📡 Use My Location'}
             </button>
-            <button onClick={downloadDistrictRiskReport}>📄 Download Risk & Resilience Report</button>
-            <button onClick={saveDistrictProfileLocally}>💾 Save District Profile</button>
-            <label>
-              <input
-                type="checkbox"
-                checked={colorblindFriendlyMap}
-                onChange={(event) => setColorblindFriendlyMap(event.target.checked)}
-              />{' '}
-              Colorblind-friendly map
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={showGlobalEarthquakesOnMap}
-                onChange={(event) => setShowGlobalEarthquakesOnMap(event.target.checked)}
-              />{' '}
-              Show global live earthquake dots
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="district-lang"
-                checked={districtUiLanguage === 'English'}
-                onChange={() => setDistrictUiLanguage('English')}
-              />{' '}
-              English
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="district-lang"
-                checked={districtUiLanguage === 'Urdu'}
-                onChange={() => setDistrictUiLanguage('Urdu')}
-              />{' '}
-              Urdu
-            </label>
           </div>
           {locationAccessMsg && <p>{locationAccessMsg}</p>}
           {districtProfileSavedMsg && <p>{districtProfileSavedMsg}</p>}
