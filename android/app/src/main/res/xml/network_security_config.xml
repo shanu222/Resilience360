@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Production domain - HTTPS only -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">resilience360-backend.onrender.com</domain>
+        <domain includeSubdomains="true">shanu222.github.io</domain>
+        <domain includeSubdomains="true">tile.openstreetmap.org</domain>
+        <domain includeSubdomains="true">earthquake.usgs.gov</domain>
+        <domain includeSubdomains="true">seismicportal.eu</domain>
+        <domain includeSubdomains="true">api.github.com</domain>
+    </domain-config>
+
+    <!-- Allow cleartext for localhost debugging only (will be disabled in release builds) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+
+    <!-- Certificate pinning for critical domains -->
+    <pin-set expiration="2029-12-31">
+        <pin digest="SHA-256">base64/certificate_hash_here</pin>
+    </pin-set>
+</network-security-config>
