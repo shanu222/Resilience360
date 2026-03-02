@@ -4598,11 +4598,11 @@ function App() {
                     {/* SECTION 2: Hazard-Based Adjustments */}
                     <div style={{ marginBottom: '20px' }}>
                       <h4 style={{ color: '#2563eb', marginBottom: '12px' }}>🌍 SECTION 2 — Hazard-Based Adjustments</h4>
-                      <p style={{ fontSize: '0.9em', color: '#666' }}>
+                      <p style={{ fontSize: '0.9em', color: '#1b2430' }}>
                         Auto-detected: Seismic Zone <strong>{designHazardOverlay.seismicZone}</strong> • Flood Risk <strong>{designHazardOverlay.floodDepth100y.toFixed(1)}m</strong>
                       </p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '10px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1b2430' }}>
                           <input
                             type="checkbox"
                             checked={estimatorSeismicToggle}
@@ -4610,7 +4610,7 @@ function App() {
                           />
                           <span>☐ Seismic-Resistant Design</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1b2430' }}>
                           <input
                             type="checkbox"
                             checked={estimatorFloodToggle}
@@ -4618,7 +4618,7 @@ function App() {
                           />
                           <span>☐ Flood-Resistant Plinth</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1b2430' }}>
                           <input
                             type="checkbox"
                             checked={estimatorWindToggle}
@@ -4658,31 +4658,31 @@ function App() {
                     <div style={{ backgroundColor: 'rgba(37, 99, 235, 0.08)', padding: '14px', borderRadius: '8px', marginBottom: '16px' }}>
                       <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#1b2430' }}>💰 COST BREAKDOWN</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.95em' }}>
-                        <p>
+                        <p style={{ color: '#1b2430' }}>
                           Unit Cost: <strong>PKR {Math.round(designCostEstimate.unitCost).toLocaleString()}/sq ft</strong>
                         </p>
-                        <p>
+                        <p style={{ color: '#1b2430' }}>
                           Base Cost: <strong>PKR {Math.round(designCostEstimate.subtotal).toLocaleString()}</strong>
                         </p>
                         {designCostEstimate.seismicUpgradeCost > 0 && (
-                          <p>
+                          <p style={{ color: '#1b2430' }}>
                             Seismic Upgrade: <strong>PKR {Math.round(designCostEstimate.seismicUpgradeCost).toLocaleString()}</strong>
                           </p>
                         )}
                         {designCostEstimate.floodUpgradeCost > 0 && (
-                          <p>
+                          <p style={{ color: '#1b2430' }}>
                             Flood Plinth Raise: <strong>PKR {Math.round(designCostEstimate.floodUpgradeCost).toLocaleString()}</strong>
                           </p>
                         )}
                         {designCostEstimate.windUpgradeCost > 0 && (
-                          <p>
+                          <p style={{ color: '#1b2430' }}>
                             Wind Reinforcement: <strong>PKR {Math.round(designCostEstimate.windUpgradeCost).toLocaleString()}</strong>
                           </p>
                         )}
-                        <p>
+                        <p style={{ color: '#1b2430' }}>
                           Professional Fee: <strong>PKR {Math.round(designCostEstimate.professionalFee).toLocaleString()}</strong>
                         </p>
-                        <p>
+                        <p style={{ color: '#1b2430' }}>
                           Contingency (10%): <strong>PKR {Math.round(designCostEstimate.contingency).toLocaleString()}</strong>
                         </p>
                       </div>
@@ -4703,41 +4703,41 @@ function App() {
                         <table style={{ width: '100%', fontSize: '0.9em', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
-                              <th style={{ padding: '8px', textAlign: 'left' }}>Component</th>
-                              <th style={{ padding: '8px', textAlign: 'right' }}>%</th>
-                              <th style={{ padding: '8px', textAlign: 'right' }}>Cost (PKR)</th>
+                              <th style={{ padding: '8px', textAlign: 'left', color: '#1b2430' }}>Component</th>
+                              <th style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>%</th>
+                              <th style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>Cost (PKR)</th>
                             </tr>
                           </thead>
                           <tbody>
                             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '8px' }}>Foundation</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>15%</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.foundation).toLocaleString()}</td>
+                              <td style={{ padding: '8px', color: '#1b2430' }}>Foundation</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>15%</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>{Math.round(designCostEstimate.foundation).toLocaleString()}</td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '8px' }}>Structure</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>35%</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.structure).toLocaleString()}</td>
+                              <td style={{ padding: '8px', color: '#1b2430' }}>Structure</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>35%</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>{Math.round(designCostEstimate.structure).toLocaleString()}</td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '8px' }}>Brickwork</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>15%</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.brickwork).toLocaleString()}</td>
+                              <td style={{ padding: '8px', color: '#1b2430' }}>Brickwork</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>15%</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>{Math.round(designCostEstimate.brickwork).toLocaleString()}</td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '8px' }}>Finishing</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>20%</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.finishing).toLocaleString()}</td>
+                              <td style={{ padding: '8px', color: '#1b2430' }}>Finishing</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>20%</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>{Math.round(designCostEstimate.finishing).toLocaleString()}</td>
                             </tr>
                             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '8px' }}>Electrical</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>8%</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.electrical).toLocaleString()}</td>
+                              <td style={{ padding: '8px', color: '#1b2430' }}>Electrical</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>8%</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>{Math.round(designCostEstimate.electrical).toLocaleString()}</td>
                             </tr>
                             <tr>
-                              <td style={{ padding: '8px' }}>Plumbing</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>7%</td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{Math.round(designCostEstimate.plumbing).toLocaleString()}</td>
+                              <td style={{ padding: '8px', color: '#1b2430' }}>Plumbing</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>7%</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#1b2430' }}>{Math.round(designCostEstimate.plumbing).toLocaleString()}</td>
                             </tr>
                           </tbody>
                         </table>
