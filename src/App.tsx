@@ -3894,9 +3894,35 @@ function App() {
         throw new Error('No live earthquake targets responded with data.')
       }
 
-      const latest = (payload.features ?? [])
+      // Pakistan bounds for prioritization
+      const PAKISTAN_BOUNDS = {
+        minLat: 23.0,
+        maxLat: 37.0,
+        minLng: 60.0,
+        maxLng: 78.0,
+      }
+
+      const isInPakistan = (coords: number[]) => {
+        const lng = Number(coords[0] ?? 0)
+        const lat = Number(coords[1] ?? 0)
+        return lat >= PAKISTAN_BOUNDS.minLat && lat <= PAKISTAN_BOUNDS.maxLat &&
+               lng >= PAKISTAN_BOUNDS.minLng && lng <= PAKISTAN_BOUNDS.maxLng
+      }
+
+      // Separate Pakistan and global earthquakes
+      const allFeatures = payload.features ?? []
+      const pakistanFeatures = allFeatures.filter(f => isInPakistan(f.geometry?.coordinates ?? []))
+      const globalFeatures = allFeatures.filter(f => !isInPakistan(f.geometry?.coordinates ?? []))
+
+      // Prioritize Pakistan earthquakes: show all Pakistan quakes + recent global ones
+      const prioritized = [
+        ...pakistanFeatures,
+        ...globalFeatures.sort((a, b) => Number(b.properties?.time ?? 0) - Number(a.properties?.time ?? 0)).slice(0, 50)
+      ]
+
+      const latest = prioritized
         .sort((a, b) => Number(b.properties?.time ?? 0) - Number(a.properties?.time ?? 0))
-        .slice(0, 30)
+        .slice(0, 100)
         .map((feature, index) => {
           const coords = feature.geometry?.coordinates ?? []
           const lng = Number(coords[0] ?? 0)
@@ -3915,6 +3941,8 @@ function App() {
           }
         })
         .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng))
+
+      console.log(`Earthquake data loaded: Total=${latest.length}, Pakistan=${pakistanFeatures.length}, Global=${globalFeatures.length}`)
 
       const syncedAt = new Date().toISOString()
       setGlobalEarthquakesSyncedAt(syncedAt)

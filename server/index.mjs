@@ -875,9 +875,25 @@ const writeSentEarthquakeAlerts = async (ids) => {
 // ======================================
 
 /**
- * Fetch earthquakes from USGS feed
+ * Fetch earthquakes from USGS feed with Pakistan focus
  */
 const fetchUSGSEarthquakes = async () => {
+  // Try Pakistan-specific query first
+  try {
+    const starttime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const pakistanUrl = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${starttime}&minlatitude=${PAKISTAN_EARTHQUAKE_BOUNDS.minlatitude}&maxlatitude=${PAKISTAN_EARTHQUAKE_BOUNDS.maxlatitude}&minlongitude=${PAKISTAN_EARTHQUAKE_BOUNDS.minlongitude}&maxlongitude=${PAKISTAN_EARTHQUAKE_BOUNDS.maxlongitude}&orderby=time`
+    
+    const payload = await fetchRemoteJson(pakistanUrl, 20000)
+    const features = safeArray(payload?.features)
+    if (features.length > 0) {
+      console.log(`Fetched ${features.length} Pakistan-specific earthquakes from USGS`)
+      return features.map(normalizeUSGSEvent).filter(Boolean)
+    }
+  } catch (error) {
+    console.error('USGS Pakistan query error:', error?.message || error)
+  }
+  
+  // Fallback to global feeds
   const feeds = [GLOBAL_EARTHQUAKE_FEED_URL, GLOBAL_EARTHQUAKE_FEED_URL_BACKUP]
   
   for (const feed of feeds) {
@@ -896,17 +912,18 @@ const fetchUSGSEarthquakes = async () => {
 }
 
 /**
- * Fetch earthquakes from EMSC feed
+ * Fetch earthquakes from EMSC feed with Pakistan bounds
  */
 const fetchEMSCEarthquakes = async () => {
   try {
-    const starttime = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    const url = `${EMSC_EARTHQUAKE_FEED_URL}&starttime=${starttime}`
+    const starttime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const url = `${EMSC_EARTHQUAKE_FEED_URL}&starttime=${starttime}&minlatitude=${PAKISTAN_EARTHQUAKE_BOUNDS.minlatitude}&maxlatitude=${PAKISTAN_EARTHQUAKE_BOUNDS.maxlatitude}&minlongitude=${PAKISTAN_EARTHQUAKE_BOUNDS.minlongitude}&maxlongitude=${PAKISTAN_EARTHQUAKE_BOUNDS.maxlongitude}&orderby=time-desc`
     
     const payload = await fetchRemoteJson(url, 20000)
     const features = safeArray(payload?.features)
     
     if (features.length > 0) {
+      console.log(`Fetched ${features.length} Pakistan-region earthquakes from EMSC`)
       return features.map(normalizeEMSCEvent).filter(Boolean)
     }
   } catch (error) {
@@ -1035,7 +1052,20 @@ const mergeAndDeduplicateEarthquakes = (usgsEvents, emscEvents) => {
 }
 
 /**
+ * Check if earthquake is within Pakistan region
+ */
+const isInPakistanRegion = (event) => {
+  return (
+    event.latitude >= PAKISTAN_EARTHQUAKE_BOUNDS.minlatitude &&
+    event.latitude <= PAKISTAN_EARTHQUAKE_BOUNDS.maxlatitude &&
+    event.longitude >= PAKISTAN_EARTHQUAKE_BOUNDS.minlongitude &&
+    event.longitude <= PAKISTAN_EARTHQUAKE_BOUNDS.maxlongitude
+  )
+}
+
+/**
  * Fetch merged earthquakes from both USGS and EMSC
+ * Prioritizes Pakistan-region earthquakes
  */
 const fetchHybridEarthquakes = async () => {
   const [usgsEvents, emscEvents] = await Promise.all([
@@ -1045,9 +1075,16 @@ const fetchHybridEarthquakes = async () => {
   
   const merged = mergeAndDeduplicateEarthquakes(usgsEvents, emscEvents)
   
-  console.log(`Earthquake fetch: USGS=${usgsEvents.length}, EMSC=${emscEvents.length}, Merged=${merged.length}`)
+  // Separate Pakistan and global earthquakes
+  const pakistanEarthquakes = merged.filter(isInPakistanRegion)
+  const globalEarthquakes = merged.filter(e => !isInPakistanRegion(e))
   
-  return merged
+  // Prioritize Pakistan earthquakes: return all Pakistan quakes + recent global ones
+  const prioritized = [...pakistanEarthquakes, ...globalEarthquakes.slice(0, 50)]
+  
+  console.log(`Earthquake fetch: USGS=${usgsEvents.length}, EMSC=${emscEvents.length}, Merged=${merged.length}, Pakistan=${pakistanEarthquakes.length}`)
+  
+  return prioritized
 }
 
 const fetchLiveEarthquakeFeaturesForAlerts = async () => {
