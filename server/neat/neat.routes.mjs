@@ -96,12 +96,22 @@ export const handleNEATAnalyze = async (req, res) => {
     
     return res.status(200).json(result);
   } catch (error) {
-    console.error('NEAT API Error:', error);
+    const errorMessage = error.message || 'NEAT analysis failed';
+    console.error('NEAT API Error:', errorMessage);
     
-    return res.status(500).json({
+    // Check if this is a file not found error
+    const isFileError = errorMessage.includes('not found') || errorMessage.includes('not available');
+    const statusCode = isFileError ? 503 : 500;
+    const responseStatus = isFileError ? 'unavailable' : 'error';
+    
+    return res.status(statusCode).json({
       ok: false,
-      error: error.message || 'NEAT analysis failed',
-      suggestion: 'Ensure all required fields are provided and the Excel file is properly configured'
+      status: responseStatus,
+      error: errorMessage,
+      ...(isFileError && {
+        message: 'NEAT service is not available in this deployment. The Excel file is missing.',
+        suggestion: 'Contact administrator to ensure the Network Exposure and Assessment Tool files are deployed.'
+      })
     });
   }
 };
@@ -115,11 +125,21 @@ export const handleNEATMetadata = async (_req, res) => {
     const metadata = getNEATMetadata();
     return res.status(200).json(metadata);
   } catch (error) {
-    console.error('NEAT Metadata Error:', error);
+    const errorMessage = error.message || 'Failed to retrieve NEAT metadata';
+    console.error('NEAT Metadata Error:', errorMessage);
     
-    return res.status(500).json({
+    // Check if this is a file not found error
+    const isFileError = errorMessage.includes('not found') || errorMessage.includes('not available');
+    const statusCode = isFileError ? 503 : 500;
+    
+    return res.status(statusCode).json({
       ok: false,
-      error: 'Failed to retrieve NEAT metadata'
+      status: isFileError ? 'unavailable' : 'error',
+      error: errorMessage,
+      ...(isFileError && {
+        message: 'NEAT service is not available in this deployment.',
+        available: false
+      })
     });
   }
 };

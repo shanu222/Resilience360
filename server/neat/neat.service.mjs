@@ -1,9 +1,27 @@
 import ExcelJS from 'exceljs';
 import path from 'path';
-import { fileURLToPath } from 'import.meta.url';
+import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const NEAT_FILE_PATH = path.join(__dirname, '../../Network Exposure and Assesment Tool/07.04 Neat+ 08-12-v6 (Excel Data Entry) English.xlsm');
+
+// Cache for loaded workbook
+let cachedWorkbook = null;
+let workbookLoadError = null;
+let isWorkbookLoaded = false;
+
+/**
+ * Check if NEAT Excel file exists
+ */
+const neatFileExists = () => {
+  try {
+    return existsSync(NEAT_FILE_PATH);
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Parse hazard types from user input
@@ -44,16 +62,35 @@ const parseInfrastructureType = (infraInput) => {
 };
 
 /**
- * Load NEAT Excel workbook
+ * Load NEAT Excel workbook (lazy loading with caching)
  */
 const loadNEATWorkbook = async () => {
+  // Return cached workbook if already loaded
+  if (isWorkbookLoaded) {
+    if (workbookLoadError) {
+      throw new Error(workbookLoadError);
+    }
+    return cachedWorkbook;
+  }
+
+  // Check if file exists first
+  if (!neatFileExists()) {
+    workbookLoadError = `NEAT Excel file not found at: ${NEAT_FILE_PATH}. The Network Exposure and Assessment Tool feature is not available in this deployment.`;
+    isWorkbookLoaded = true;
+    throw new Error(workbookLoadError);
+  }
+
   try {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(NEAT_FILE_PATH);
+    cachedWorkbook = workbook;
+    isWorkbookLoaded = true;
     return workbook;
   } catch (error) {
-    console.error('Failed to load NEAT Excel file:', error.message);
-    throw new Error(`Cannot load NEAT tool: ${error.message}`);
+    workbookLoadError = `Failed to load NEAT Excel file: ${error.message}`;
+    isWorkbookLoaded = true;
+    console.error('NEAT Workbook Load Error:', workbookLoadError);
+    throw new Error(workbookLoadError);
   }
 };
 
