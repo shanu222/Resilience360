@@ -194,13 +194,13 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
-  // Validate size for DALL-E 3 - only supports specific dimensions
-  const validSizes = ['1024x1024', '1024x1792', '1792x1024']
-  const imageSize = validSizes.includes(size) ? size : '1024x1024'
-
   if (!openai) {
     throw new Error(getAiMissingConfigMessage('AI image generation'))
   }
+
+  // Try DALL-E 3 first
+  const validDallE3Sizes = ['1024x1024', '1024x1792', '1792x1024']
+  const imageSize = validDallE3Sizes.includes(size) ? size : '1024x1024'
 
   try {
     const generated = await openai.images.generate({
@@ -212,7 +212,30 @@ const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
 
     return generated.data?.[0]?.b64_json ?? null
   } catch (error) {
-    throw new Error(`OpenAI image generation failed: ${error instanceof Error ? error.message : String(error)}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const status = getErrorStatus(error)
+    
+    // If it's a billing/quota error, try DALL-E 2 as fallback (cheaper and more available)
+    const isBillingError = status === 429 || status === 400 || /billing|quota|limit|insufficient/i.test(errorMessage)
+    
+    if (isBillingError) {
+      console.log('DALL-E 3 billing limit reached, falling back to DALL-E 2...')
+      try {
+        const fallbackGenerated = await openai.images.generate({
+          model: 'dall-e-2',
+          prompt: prompt.substring(0, 1000), // DALL-E 2 has shorter prompt limit
+          size: '1024x1024', // DALL-E 2 only supports 256x256, 512x512, 1024x1024
+          response_format: 'b64_json',
+        })
+
+        return fallbackGenerated.data?.[0]?.b64_json ?? null
+      } catch (fallbackError) {
+        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+        throw new Error(`Image generation failed. DALL-E 3: ${errorMessage}. DALL-E 2 fallback: ${fallbackMessage}. Please check your OpenAI billing and quotas.`)
+      }
+    }
+
+    throw new Error(`OpenAI image generation failed: ${errorMessage}`)
   }
 }
 
