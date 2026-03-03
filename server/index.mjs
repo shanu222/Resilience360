@@ -147,39 +147,17 @@ const isOpenAiLimitError = (error) => {
 }
 
 const createChatCompletion = async ({ messages, temperature = 0.2, openaiModel = OPENAI_MODEL, huggingFaceModel = HUGGINGFACE_CHAT_MODEL }) => {
-  if (selectedAiProvider === 'huggingface') {
-    if (!huggingFaceRouterClient) {
-      throw new Error(getAiMissingConfigMessage('AI chat requests'))
-    }
-    return huggingFaceRouterClient.chat.completions.create({
-      model: huggingFaceModel,
-      temperature,
-      messages,
-    })
-  }
-
+  // Force OpenAI only (Hugging Face limits reached)
   if (!openai) {
-    throw new Error(getAiMissingConfigMessage('AI chat requests'))
+    throw new Error('OpenAI API key required. Set OPENAI_API_KEY in environment variables.')
   }
 
-  try {
-    return await openai.chat.completions.create({
-      model: openaiModel,
-      temperature,
-      messages,
-      response_format: { type: 'json_object' },
-    })
-  } catch (error) {
-    if (!hasHuggingFaceFallback || !huggingFaceRouterClient || !isOpenAiLimitError(error)) {
-      throw error
-    }
-
-    return huggingFaceRouterClient.chat.completions.create({
-      model: huggingFaceModel,
-      temperature,
-      messages,
-    })
-  }
+  return await openai.chat.completions.create({
+    model: openaiModel,
+    temperature,
+    messages,
+    response_format: { type: 'json_object' },
+  })
 }
 
 const parseImageSize = (size) => {
@@ -194,42 +172,12 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
-  // Try Hugging Face first if available (faster and avoids OpenAI billing limits)
-  if (HUGGINGFACE_API_KEY) {
-    try {
-      console.log('Generating image with Hugging Face...')
-      const response = await fetch(`https://api-inference.huggingface.co/models/${HUGGINGFACE_IMAGE_MODEL}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inputs: prompt.substring(0, 1000), // Limit prompt length
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.log(`Hugging Face image generation failed (${response.status}): ${errorText}`)
-        throw new Error(`Hugging Face returned ${response.status}`)
-      }
-
-      const arrayBuffer = await response.arrayBuffer()
-      const base64 = Buffer.from(arrayBuffer).toString('base64')
-      console.log('Hugging Face image generated successfully')
-      return base64
-    } catch (huggingFaceError) {
-      console.log('Hugging Face image generation failed, trying OpenAI...')
-    }
-  }
-
-  // Fallback to OpenAI if Hugging Face is not available or failed
+  // Use OpenAI exclusively (Hugging Face limits reached)
   if (!openai) {
-    throw new Error(getAiMissingConfigMessage('AI image generation'))
+    throw new Error('OpenAI API key required for image generation. Set OPENAI_API_KEY in environment variables.')
   }
 
-  // Try DALL-E 3 first
+  console.log('Generating image with OpenAI DALL-E 3...')
   const validDallE3Sizes = ['1024x1024', '1024x1792', '1792x1024']
   const imageSize = validDallE3Sizes.includes(size) ? size : '1024x1024'
 
@@ -241,32 +189,34 @@ const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
       response_format: 'b64_json',
     })
 
+    console.log('OpenAI DALL-E 3 image generated successfully')
     return generated.data?.[0]?.b64_json ?? null
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     const status = getErrorStatus(error)
     
-    // If it's a billing/quota error, try DALL-E 2 as fallback (cheaper and more available)
+    // If it's a billing/quota error, try DALL-E 2 as fallback
     const isBillingError = status === 429 || status === 400 || /billing|quota|limit|insufficient/i.test(errorMessage)
     
     if (isBillingError) {
-      console.log('DALL-E 3 billing limit reached, falling back to DALL-E 2...')
+      console.log('DALL-E 3 limit reached, trying DALL-E 2...')
       try {
         const fallbackGenerated = await openai.images.generate({
           model: 'dall-e-2',
-          prompt: prompt.substring(0, 1000), // DALL-E 2 has shorter prompt limit
-          size: '1024x1024', // DALL-E 2 only supports 256x256, 512x512, 1024x1024
+          prompt: prompt.substring(0, 1000),
+          size: '1024x1024',
           response_format: 'b64_json',
         })
 
+        console.log('OpenAI DALL-E 2 image generated successfully')
         return fallbackGenerated.data?.[0]?.b64_json ?? null
       } catch (fallbackError) {
         const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-        throw new Error(`All image generation methods failed. Please check your API keys and billing. OpenAI DALL-E 3: ${errorMessage}. DALL-E 2: ${fallbackMessage}`)
+        throw new Error(`OpenAI image generation failed. DALL-E 3: ${errorMessage}. DALL-E 2: ${fallbackMessage}. Please check your OpenAI billing and increase limits.`)
       }
     }
 
-    throw new Error(`OpenAI image generation failed: ${errorMessage}`)
+    throw new Error(`OpenAI image generation failed: ${errorMessage}. Please check your API key and billing.`)
   }
 }
 
