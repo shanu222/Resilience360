@@ -17,6 +17,7 @@ import {
   prepareFcmMessage,
   readRegisteredDevices,
 } from './notifications.mjs'
+import { handleNEATAnalyze, handleNEATMetadata } from './neat/neat.routes.mjs'
 
 dotenv.config()
 
@@ -3121,6 +3122,25 @@ Return strict JSON schema:
     res.status(500).json({ error: message })
   }
 })
+
+// ========== NEAT (Network Exposure and Assessment Tool) ENDPOINTS ==========
+
+app.get('/api/neat/metadata', handleNEATMetadata)
+
+app.post('/api/neat/analyze', async (req, res) => {
+  try {
+    await handleNEATAnalyze(req, res)
+  } catch (error) {
+    console.error('NEAT endpoint error:', error)
+    res.status(500).json({
+      ok: false,
+      error: 'NEAT analysis failed',
+      details: error.message
+    })
+  }
+})
+
+// ========== END NEAT ENDPOINTS ==========
 
 // Serve static frontend files from dist directory
 const distPath = path.join(repoRootDir, 'dist')
