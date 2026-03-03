@@ -28,8 +28,26 @@ const port = Number(process.env.PORT ?? process.env.VISION_API_PORT ?? 8787)
 const AI_PROVIDER = String(process.env.AI_PROVIDER ?? 'openai').trim().toLowerCase()
 const selectedAiProvider = AI_PROVIDER === 'huggingface' ? 'huggingface' : 'openai'
 const OPENAI_FALLBACK_TO_HUGGINGFACE = String(process.env.OPENAI_FALLBACK_TO_HUGGINGFACE ?? 'true').trim().toLowerCase() !== 'false'
-const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY ?? '').trim()
+
+// Support multiple API keys for quota rotation
+const OPENAI_API_KEYS = String(process.env.OPENAI_API_KEYS ?? process.env.OPENAI_API_KEY ?? '')
+  .split(',')
+  .map(key => key.trim())
+  .filter(Boolean)
+const OPENAI_API_KEY = OPENAI_API_KEYS[0] ?? ''
 const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini').trim()
+
+let currentKeyIndex = 0
+const rotateApiKey = () => {
+  if (OPENAI_API_KEYS.length > 1) {
+    currentKeyIndex = (currentKeyIndex + 1) % OPENAI_API_KEYS.length
+    console.log(`Rotated to API key ${currentKeyIndex + 1}/${OPENAI_API_KEYS.length}`)
+    return OPENAI_API_KEYS[currentKeyIndex]
+  }
+  return OPENAI_API_KEY
+}
+
+const getCurrentApiKey = () => OPENAI_API_KEYS[currentKeyIndex] || OPENAI_API_KEY
 const MATERIAL_HUBS_SUPABASE_URL = String(process.env.MATERIAL_HUBS_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
 const MATERIAL_HUBS_SUPABASE_ANON_KEY = String(process.env.MATERIAL_HUBS_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
 const MATERIAL_HUBS_ADMIN_EMAILS = String(process.env.MATERIAL_HUBS_ADMIN_EMAILS ?? '')
@@ -98,7 +116,7 @@ const execFileAsync = promisify(execFile)
 const allowedCommunityIssueStatuses = new Set(['Submitted', 'In Review', 'In Progress', 'Resolved', 'Rejected'])
 const SHARED_INFRA_MODELS_MAX = 200
 
-const openai = selectedAiProvider === 'openai' && OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
+let openai = selectedAiProvider === 'openai' && OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
 const huggingFaceRouterClient =
   HUGGINGFACE_API_KEY
     ? new OpenAI({ apiKey: HUGGINGFACE_API_KEY, baseURL: HUGGINGFACE_BASE_URL })
@@ -147,17 +165,33 @@ const isOpenAiLimitError = (error) => {
 }
 
 const createChatCompletion = async ({ messages, temperature = 0.2, openaiModel = OPENAI_MODEL, huggingFaceModel = HUGGINGFACE_CHAT_MODEL }) => {
-  // Force OpenAI only (Hugging Face limits reached)
   if (!openai) {
-    throw new Error('OpenAI API key required. Set OPENAI_API_KEY in environment variables.')
+    throw new Error('OpenAI API key required. Set OPENAI_API_KEY or OPENAI_API_KEYS in environment variables.')
   }
 
-  return await openai.chat.completions.create({
-    model: openaiModel,
-    temperature,
-    messages,
-    response_format: { type: 'json_object' },
-  })
+  try {
+    return await openai.chat.completions.create({
+      model: openaiModel,
+      temperature,
+      messages,
+      response_format: { type: 'json_object' },
+    })
+  } catch (error) {
+    const status = getErrorStatus(error)
+    // If quota error and we have multiple keys, rotate and retry
+    if (status === 429 && OPENAI_API_KEYS.length > 1) {
+      const nextKey = rotateApiKey()
+      console.log('Quota limit hit, rotating to next API key...')
+      openai = new OpenAI({ apiKey: nextKey })
+      return await openai.chat.completions.create({
+        model: openaiModel,
+        temperature,
+        messages,
+        response_format: { type: 'json_object' },
+      })
+    }
+    throw error
+  }
 }
 
 const parseImageSize = (size) => {
@@ -173,20 +207,37 @@ const parseImageSize = (size) => {
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
   if (!openai) {
-    throw new Error('OpenAI API key required. Set OPENAI_API_KEY in environment variables.')
+    throw new Error('OpenAI API key required. Set OPENAI_API_KEY or OPENAI_API_KEYS in environment variables.')
   }
 
   const validDallE3Sizes = ['1024x1024', '1024x1792', '1792x1024']
   const imageSize = validDallE3Sizes.includes(size) ? size : '1024x1024'
 
-  const generated = await openai.images.generate({
-    model: 'dall-e-3',
-    prompt,
-    size: imageSize,
-    response_format: 'b64_json',
-  })
-
-  return generated.data?.[0]?.b64_json ?? null
+  try {
+    const generated = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      size: imageSize,
+      response_format: 'b64_json',
+    })
+    return generated.data?.[0]?.b64_json ?? null
+  } catch (error) {
+    const status = getErrorStatus(error)
+    // If quota error and we have multiple keys, rotate and retry
+    if (status === 429 && OPENAI_API_KEYS.length > 1) {
+      const nextKey = rotateApiKey()
+      console.log('Image generation quota limit hit, rotating to next API key...')
+      openai = new OpenAI({ apiKey: nextKey })
+      const generated = await openai.images.generate({
+        model: 'dall-e-3',
+        prompt,
+        size: imageSize,
+        response_format: 'b64_json',
+      })
+      return generated.data?.[0]?.b64_json ?? null
+    }
+    throw error
+  }
 }
 
 const fetchRemoteText = async (url, timeoutMs = 14000) => {
