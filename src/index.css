@@ -223,8 +223,13 @@ body {
 
 .ndma-logo {
   height: 50px;
-  width: auto;
+  width: 50px;
+  border-radius: 50%;
   object-fit: contain;
+  background: white;
+  padding: 4px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .logo-badge {
