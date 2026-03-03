@@ -192,65 +192,21 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
-  const generateWithHuggingFace = async () => {
-    if (!HUGGINGFACE_API_KEY) {
-      throw new Error('Hugging Face key missing. Set HUGGINGFACE_API_KEY for AI image generation.')
-    }
-
-    const { width, height } = parseImageSize(size)
-    const response = await fetch(`https://api-inference.huggingface.co/models/${HUGGINGFACE_IMAGE_MODEL}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
-        'Content-Type': 'application/json',
-        Accept: 'image/png',
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          width,
-          height,
-        },
-      }),
-    })
-
-    const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-    if (!response.ok || contentType.includes('application/json')) {
-      const errorBody = contentType.includes('application/json')
-        ? await response.json().catch(() => null)
-        : await response.text().catch(() => '')
-      const errorText =
-        typeof errorBody === 'string'
-          ? errorBody
-          : errorBody?.error || errorBody?.message || JSON.stringify(errorBody ?? {})
-      throw new Error(`Hugging Face image generation failed (${response.status}): ${errorText}`)
-    }
-
-    const buffer = await response.arrayBuffer()
-    return Buffer.from(buffer).toString('base64')
-  }
-
-  if (selectedAiProvider === 'huggingface') {
-    return generateWithHuggingFace()
-  }
-
   if (!openai) {
     throw new Error(getAiMissingConfigMessage('AI image generation'))
   }
 
   try {
     const generated = await openai.images.generate({
-      model: 'gpt-image-1',
+      model: 'dall-e-3',
       prompt,
       size,
+      response_format: 'b64_json',
     })
 
     return generated.data?.[0]?.b64_json ?? null
   } catch (error) {
-    if (!hasHuggingFaceFallback || !isOpenAiLimitError(error)) {
-      throw error
-    }
-    return generateWithHuggingFace()
+    throw new Error(`OpenAI image generation failed: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
