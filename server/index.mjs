@@ -192,6 +192,10 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
+  // Validate size for DALL-E 3 - only supports specific dimensions
+  const validSizes = ['1024x1024', '1024x1792', '1792x1024']
+  const imageSize = validSizes.includes(size) ? size : '1024x1024'
+
   if (!openai) {
     throw new Error(getAiMissingConfigMessage('AI image generation'))
   }
@@ -200,7 +204,7 @@ const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
     const generated = await openai.images.generate({
       model: 'dall-e-3',
       prompt,
-      size,
+      size: imageSize,
       response_format: 'b64_json',
     })
 
@@ -2484,7 +2488,7 @@ app.post('/api/guidance/step-images', async (req, res) => {
         try {
           const b64 = await generateImageBase64({
             prompt,
-            size: 'auto',
+            size: '1024x1024',
           })
 
           if (!b64) {
