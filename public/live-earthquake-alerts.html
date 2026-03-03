@@ -1498,49 +1498,59 @@
 
       function renderImpactPanel(eventItem) {
         const panel = document.getElementById('impactPanel');
-        if (!panel || !eventItem) return;
+        console.log('renderImpactPanel called', { eventItem, panel });
+        if (!panel || !eventItem) {
+          console.log('Panel or event item missing:', { panel, eventItem });
+          return;
+        }
 
-        const assessment = buildImpactAssessment(eventItem);
+        try {
+          const assessment = buildImpactAssessment(eventItem);
+          console.log('Assessment built:', assessment);
 
-        panel.innerHTML = `
-          <div class="impact-title">
-            <h4>Seismic Impact Assessment</h4>
-            <span class="impact-risk" style="background:${riskColor(assessment.risk)}">${assessment.risk}</span>
-          </div>
-          <div class="impact-subtitle">${escapeHtml(eventItem.place || 'Unknown location')} · M ${Number(eventItem.mag || 0).toFixed(1)} · Depth ${Number(eventItem.depthKm || 0).toFixed(1)} km</div>
-          <div class="impact-zone-row">
-            <div class="impact-zone-card primary">
-              <b>Primary Zone</b>
-              <span>Radius: ${assessment.primaryRadiusKm.toFixed(1)} km</span>
-              <span>Area: ${Math.round(assessment.primaryArea).toLocaleString()} km²</span>
-              <span>Population: ~${assessment.primaryPopulation.toLocaleString()}</span>
+          panel.innerHTML = `
+            <div class="impact-title">
+              <h4>Seismic Impact Assessment</h4>
+              <span class="impact-risk" style="background:${riskColor(assessment.risk)}">${assessment.risk}</span>
             </div>
-            <div class="impact-zone-card secondary">
-              <b>Secondary Zone</b>
-              <span>Radius: ${assessment.secondaryRadiusKm.toFixed(1)} km</span>
-              <span>Area: ${Math.round(assessment.secondaryArea).toLocaleString()} km²</span>
-              <span>Population: ~${assessment.secondaryPopulation.toLocaleString()}</span>
+            <div class="impact-subtitle">${escapeHtml(eventItem.place || 'Unknown location')} · M ${Number(eventItem.mag || 0).toFixed(1)} · Depth ${Number(eventItem.depthKm || 0).toFixed(1)} km</div>
+            <div class="impact-zone-row">
+              <div class="impact-zone-card primary">
+                <b>Primary Zone</b>
+                <span>Radius: ${assessment.primaryRadiusKm.toFixed(1)} km</span>
+                <span>Area: ${Math.round(assessment.primaryArea).toLocaleString()} km²</span>
+                <span>Population: ~${assessment.primaryPopulation.toLocaleString()}</span>
+              </div>
+              <div class="impact-zone-card secondary">
+                <b>Secondary Zone</b>
+                <span>Radius: ${assessment.secondaryRadiusKm.toFixed(1)} km</span>
+                <span>Area: ${Math.round(assessment.secondaryArea).toLocaleString()} km²</span>
+                <span>Population: ~${assessment.secondaryPopulation.toLocaleString()}</span>
+              </div>
+              <div class="impact-zone-card felt">
+                <b>Felt Radius</b>
+                <span>Radius: ${assessment.feltRadiusKm.toFixed(1)} km</span>
+                <span>Area: ${Math.round(assessment.feltArea).toLocaleString()} km²</span>
+                <span>Population: ~${assessment.totalPopulation.toLocaleString()}</span>
+              </div>
             </div>
-            <div class="impact-zone-card felt">
-              <b>Felt Radius</b>
-              <span>Radius: ${assessment.feltRadiusKm.toFixed(1)} km</span>
-              <span>Area: ${Math.round(assessment.feltArea).toLocaleString()} km²</span>
-              <span>Population: ~${assessment.totalPopulation.toLocaleString()}</span>
+            <div class="impact-subtitle">Infrastructure in affected area (estimated)</div>
+            <div class="impact-grid">
+              <div class="impact-item"><small>Buildings</small><strong>${assessment.totalInfra.buildings.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Bridges</small><strong>${assessment.totalInfra.bridges.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Roads</small><strong>${assessment.totalInfra.roadsKm.toLocaleString()} km</strong></div>
+              <div class="impact-item"><small>Hospitals</small><strong>${assessment.totalInfra.hospitals.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Schools</small><strong>${assessment.totalInfra.schools.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Emergency Services</small><strong>${assessment.totalInfra.emergency.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Power Stations</small><strong>${assessment.totalInfra.powerStations.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Water Plants</small><strong>${assessment.totalInfra.waterPlants.toLocaleString()}</strong></div>
+              <div class="impact-item"><small>Max Intensity</small><strong>MMI ${assessment.maxMmi.toFixed(1)}</strong></div>
             </div>
-          </div>
-          <div class="impact-subtitle">Infrastructure in affected area (estimated)</div>
-          <div class="impact-grid">
-            <div class="impact-item"><small>Buildings</small><strong>${assessment.totalInfra.buildings.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Bridges</small><strong>${assessment.totalInfra.bridges.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Roads</small><strong>${assessment.totalInfra.roadsKm.toLocaleString()} km</strong></div>
-            <div class="impact-item"><small>Hospitals</small><strong>${assessment.totalInfra.hospitals.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Schools</small><strong>${assessment.totalInfra.schools.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Emergency Services</small><strong>${assessment.totalInfra.emergency.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Power Stations</small><strong>${assessment.totalInfra.powerStations.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Water Plants</small><strong>${assessment.totalInfra.waterPlants.toLocaleString()}</strong></div>
-            <div class="impact-item"><small>Max Intensity</small><strong>MMI ${assessment.maxMmi.toFixed(1)}</strong></div>
-          </div>
-        `;
+          `;
+          console.log('Panel HTML updated successfully');
+        } catch (error) {
+          console.error('Error rendering impact panel:', error);
+        }
       }
 
       function ensureGlobe() {
@@ -1637,8 +1647,12 @@
           row.classList.toggle('selected', row.dataset.id === id);
         }
         const selected = eventsData.find((item) => item.id === id) || null;
+        console.log('selectEvent called:', { id, selected });
         if (selected) {
+          console.log('Rendering impact panel for:', selected);
           renderImpactPanel(selected);
+        } else {
+          console.log('No event found with id:', id);
         }
         refreshPointsAppearance();
         focusOn(id);
