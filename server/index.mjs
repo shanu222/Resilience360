@@ -172,52 +172,21 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
-  // Use OpenAI exclusively (Hugging Face limits reached)
   if (!openai) {
-    throw new Error('OpenAI API key required for image generation. Set OPENAI_API_KEY in environment variables.')
+    throw new Error('OpenAI API key required. Set OPENAI_API_KEY in environment variables.')
   }
 
-  console.log('Generating image with OpenAI DALL-E 3...')
   const validDallE3Sizes = ['1024x1024', '1024x1792', '1792x1024']
   const imageSize = validDallE3Sizes.includes(size) ? size : '1024x1024'
 
-  try {
-    const generated = await openai.images.generate({
-      model: 'dall-e-3',
-      prompt,
-      size: imageSize,
-      response_format: 'b64_json',
-    })
+  const generated = await openai.images.generate({
+    model: 'dall-e-3',
+    prompt,
+    size: imageSize,
+    response_format: 'b64_json',
+  })
 
-    console.log('OpenAI DALL-E 3 image generated successfully')
-    return generated.data?.[0]?.b64_json ?? null
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    const status = getErrorStatus(error)
-    
-    // If it's a billing/quota error, try DALL-E 2 as fallback
-    const isBillingError = status === 429 || status === 400 || /billing|quota|limit|insufficient/i.test(errorMessage)
-    
-    if (isBillingError) {
-      console.log('DALL-E 3 limit reached, trying DALL-E 2...')
-      try {
-        const fallbackGenerated = await openai.images.generate({
-          model: 'dall-e-2',
-          prompt: prompt.substring(0, 1000),
-          size: '1024x1024',
-          response_format: 'b64_json',
-        })
-
-        console.log('OpenAI DALL-E 2 image generated successfully')
-        return fallbackGenerated.data?.[0]?.b64_json ?? null
-      } catch (fallbackError) {
-        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-        throw new Error(`OpenAI image generation failed. DALL-E 3: ${errorMessage}. DALL-E 2: ${fallbackMessage}. Please check your OpenAI billing and increase limits.`)
-      }
-    }
-
-    throw new Error(`OpenAI image generation failed: ${errorMessage}. Please check your API key and billing.`)
-  }
+  return generated.data?.[0]?.b64_json ?? null
 }
 
 const fetchRemoteText = async (url, timeoutMs = 14000) => {
