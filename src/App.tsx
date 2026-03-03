@@ -6516,6 +6516,7 @@ function App() {
     >
       <header className={`navbar ${isHomeView ? 'home-navbar' : ''} ${isBestPracticesView || isLearnView ? 'best-practices-navbar' : ''} ${isRiskMapsView ? 'risk-maps-navbar' : ''} ${isReadinessView ? 'readiness-navbar' : ''} ${isWarningView ? 'warning-navbar' : ''}`}>
         <div className="brand">
+          <img src="/NDMA-logo.png" alt="NDMA Logo" className="ndma-logo" />
           <div className="logo-badge">{t.logoText}</div>
           {isHomeView || isBestPracticesView || isLearnView || isRiskMapsView || isWarningView ? (
             <div className="hero-title-wrap">

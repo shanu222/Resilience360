@@ -221,6 +221,12 @@ body {
   gap: 10px;
 }
 
+.ndma-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
 .logo-badge {
   width: 46px;
   height: 46px;
