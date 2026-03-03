@@ -46,13 +46,6 @@ import {
 } from './services/infraResearch'
 import { askLocalAdvisory } from './services/advisory'
 import {
-  analyzeNEAT,
-  type NEATAnalysisInput,
-  type NEATAnalysisResult,
-  type NEATHazardType,
-  type NEATInfrastructureType,
-} from './services/neat'
-import {
   districtRiskLookupByName,
   findDistrictRiskProfile,
   listDistrictsByProvince,
@@ -74,7 +67,6 @@ type SectionKey =
   | 'retrofit'
   | 'warning'
   | 'learn'
-  | 'neat'
   | 'settings'
 
 type RetrofitImageSeriesResult = {
@@ -426,7 +418,6 @@ const translations = {
       retrofit: '🧰 Retrofit Guide',
       warning: '📢 Early Warning System',
       learn: '📚 Learn & Train',
-      neat: '🔍 NEAT Assessment',
       settings: '⚙️ Settings',
     },
   },
@@ -452,7 +443,6 @@ const translations = {
       retrofit: '🧰 ریٹروفٹ گائیڈ',
       warning: '📢 ابتدائی وارننگ سسٹم',
       learn: '📚 سیکھیں اور تربیت',
-      neat: '🔍 NEAT تشخیص',
       settings: '⚙️ سیٹنگز',
     },
   },
@@ -602,7 +592,6 @@ const homeSectionKeys: SectionKey[] = [
   'retrofit',
   'riskMaps',
   'designToolkit',
-  'neat',
   'pgbc',
   'materialHubs',
   'warning',
@@ -672,12 +661,6 @@ const homeCardMeta: Record<
     title: 'Construct in my Region',
     subtitle: 'District-Specific Guidance',
     tone: 'tone-d',
-  },
-  neat: {
-    icon: '🔍',
-    title: 'NEAT Assessment',
-    subtitle: 'Network Exposure & Assessment Tool',
-    tone: 'tone-c',
   },
   readiness: {
     icon: '📊',
@@ -1348,26 +1331,6 @@ function App() {
   const [designCity, setDesignCity] = useState('Lahore')
   const [designSoilType, setDesignSoilType] = useState<'Rocky' | 'Sandy' | 'Clayey' | 'Silty' | 'Saline'>('Clayey')
   const [designHumidity, setDesignHumidity] = useState<'Low' | 'Medium' | 'High'>('Medium')
-  
-  // NEAT (Network Exposure and Assessment Tool) state
-  const [neatDistrict, setNeatDistrict] = useState('Lahore')
-  const [neatHazardType, setNeatHazardType] = useState<NEATHazardType>('Earthquake')
-  const [neatInfraType, setNeatInfraType] = useState<NEATInfrastructureType>('Road')
-  const [neatLocation, setNeatLocation] = useState('')
-  const [neatInfraName, setNeatInfraName] = useState('')
-  const [neatLength, setNeatLength] = useState('')
-  const [neatArea, setNeatArea] = useState('')
-  const [neatPopulation, setNeatPopulation] = useState('')
-  const [neatAssets, setNeatAssets] = useState('')
-  const [neatServices, setNeatServices] = useState('')
-  const [neatVulnExposure, setNeatVulnExposure] = useState('')
-  const [neatVulnPhysical, setNeatVulnPhysical] = useState('')
-  const [neatVulnSocial, setNeatVulnSocial] = useState('')
-  const [neatVulnEconomic, setNeatVulnEconomic] = useState('')
-  const [neatResult, setNeatResult] = useState<NEATAnalysisResult | null>(null)
-  const [isAnalyzingNeat, setIsAnalyzingNeat] = useState(false)
-  const [neatError, setNeatError] = useState<string | null>(null)
-  
   const [slopeAngleDeg, setSlopeAngleDeg] = useState(18)
   const [slopeHeightM, setSlopeHeightM] = useState(4)
   const [shelterAreaSqm, setShelterAreaSqm] = useState(120)
@@ -1618,84 +1581,6 @@ function App() {
       return previous.slice(0, -1)
     })
   }, [])
-
-  // NEAT Analysis Handler
-  const handleNeatAnalysis = useCallback(async () => {
-    if (!neatDistrict || !neatHazardType || !neatInfraType) {
-      setNeatError('Please fill in all required fields (District, Hazard Type, Infrastructure Type)')
-      return
-    }
-
-    setIsAnalyzingNeat(true)
-    setNeatError(null)
-
-    try {
-      const input: NEATAnalysisInput = {
-        district: neatDistrict,
-        hazardType: neatHazardType,
-        infrastructureType: neatInfraType,
-      }
-
-      // Add optional fields if provided
-      if (neatLocation.trim()) input.location = neatLocation.trim()
-      if (neatInfraName.trim()) input.infrastructureName = neatInfraName.trim()
-      if (neatLength) input.length = parseFloat(neatLength)
-      if (neatArea) input.area = parseFloat(neatArea)
-      if (neatPopulation) input.population = parseInt(neatPopulation, 10)
-      if (neatAssets) input.assets = parseFloat(neatAssets)
-      if (neatServices) input.services = parseInt(neatServices, 10)
-      if (neatVulnExposure) input.vulnerabilityExposure = parseFloat(neatVulnExposure)
-      if (neatVulnPhysical) input.vulnerabilityPhysical = parseFloat(neatVulnPhysical)
-      if (neatVulnSocial) input.vulnerabilitySocial = parseFloat(neatVulnSocial)
-      if (neatVulnEconomic) input.vulnerabilityEconomic = parseFloat(neatVulnEconomic)
-
-      const result = await analyzeNEAT(input)
-      setNeatResult(result)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to analyze NEAT assessment'
-      setNeatError(message)
-      console.error('NEAT analysis error:', error)
-    } finally {
-      setIsAnalyzingNeat(false)
-    }
-  }, [
-    neatDistrict,
-    neatHazardType,
-    neatInfraType,
-    neatLocation,
-    neatInfraName,
-    neatLength,
-    neatArea,
-    neatPopulation,
-    neatAssets,
-    neatServices,
-    neatVulnExposure,
-    neatVulnPhysical,
-    neatVulnSocial,
-    neatVulnEconomic,
-  ])
-
-  // Helper functions for NEAT result display
-  const getScoreColor = (score: number): string => {
-    if (score >= 75) return '#dc3545' // High risk - red
-    if (score >= 50) return '#ffc107' // Medium risk - yellow
-    if (score >= 25) return '#fd7e14' // Low-medium risk - orange
-    return '#28a745' // Low risk - green
-  }
-
-  const getRiskBackgroundColor = (category: string): string => {
-    const lower = category.toLowerCase()
-    if (lower.includes('critical') || lower.includes('high')) return '#f8d7da'
-    if (lower.includes('medium')) return '#fff3cd'
-    return '#d1ecf1'
-  }
-
-  const getRiskBorderColor = (category: string): string => {
-    const lower = category.toLowerCase()
-    if (lower.includes('critical') || lower.includes('high')) return '#dc3545'
-    if (lower.includes('medium')) return '#ffc107'
-    return '#17a2b8'
-  }
 
   useEffect(() => {
     if (activeSection === 'learn' && !activeLearnVideoFile && learnTrainingVideos.length > 0) {
@@ -6521,345 +6406,7 @@ function App() {
       )
     }
 
-    if (activeSection === 'neat') {
-      return (
-        <div className="panel section-panel section-readiness">
-          <h2>{t.sections.neat}</h2>
-          <p style={{ marginBottom: '1.5rem', fontSize: '0.95rem', opacity: 0.9 }}>
-            Network Exposure and Assessment Tool (NEAT) helps assess infrastructure vulnerability and exposure to natural hazards.
-            Enter details below to generate a comprehensive risk assessment.
-          </p>
 
-          <div className="readiness-layout">
-            <aside className="readiness-sidebar">
-              <section className="readiness-card">
-                <h3>Assessment Inputs</h3>
-                
-                <label>
-                  District Name <span style={{ color: 'red' }}>*</span>
-                  <input
-                    type="text"
-                    value={neatDistrict}
-                    onChange={(e) => setNeatDistrict(e.target.value)}
-                    placeholder="e.g., Lahore"
-                  />
-                </label>
-
-                <label>
-                  Hazard Type <span style={{ color: 'red' }}>*</span>
-                  <select
-                    value={neatHazardType}
-                    onChange={(e) => setNeatHazardType(e.target.value as NEATHazardType)}
-                  >
-                    <option value="Earthquake">Earthquake</option>
-                    <option value="Flood">Flood</option>
-                    <option value="Typhoon/Cyclone">Typhoon/Cyclone</option>
-                    <option value="Landslide">Landslide</option>
-                    <option value="Drought">Drought</option>
-                    <option value="Heat">Heat</option>
-                    <option value="Cold">Cold</option>
-                    <option value="High Wind">High Wind</option>
-                  </select>
-                </label>
-
-                <label>
-                  Infrastructure Type <span style={{ color: 'red' }}>*</span>
-                  <select
-                    value={neatInfraType}
-                    onChange={(e) => setNeatInfraType(e.target.value as NEATInfrastructureType)}
-                  >
-                    <option value="Road">Road</option>
-                    <option value="Bridge">Bridge</option>
-                    <option value="Water">Water</option>
-                    <option value="Power/Energy">Power/Energy</option>
-                    <option value="Communication">Communication</option>
-                    <option value="Health">Health</option>
-                    <option value="Education">Education</option>
-                    <option value="Shelter">Shelter</option>
-                  </select>
-                </label>
-
-                <div className="readiness-summary-divider" style={{ margin: '1.5rem 0' }} />
-                
-                <h4 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Optional Details</h4>
-
-                <label>
-                  Location/Address
-                  <input
-                    type="text"
-                    value={neatLocation}
-                    onChange={(e) => setNeatLocation(e.target.value)}
-                    placeholder="e.g., Near Main Market"
-                  />
-                </label>
-
-                <label>
-                  Infrastructure Name
-                  <input
-                    type="text"
-                    value={neatInfraName}
-                    onChange={(e) => setNeatInfraName(e.target.value)}
-                    placeholder="e.g., Main Highway"
-                  />
-                </label>
-
-                <div className="readiness-advanced-grid">
-                  <label>
-                    Length (km)
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={neatLength}
-                      onChange={(e) => setNeatLength(e.target.value)}
-                      placeholder="0"
-                    />
-                  </label>
-
-                  <label>
-                    Area (sq km)
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={neatArea}
-                      onChange={(e) => setNeatArea(e.target.value)}
-                      placeholder="0"
-                    />
-                  </label>
-
-                  <label>
-                    Population Served
-                    <input
-                      type="number"
-                      min="0"
-                      value={neatPopulation}
-                      onChange={(e) => setNeatPopulation(e.target.value)}
-                      placeholder="0"
-                    />
-                  </label>
-
-                  <label>
-                    Asset Value (PKR)
-                    <input
-                      type="number"
-                      min="0"
-                      value={neatAssets}
-                      onChange={(e) => setNeatAssets(e.target.value)}
-                      placeholder="0"
-                    />
-                  </label>
-                </div>
-
-                <label>
-                  Services Affected
-                  <input
-                    type="number"
-                    min="0"
-                    value={neatServices}
-                    onChange={(e) => setNeatServices(e.target.value)}
-                    placeholder="Number of services"
-                  />
-                </label>
-
-                <div className="readiness-summary-divider" style={{ margin: '1.5rem 0' }} />
-                
-                <h4 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Vulnerability Scores (0-100)</h4>
-
-                <label>
-                  Exposure Vulnerability
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={neatVulnExposure}
-                    onChange={(e) => setNeatVulnExposure(e.target.value)}
-                    placeholder="0-100"
-                  />
-                </label>
-
-                <label>
-                  Physical Vulnerability
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={neatVulnPhysical}
-                    onChange={(e) => setNeatVulnPhysical(e.target.value)}
-                    placeholder="0-100"
-                  />
-                </label>
-
-                <label>
-                  Social Vulnerability
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={neatVulnSocial}
-                    onChange={(e) => setNeatVulnSocial(e.target.value)}
-                    placeholder="0-100"
-                  />
-                </label>
-
-                <label>
-                  Economic Vulnerability
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={neatVulnEconomic}
-                    onChange={(e) => setNeatVulnEconomic(e.target.value)}
-                    placeholder="0-100"
-                  />
-                </label>
-
-                <button
-                  onClick={handleNeatAnalysis}
-                  disabled={isAnalyzingNeat || !neatDistrict || !neatHazardType || !neatInfraType}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    marginTop: '1rem',
-                    backgroundColor: isAnalyzingNeat ? '#6c757d' : '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: isAnalyzingNeat ? 'not-allowed' : 'pointer',
-                    fontWeight: 600,
-                  }}
-                >
-                  {isAnalyzingNeat ? '⏳ Analyzing...' : '🔍 Run NEAT Analysis'}
-                </button>
-
-                {neatError && (
-                  <p style={{ color: 'red', marginTop: '1rem', fontSize: '0.9rem' }}>
-                    ⚠️ {neatError}
-                  </p>
-                )}
-              </section>
-            </aside>
-
-            <section className="readiness-main-content">
-              {neatResult && (
-                <>
-                  <article className="readiness-card">
-                    <h3>📊 Assessment Results</h3>
-                    <p style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '1rem' }}>
-                      Assessment ID: {neatResult.assessmentId} • Generated: {new Date(neatResult.timestamp).toLocaleString()}
-                    </p>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6c757d' }}>Exposure</h4>
-                        <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: getScoreColor(neatResult.results.exposure.score) }}>
-                          {neatResult.results.exposure.score.toFixed(1)}
-                        </p>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', fontWeight: 600 }}>
-                          {neatResult.results.exposure.category}
-                        </p>
-                      </div>
-
-                      <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6c757d' }}>Vulnerability</h4>
-                        <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: getScoreColor(neatResult.results.vulnerability.score) }}>
-                          {neatResult.results.vulnerability.score.toFixed(1)}
-                        </p>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', fontWeight: 600 }}>
-                          {neatResult.results.vulnerability.category}
-                        </p>
-                      </div>
-
-                      <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6c757d' }}>Overall Risk</h4>
-                        <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: getScoreColor(neatResult.results.risk.score) }}>
-                          {neatResult.results.risk.score.toFixed(1)}
-                        </p>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', fontWeight: 600 }}>
-                          {neatResult.results.risk.category}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '1rem', backgroundColor: '#e7f3ff', borderLeft: '4px solid #007bff', borderRadius: '4px', marginBottom: '1rem' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Exposure Description</h4>
-                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{neatResult.results.exposure.description}</p>
-                    </div>
-
-                    <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107', borderRadius: '4px', marginBottom: '1rem' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Vulnerability Description</h4>
-                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{neatResult.results.vulnerability.description}</p>
-                    </div>
-
-                    <div style={{ padding: '1rem', backgroundColor: getRiskBackgroundColor(neatResult.results.risk.category), borderLeft: `4px solid ${getRiskBorderColor(neatResult.results.risk.category)}`, borderRadius: '4px', marginBottom: '1.5rem' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Risk Description</h4>
-                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{neatResult.results.risk.description}</p>
-                    </div>
-                  </article>
-
-                  <article className="readiness-card">
-                    <h3>✅ Recommendations</h3>
-                    {neatResult.results.recommendations.length > 0 ? (
-                      <ul style={{ margin: '1rem 0', padding: '0 0 0 1.5rem' }}>
-                        {neatResult.results.recommendations.map((rec, index) => (
-                          <li key={index} style={{ marginBottom: '0.75rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                            {rec}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p style={{ fontStyle: 'italic', opacity: 0.7 }}>No specific recommendations available.</p>
-                    )}
-                  </article>
-
-                  <article className="readiness-card">
-                    <h3>📋 Input Summary</h3>
-                    <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.9rem' }}>
-                      <p><strong>District:</strong> {neatResult.inputs.district}</p>
-                      <p><strong>Hazard Type:</strong> {neatResult.inputs.hazardType}</p>
-                      <p><strong>Infrastructure Type:</strong> {neatResult.inputs.infrastructureType}</p>
-                      {neatResult.inputs.location && <p><strong>Location:</strong> {neatResult.inputs.location}</p>}
-                      {neatResult.inputs.infrastructureName && <p><strong>Infrastructure Name:</strong> {neatResult.inputs.infrastructureName}</p>}
-                      {neatResult.inputs.length && <p><strong>Length:</strong> {neatResult.inputs.length} km</p>}
-                      {neatResult.inputs.area && <p><strong>Area:</strong> {neatResult.inputs.area} sq km</p>}
-                      {neatResult.inputs.population && <p><strong>Population:</strong> {neatResult.inputs.population.toLocaleString()}</p>}
-                      {neatResult.inputs.assets && <p><strong>Assets:</strong> PKR {neatResult.inputs.assets.toLocaleString()}</p>}
-                    </div>
-                  </article>
-                </>
-              )}
-
-              {!neatResult && !isAnalyzingNeat && (
-                <article className="readiness-card">
-                  <h3>📊 NEAT Assessment Tool</h3>
-                  <p>Fill in the required fields on the left and click "Run NEAT Analysis" to generate a comprehensive infrastructure risk assessment.</p>
-                  <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                    <h4 style={{ marginTop: 0 }}>What is NEAT?</h4>
-                    <p style={{ fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '0.75rem' }}>
-                      The Network Exposure and Assessment Tool (NEAT) is designed to evaluate infrastructure vulnerability to natural hazards.
-                      It provides a structured approach to:
-                    </p>
-                    <ul style={{ fontSize: '0.9rem', lineHeight: '1.6', marginLeft: '1.5rem' }}>
-                      <li>Assess exposure levels of critical infrastructure</li>
-                      <li>Evaluate physical, social, and economic vulnerabilities</li>
-                      <li>Calculate overall risk scores and categories</li>
-                      <li>Generate actionable recommendations for risk mitigation</li>
-                    </ul>
-                  </div>
-                </article>
-              )}
-
-              {isAnalyzingNeat && (
-                <article className="readiness-card">
-                  <h3>⏳ Analyzing...</h3>
-                  <p>Processing your NEAT assessment. This may take a few moments...</p>
-                </article>
-              )}
-            </section>
-          </div>
-        </div>
-      )
-    }
 
     return (
       <div className="panel section-panel section-settings">
