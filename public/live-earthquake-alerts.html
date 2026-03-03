@@ -529,6 +529,111 @@
         padding-bottom: 4px;
       }
 
+      .impact-panel {
+        margin: 12px;
+        border: 1px solid rgba(117, 172, 255, 0.32);
+        border-radius: 10px;
+        background: rgba(8, 21, 49, 0.82);
+        padding: 10px;
+      }
+
+      .impact-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .impact-title h4 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .impact-risk {
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 11px;
+        font-weight: 800;
+        color: #fff;
+      }
+
+      .impact-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        gap: 8px;
+        margin: 8px 0;
+      }
+
+      .impact-item {
+        border: 1px solid rgba(118, 168, 248, 0.28);
+        border-radius: 8px;
+        padding: 7px;
+        background: rgba(7, 18, 43, 0.88);
+      }
+
+      .impact-item small {
+        color: #9db6dd;
+        font-size: 11px;
+      }
+
+      .impact-item strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 16px;
+      }
+
+      .impact-subtitle {
+        margin: 8px 0 6px;
+        color: #9fd1ff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .impact-zone-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(110px, 1fr));
+        gap: 8px;
+      }
+
+      .impact-zone-card {
+        border-radius: 8px;
+        padding: 7px;
+        border: 1px solid transparent;
+      }
+
+      .impact-zone-card.primary {
+        background: rgba(220, 38, 38, 0.18);
+        border-color: rgba(220, 38, 38, 0.45);
+      }
+
+      .impact-zone-card.secondary {
+        background: rgba(245, 158, 11, 0.18);
+        border-color: rgba(245, 158, 11, 0.45);
+      }
+
+      .impact-zone-card.felt {
+        background: rgba(34, 197, 94, 0.17);
+        border-color: rgba(34, 197, 94, 0.42);
+      }
+
+      .impact-zone-card b {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+
+      .impact-zone-card span {
+        display: block;
+        color: #dbeafe;
+        font-size: 11px;
+      }
+
+      .impact-empty {
+        color: #a9bfdc;
+        font-size: 12px;
+      }
+
       .footer {
         display: grid;
         grid-template-columns: 370px 1fr;
@@ -596,6 +701,11 @@
         .globe-wrap {
           height: 420px;
         }
+
+        .impact-grid,
+        .impact-zone-row {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -641,6 +751,12 @@
             <button class="tool" id="resetViewBtn">⊗</button>
           </div>
           <div class="mini">World View</div>
+          <div class="impact-panel" id="impactPanel">
+            <div class="impact-title">
+              <h4>Seismic Impact Assessment</h4>
+            </div>
+            <div class="impact-empty">Click an earthquake on the globe to view affected area and infrastructure impact.</div>
+          </div>
         </section>
       </div>
 
@@ -1231,6 +1347,202 @@
         }
       }
 
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function mmiAtDistance(magnitude, depthKm, distanceKm) {
+        const a = 1.5;
+        const b = 1.5;
+        const c = 3.5;
+        const depthFactor = Math.max(1, Number(depthKm || 0) * 0.3);
+        const mmi = a + b * Number(magnitude || 0) - c * Math.log10(Math.max(0.1, distanceKm) + depthFactor);
+        return Math.max(1, Math.min(12, mmi));
+      }
+
+      function radiusForMmi(magnitude, depthKm, targetMmi) {
+        let minR = 0;
+        let maxR = 2000;
+        for (let i = 0; i < 48; i += 1) {
+          const mid = (minR + maxR) / 2;
+          const mmi = mmiAtDistance(magnitude, depthKm, mid);
+          if (mmi > targetMmi) minR = mid;
+          else maxR = mid;
+        }
+        return (minR + maxR) / 2;
+      }
+
+      function getRiskLevel(magnitude, maxMmi) {
+        if (magnitude >= 7 || maxMmi >= 9) return 'Extreme';
+        if (magnitude >= 6 || maxMmi >= 7.5) return 'Very High';
+        if (magnitude >= 5 || maxMmi >= 6) return 'High';
+        if (magnitude >= 4 || maxMmi >= 4.5) return 'Moderate';
+        return 'Low';
+      }
+
+      function riskColor(level) {
+        if (level === 'Extreme') return '#7f1d1d';
+        if (level === 'Very High') return '#b91c1c';
+        if (level === 'High') return '#dc2626';
+        if (level === 'Moderate') return '#f59e0b';
+        return '#3b82f6';
+      }
+
+      function populationDensityByLat(lat, magnitude) {
+        const latitudeFactor = 1 - Math.abs(Number(lat || 0)) / 90 * 0.5;
+        const magnitudeFactor = magnitude > 6 ? 0.5 : magnitude > 5 ? 0.7 : 1;
+        return 60 * latitudeFactor * magnitudeFactor;
+      }
+
+      function areaFromRadius(radiusKm) {
+        return Math.PI * radiusKm * radiusKm;
+      }
+
+      function estimateInfra(areaSqKm, population) {
+        const safeArea = Math.max(1, areaSqKm);
+        const density = population / safeArea;
+        const densityMultiplier = density > 1000 ? 1.5 : density > 100 ? 1 : 0.4;
+
+        const residential = Math.round((population / 1000) * 250 * densityMultiplier);
+        const commercial = Math.round((population / 1000) * 15 * densityMultiplier);
+        const industrial = Math.round((population / 1000) * 3 * densityMultiplier * 0.8);
+        const buildings = residential + commercial + industrial;
+        const bridges = Math.round(safeArea * 0.8 * densityMultiplier);
+        const roadsKm = Math.round(safeArea * 150 * densityMultiplier);
+        const hospitals = Math.round((population / 100000) * 1.5);
+        const schools = Math.round((population / 100000) * 25);
+        const emergency = Math.round((population / 100000) * 3);
+        const powerStations = Math.round((population / 100000) * 0.5);
+        const waterPlants = Math.round((population / 100000) * 1);
+
+        return {
+          buildings,
+          bridges,
+          roadsKm,
+          hospitals,
+          schools,
+          emergency,
+          powerStations,
+          waterPlants,
+        };
+      }
+
+      function mergeInfra(parts) {
+        return parts.reduce((acc, part) => ({
+          buildings: acc.buildings + part.buildings,
+          bridges: acc.bridges + part.bridges,
+          roadsKm: acc.roadsKm + part.roadsKm,
+          hospitals: acc.hospitals + part.hospitals,
+          schools: acc.schools + part.schools,
+          emergency: acc.emergency + part.emergency,
+          powerStations: acc.powerStations + part.powerStations,
+          waterPlants: acc.waterPlants + part.waterPlants,
+        }), {
+          buildings: 0,
+          bridges: 0,
+          roadsKm: 0,
+          hospitals: 0,
+          schools: 0,
+          emergency: 0,
+          powerStations: 0,
+          waterPlants: 0,
+        });
+      }
+
+      function buildImpactAssessment(eventItem) {
+        const magnitude = Number(eventItem.mag || 0);
+        const depthKm = Number(eventItem.depthKm || 0);
+        const lat = Number(eventItem.lat || 0);
+
+        const maxMmi = mmiAtDistance(magnitude, depthKm, 0.1);
+        const primaryRadiusKm = radiusForMmi(magnitude, depthKm, 7);
+        const secondaryRadiusKm = radiusForMmi(magnitude, depthKm, 5);
+        const feltRadiusKm = radiusForMmi(magnitude, depthKm, 3);
+
+        const primaryArea = areaFromRadius(primaryRadiusKm);
+        const secondaryArea = areaFromRadius(secondaryRadiusKm);
+        const feltArea = areaFromRadius(feltRadiusKm);
+
+        const popDensity = populationDensityByLat(lat, magnitude);
+        const primaryPopulation = Math.round(primaryArea * popDensity);
+        const secondaryPopulation = Math.round(Math.max(0, secondaryArea - primaryArea) * popDensity);
+        const feltPopulation = Math.round(Math.max(0, feltArea - secondaryArea) * popDensity);
+
+        const primaryInfra = estimateInfra(primaryArea, primaryPopulation);
+        const secondaryInfra = estimateInfra(Math.max(0, secondaryArea - primaryArea), secondaryPopulation);
+        const feltInfra = estimateInfra(Math.max(0, feltArea - secondaryArea), feltPopulation);
+        const totalInfra = mergeInfra([primaryInfra, secondaryInfra, feltInfra]);
+
+        const risk = getRiskLevel(magnitude, maxMmi);
+        return {
+          risk,
+          maxMmi,
+          primaryRadiusKm,
+          secondaryRadiusKm,
+          feltRadiusKm,
+          primaryArea,
+          secondaryArea,
+          feltArea,
+          primaryPopulation,
+          secondaryPopulation,
+          feltPopulation,
+          totalPopulation: primaryPopulation + secondaryPopulation + feltPopulation,
+          totalInfra,
+        };
+      }
+
+      function renderImpactPanel(eventItem) {
+        const panel = document.getElementById('impactPanel');
+        if (!panel || !eventItem) return;
+
+        const assessment = buildImpactAssessment(eventItem);
+
+        panel.innerHTML = `
+          <div class="impact-title">
+            <h4>Seismic Impact Assessment</h4>
+            <span class="impact-risk" style="background:${riskColor(assessment.risk)}">${assessment.risk}</span>
+          </div>
+          <div class="impact-subtitle">${escapeHtml(eventItem.place || 'Unknown location')} · M ${Number(eventItem.mag || 0).toFixed(1)} · Depth ${Number(eventItem.depthKm || 0).toFixed(1)} km</div>
+          <div class="impact-zone-row">
+            <div class="impact-zone-card primary">
+              <b>Primary Zone</b>
+              <span>Radius: ${assessment.primaryRadiusKm.toFixed(1)} km</span>
+              <span>Area: ${Math.round(assessment.primaryArea).toLocaleString()} km²</span>
+              <span>Population: ~${assessment.primaryPopulation.toLocaleString()}</span>
+            </div>
+            <div class="impact-zone-card secondary">
+              <b>Secondary Zone</b>
+              <span>Radius: ${assessment.secondaryRadiusKm.toFixed(1)} km</span>
+              <span>Area: ${Math.round(assessment.secondaryArea).toLocaleString()} km²</span>
+              <span>Population: ~${assessment.secondaryPopulation.toLocaleString()}</span>
+            </div>
+            <div class="impact-zone-card felt">
+              <b>Felt Radius</b>
+              <span>Radius: ${assessment.feltRadiusKm.toFixed(1)} km</span>
+              <span>Area: ${Math.round(assessment.feltArea).toLocaleString()} km²</span>
+              <span>Population: ~${assessment.totalPopulation.toLocaleString()}</span>
+            </div>
+          </div>
+          <div class="impact-subtitle">Infrastructure in affected area (estimated)</div>
+          <div class="impact-grid">
+            <div class="impact-item"><small>Buildings</small><strong>${assessment.totalInfra.buildings.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Bridges</small><strong>${assessment.totalInfra.bridges.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Roads</small><strong>${assessment.totalInfra.roadsKm.toLocaleString()} km</strong></div>
+            <div class="impact-item"><small>Hospitals</small><strong>${assessment.totalInfra.hospitals.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Schools</small><strong>${assessment.totalInfra.schools.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Emergency Services</small><strong>${assessment.totalInfra.emergency.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Power Stations</small><strong>${assessment.totalInfra.powerStations.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Water Plants</small><strong>${assessment.totalInfra.waterPlants.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Max Intensity</small><strong>MMI ${assessment.maxMmi.toFixed(1)}</strong></div>
+          </div>
+        `;
+      }
+
       function ensureGlobe() {
         if (globe) return globe;
         const el = document.getElementById('globeViz');
@@ -1324,6 +1636,10 @@
         for (const row of quakeRows) {
           row.classList.toggle('selected', row.dataset.id === id);
         }
+        const selected = eventsData.find((item) => item.id === id) || null;
+        if (selected) {
+          renderImpactPanel(selected);
+        }
         refreshPointsAppearance();
         focusOn(id);
       }
@@ -1366,11 +1682,15 @@
           const mag = Number(e.properties.mag || 0);
           const lat = Number(e.geometry.coordinates?.[1]);
           const lng = Number(e.geometry.coordinates?.[0]);
+          const depthKm = Number(e.geometry.coordinates?.[2] || 0);
           return {
             id: String(e.id ?? `${lat}-${lng}-${e.properties.time}`),
             mag,
             lat,
             lng,
+            depthKm,
+            place: String(e.properties.place || 'Unknown location'),
+            time: Number(e.properties.time || Date.now()),
             label: `<strong>M ${mag.toFixed(1)}</strong><br/>${e.properties.place || 'Unknown'}<br/>${new Date(e.properties.time).toLocaleString()}`,
           };
         }).filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lng));
