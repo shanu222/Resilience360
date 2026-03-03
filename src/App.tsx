@@ -589,7 +589,6 @@ const BUILD_VERSION_LABEL = String(import.meta.env.VITE_BUILD_VERSION ?? 'local'
 const homeSectionKeys: SectionKey[] = [
   'bestPractices',
   'infraModels',
-  'applyRegion',
   'retrofit',
   'riskMaps',
   'designToolkit',
