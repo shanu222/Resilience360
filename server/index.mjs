@@ -194,6 +194,37 @@ const parseImageSize = (size) => {
 }
 
 const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
+  // Try Hugging Face first if available (faster and avoids OpenAI billing limits)
+  if (HUGGINGFACE_API_KEY) {
+    try {
+      console.log('Generating image with Hugging Face...')
+      const response = await fetch(`https://api-inference.huggingface.co/models/${HUGGINGFACE_IMAGE_MODEL}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: prompt.substring(0, 1000), // Limit prompt length
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.log(`Hugging Face image generation failed (${response.status}): ${errorText}`)
+        throw new Error(`Hugging Face returned ${response.status}`)
+      }
+
+      const arrayBuffer = await response.arrayBuffer()
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
+      console.log('Hugging Face image generated successfully')
+      return base64
+    } catch (huggingFaceError) {
+      console.log('Hugging Face image generation failed, trying OpenAI...')
+    }
+  }
+
+  // Fallback to OpenAI if Hugging Face is not available or failed
   if (!openai) {
     throw new Error(getAiMissingConfigMessage('AI image generation'))
   }
@@ -231,7 +262,7 @@ const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
         return fallbackGenerated.data?.[0]?.b64_json ?? null
       } catch (fallbackError) {
         const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-        throw new Error(`Image generation failed. DALL-E 3: ${errorMessage}. DALL-E 2 fallback: ${fallbackMessage}. Please check your OpenAI billing and quotas.`)
+        throw new Error(`All image generation methods failed. Please check your API keys and billing. OpenAI DALL-E 3: ${errorMessage}. DALL-E 2: ${fallbackMessage}`)
       }
     }
 
