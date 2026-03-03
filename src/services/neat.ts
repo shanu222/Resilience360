@@ -147,16 +147,27 @@ const postJsonWithFallback = async (path: string, payload: object): Promise<Resp
 
 const parseJsonResponse = async <T>(response: Response, fallback: string): Promise<T> => {
   const raw = await response.text()
-  let body: T | { error?: string } | null = null
+  let body: T | { error?: string; status?: string; message?: string } | null = null
 
   try {
-    body = JSON.parse(raw) as T | { error?: string }
+    body = JSON.parse(raw) as T | { error?: string; status?: string; message?: string }
   } catch {
     throw new Error(response.ok ? `${fallback}: invalid JSON response.` : `${fallback}: non-JSON response (${response.status}).`)
   }
 
   if (!response.ok) {
-    throw new Error((body as { error?: string }).error ?? fallback)
+    const errorBody = body as { error?: string; status?: string; message?: string }
+    
+    // Check for service unavailable status
+    if (response.status === 503 || errorBody.status === 'unavailable') {
+      throw new Error(
+        errorBody.message || 
+        errorBody.error || 
+        'NEAT service is currently unavailable. The Network Exposure and Assessment Tool files may not be deployed. Please contact the administrator.'
+      )
+    }
+    
+    throw new Error(errorBody.error ?? fallback)
   }
 
   return body as T
