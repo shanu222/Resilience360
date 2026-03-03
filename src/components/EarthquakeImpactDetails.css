@@ -1,0 +1,460 @@
+/* Earthquake Impact Details Modal */
+.earthquake-impact-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.earthquake-impact-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 1000px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.earthquake-impact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.earthquake-impact-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.earthquake-impact-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.earthquake-impact-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.earthquake-impact-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.earthquake-impact-section {
+  margin-bottom: 2rem;
+}
+
+.earthquake-impact-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  border-left: 4px solid #3b82f6;
+  padding-left: 0.75rem;
+}
+
+.earthquake-impact-section h4 {
+  margin: 1rem 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Stats Grid */
+.earthquake-impact-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.earthquake-impact-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.earthquake-impact-stat {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  color: white;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Impact Zones */
+.earthquake-impact-zones {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.impact-zone {
+  border-radius: 8px;
+  border: 2px solid;
+  padding: 1rem;
+  background: #ffffff;
+}
+
+.impact-zone.severe {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.impact-zone.moderate {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.impact-zone.felt {
+  border-color: #84cc16;
+  background: #f7fee7;
+}
+
+.zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.zone-label {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.zone-desc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.zone-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.zone-stats strong {
+  color: #374151;
+  font-weight: 600;
+}
+
+/* Infrastructure Category */
+.infrastructure-category {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.infra-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.infra-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.infra-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.infra-total {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d1d5db;
+  font-size: 1rem;
+}
+
+/* Critical Infrastructure */
+.critical-infra-alert {
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.critical-infra-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #fecaca;
+}
+
+.critical-infra-item:last-child {
+  border-bottom: none;
+}
+
+.critical-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Economic Loss */
+.economic-loss-range {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.loss-estimate {
+  flex: 1;
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.loss-estimate.primary {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.loss-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.loss-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.economic-disclaimer {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Intensity Zones */
+.intensity-zones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.intensity-zone-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.intensity-badge {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.intensity-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.intensity-desc {
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Disclaimer */
+.earthquake-impact-disclaimer {
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.earthquake-impact-disclaimer p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+/* Footer */
+.earthquake-impact-footer {
+  padding: 1.5rem 2rem;
+  border-top: 2px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .earthquake-impact-modal {
+    max-height: 95vh;
+  }
+
+  .earthquake-impact-header {
+    padding: 1rem;
+  }
+
+  .earthquake-impact-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .earthquake-impact-body {
+    padding: 1rem;
+  }
+
+  .earthquake-impact-section h3 {
+    font-size: 1.125rem;
+  }
+
+  .earthquake-impact-grid-2,
+  .earthquake-impact-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .economic-loss-range {
+    flex-direction: column;
+  }
+
+  .zone-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .earthquake-impact-footer {
+    padding: 1rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .earthquake-impact-overlay {
+    position: static;
+    background: none;
+  }
+
+  .earthquake-impact-modal {
+    max-height: none;
+    box-shadow: none;
+  }
+
+  .earthquake-impact-header {
+    background: white;
+    color: black;
+    border-bottom: 2px solid #000;
+  }
+
+  .earthquake-impact-close,
+  .earthquake-impact-footer {
+    display: none;
+  }
+}

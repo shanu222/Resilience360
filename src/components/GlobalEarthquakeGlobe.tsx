@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Globe from 'react-globe.gl'
+import { calculateSeismicImpact } from '../services/seismicImpact'
+import { assessInfrastructureImpact, type InfrastructureImpactAssessment } from '../services/infrastructureAssessment'
+import EarthquakeImpactDetails from './EarthquakeImpactDetails'
 
 type GlobalEarthquake = {
   id: string
@@ -63,6 +66,7 @@ export default function GlobalEarthquakeGlobe({
   const [isBlinkOn, setIsBlinkOn] = useState(true)
   const [manualAltitude, setManualAltitude] = useState(1.2)
   const [cameraCenter, setCameraCenter] = useState({ lat: 20, lng: 15 })
+  const [selectedImpactAssessment, setSelectedImpactAssessment] = useState<InfrastructureImpactAssessment | null>(null)
 
   const selectedEarthquake = useMemo(
     () => earthquakes.find((quake) => quake.id === selectedEarthquakeId) ?? null,
@@ -202,6 +206,38 @@ export default function GlobalEarthquakeGlobe({
     globeRef.current?.pointOfView({ ...nextCenter, altitude: nextAltitude }, 650)
   }
 
+  const handleEarthquakeClick = (pointId: string) => {
+    // Normalize the ID (remove 'selected-' prefix if present)
+    const normalizedId = pointId.startsWith('selected-') ? pointId.replace('selected-', '') : pointId
+    
+    // Find the earthquake
+    const earthquake = earthquakes.find((eq) => eq.id === normalizedId)
+    if (!earthquake) return
+    
+    // Select the earthquake
+    if (onSelectEarthquake) {
+      onSelectEarthquake(normalizedId)
+    }
+    
+    // Calculate seismic impact
+    const seismicImpact = calculateSeismicImpact(
+      earthquake.magnitude,
+      earthquake.depthKm,
+      earthquake.lat,
+      earthquake.lng
+    )
+    
+    // Assess infrastructure impact
+    const infrastructureImpact = assessInfrastructureImpact(seismicImpact)
+    
+    // Display the assessment
+    setSelectedImpactAssessment(infrastructureImpact)
+  }
+
+  const handleCloseImpactAssessment = () => {
+    setSelectedImpactAssessment(null)
+  }
+
   const latestSyncLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   const countriesCount = useMemo(() => {
@@ -293,7 +329,7 @@ export default function GlobalEarthquakeGlobe({
                   <button
                     key={quake.id}
                     className={`earthquake-activity-row ${magnitudeClass} ${selectedEarthquakeId === quake.id ? 'selected' : ''}`}
-                    onClick={() => onSelectEarthquake?.(quake.id)}
+                    onClick={() => handleEarthquakeClick(quake.id)}
                     type="button"
                   >
                     <div className="earthquake-activity-left">
@@ -336,8 +372,7 @@ export default function GlobalEarthquakeGlobe({
                 onPointClick={(point: { id?: string }) => {
                   const pointId = String(point?.id ?? '')
                   if (!pointId) return
-                  const normalizedId = pointId.startsWith('selected-') ? pointId.replace('selected-', '') : pointId
-                  if (onSelectEarthquake) onSelectEarthquake(normalizedId)
+                  handleEarthquakeClick(pointId)
                 }}
                 ringsData={ringData}
                 ringLat="lat"
@@ -403,6 +438,14 @@ export default function GlobalEarthquakeGlobe({
           </div>
         </div>
       </div>
+      
+      {/* Impact Assessment Modal */}
+      {selectedImpactAssessment && (
+        <EarthquakeImpactDetails
+          assessment={selectedImpactAssessment}
+          onClose={handleCloseImpactAssessment}
+        />
+      )}
     </div>
   )
 }
