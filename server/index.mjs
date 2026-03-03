@@ -29,7 +29,7 @@ const AI_PROVIDER = String(process.env.AI_PROVIDER ?? 'openai').trim().toLowerCa
 const selectedAiProvider = AI_PROVIDER === 'huggingface' ? 'huggingface' : 'openai'
 const OPENAI_FALLBACK_TO_HUGGINGFACE = String(process.env.OPENAI_FALLBACK_TO_HUGGINGFACE ?? 'true').trim().toLowerCase() !== 'false'
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY ?? '').trim()
-const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4.1-mini').trim()
+const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini').trim()
 const MATERIAL_HUBS_SUPABASE_URL = String(process.env.MATERIAL_HUBS_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
 const MATERIAL_HUBS_SUPABASE_ANON_KEY = String(process.env.MATERIAL_HUBS_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
 const MATERIAL_HUBS_ADMIN_EMAILS = String(process.env.MATERIAL_HUBS_ADMIN_EMAILS ?? '')
@@ -119,7 +119,8 @@ const extractJson = (rawText) => {
   const end = candidate.lastIndexOf('}')
 
   if (start < 0 || end < 0 || end <= start) {
-    throw new Error('Could not parse structured JSON response')
+    console.error('Failed to parse JSON. Raw response:', rawText.substring(0, 500))
+    throw new Error('Could not parse structured JSON response. Check server logs for details.')
   }
 
   return JSON.parse(candidate.slice(start, end + 1))
@@ -166,6 +167,7 @@ const createChatCompletion = async ({ messages, temperature = 0.2, openaiModel =
       model: openaiModel,
       temperature,
       messages,
+      response_format: { type: 'json_object' },
     })
   } catch (error) {
     if (!hasHuggingFaceFallback || !huggingFaceRouterClient || !isOpenAiLimitError(error)) {
