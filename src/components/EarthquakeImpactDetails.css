@@ -51,6 +51,38 @@
   font-weight: 700;
 }
 
+.earthquake-impact-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logic-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.logic-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.logic-button:active {
+  transform: scale(0.95);
+}
+
 .earthquake-impact-close {
   background: rgba(255, 255, 255, 0.2);
   border: none;

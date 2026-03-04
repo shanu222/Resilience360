@@ -1,0 +1,225 @@
+/* Seismic Logic Explainer Modal */
+.logic-explainer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 10001;
+  padding-top: 2rem;
+  overflow-y: auto;
+}
+
+.logic-explainer-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logic-explainer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
+}
+
+.logic-explainer-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.logic-explainer-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.logic-explainer-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.logic-explainer-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.logic-section {
+  margin-bottom: 1.75rem;
+}
+
+.logic-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logic-description {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.logic-formula {
+  background: #f3f4f6;
+  border-left: 4px solid #7c3aed;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.logic-formula code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.logic-params,
+.logic-zones,
+.logic-risk,
+.logic-assumptions {
+  margin: 0.75rem 0 0 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.logic-params li,
+.logic-zones li,
+.logic-risk li,
+.logic-assumptions li {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.logic-params li:before,
+.logic-zones li:before,
+.logic-risk li:before,
+.logic-assumptions li:before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #7c3aed;
+  font-weight: bold;
+}
+
+.logic-subsection {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin: 0.75rem 0;
+  border: 1px solid #e5e7eb;
+}
+
+.logic-subsection strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+  font-size: 0.875rem;
+}
+
+.logic-subsection code {
+  display: block;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+  color: #375151;
+  margin: 0.25rem 0;
+  word-break: break-word;
+}
+
+.logic-subsection ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+}
+
+.logic-subsection li {
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin: 0.25rem 0;
+}
+
+.logic-section-last {
+  margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .logic-explainer-modal {
+    width: 95%;
+    max-height: 75vh;
+    border-radius: 12px;
+  }
+
+  .logic-explainer-header {
+    padding: 1rem;
+  }
+
+  .logic-explainer-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .logic-explainer-content {
+    padding: 1rem;
+  }
+
+  .logic-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .logic-formula {
+    font-size: 0.8rem;
+  }
+
+  .logic-formula code {
+    font-size: 0.75rem;
+  }
+}

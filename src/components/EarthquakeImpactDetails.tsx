@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { InfrastructureImpactAssessment } from '../services/infrastructureAssessment'
 import { formatInfrastructureCount, formatCurrency } from '../services/infrastructureAssessment'
 import { getIntensityColor } from '../services/seismicImpact'
+import SeismicLogicExplainer from './SeismicLogicExplainer'
 import './EarthquakeImpactDetails.css'
 
 type EarthquakeImpactDetailsProps = {
@@ -12,6 +14,7 @@ export default function EarthquakeImpactDetails({
   assessment,
   onClose,
 }: EarthquakeImpactDetailsProps) {
+  const [showLogic, setShowLogic] = useState(false)
   const { seismicAssessment, primaryZone, secondaryZone, totalInfrastructure, criticalInfraAtRisk, estimatedEconomicLoss } = assessment
 
   const getRiskLevelColor = (riskLevel: string): string => {
@@ -34,9 +37,19 @@ export default function EarthquakeImpactDetails({
       <div className="earthquake-impact-modal">
         <div className="earthquake-impact-header">
           <h2>🌍 Seismic Impact Assessment</h2>
-          <button className="earthquake-impact-close" onClick={onClose} aria-label="Close">
-            ×
-          </button>
+          <div className="earthquake-impact-header-actions">
+            <button
+              className="logic-button"
+              onClick={() => setShowLogic(true)}
+              title="View calculation logic and formulas"
+              aria-label="Show calculation logic"
+            >
+              📐
+            </button>
+            <button className="earthquake-impact-close" onClick={onClose} aria-label="Close">
+              ×
+            </button>
+          </div>
         </div>
 
         <div className="earthquake-impact-body">
@@ -302,6 +315,9 @@ export default function EarthquakeImpactDetails({
           </button>
         </div>
       </div>
+
+      {/* Logic Explainer Modal */}
+      {showLogic && <SeismicLogicExplainer onClose={() => setShowLogic(false)} />}
     </div>
   )
 }
