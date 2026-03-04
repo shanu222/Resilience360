@@ -1,12 +1,22 @@
 import { buildApiTargets } from './apiBase'
 
+const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit, timeoutMs = 45000): Promise<Response> => {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
 const postJsonWithFallback = async (path: string, payload: object): Promise<Response> => {
   const targets = buildApiTargets(path)
   let lastError: Error | null = null
 
   for (const target of targets) {
     try {
-      const response = await fetch(target, {
+      const response = await fetchWithTimeout(target, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

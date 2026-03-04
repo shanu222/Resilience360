@@ -1,5 +1,15 @@
 import { buildApiTargets } from './apiBase'
 
+const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit, timeoutMs = 60000): Promise<Response> => {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
 export type GuidanceStep = {
   title: string
   description: string
@@ -29,7 +39,7 @@ const postJsonWithFallback = async (path: string, payload: object): Promise<Resp
 
   for (const target of targets) {
     try {
-      const response = await fetch(target, {
+      const response = await fetchWithTimeout(target, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

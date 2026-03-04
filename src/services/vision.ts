@@ -4,6 +4,16 @@ const wait = (ms: number) => new Promise<void>((resolve) => {
   window.setTimeout(resolve, ms)
 })
 
+const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit, timeoutMs = 70000): Promise<Response> => {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
 export type DefectDetection = {
   type: 'crack' | 'spalling' | 'corrosion' | 'moisture' | 'deformation' | 'other'
   severity: 'low' | 'medium' | 'high'
@@ -59,7 +69,7 @@ export const analyzeBuildingWithVision = async (payload: {
   for (const target of targets) {
     for (let attempt = 1; attempt <= maxAttemptsPerTarget; attempt += 1) {
       try {
-        const response = await fetch(target, {
+        const response = await fetchWithTimeout(target, {
           method: 'POST',
           body: formData,
         })

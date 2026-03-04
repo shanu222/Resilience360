@@ -63,6 +63,9 @@ const HUGGINGFACE_IMAGE_MODEL = String(process.env.HUGGINGFACE_IMAGE_MODEL ?? 'b
 const model = selectedAiProvider === 'huggingface' ? HUGGINGFACE_CHAT_MODEL : OPENAI_MODEL
 const hasKey = selectedAiProvider === 'huggingface' ? Boolean(HUGGINGFACE_API_KEY) : Boolean(OPENAI_API_KEY)
 const hasHuggingFaceFallback = OPENAI_FALLBACK_TO_HUGGINGFACE && Boolean(HUGGINGFACE_API_KEY)
+const AI_CHAT_TIMEOUT_MS = Math.max(15_000, Number(process.env.AI_CHAT_TIMEOUT_MS ?? 45_000) || 45_000)
+const AI_IMAGE_TIMEOUT_MS = Math.max(20_000, Number(process.env.AI_IMAGE_TIMEOUT_MS ?? 75_000) || 75_000)
+const AI_IMAGE_CONCURRENCY = Math.max(1, Math.min(4, Number(process.env.AI_IMAGE_CONCURRENCY ?? 2) || 2))
 const NDMA_ADVISORIES_URL = process.env.NDMA_ADVISORIES_URL ?? 'https://ndma.gov.pk/advisories'
 const NDMA_SITREPS_URL = process.env.NDMA_SITREPS_URL ?? 'https://ndma.gov.pk/sitreps'
 const NDMA_PROJECTIONS_URL = process.env.NDMA_PROJECTIONS_URL ?? 'https://ndma.gov.pk/projection-impact-list_new'
@@ -165,31 +168,130 @@ const isOpenAiLimitError = (error) => {
   return status === 429 || /quota|insufficient_quota|rate\s*limit|billing|too\s*many\s*requests/i.test(message)
 }
 
+const isTransientAiError = (error) => {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  const status = getErrorStatus(error)
+  return status === 408 || status === 429 || status === 502 || status === 503 || status === 504 || /timeout|timed\s*out|network|temporar/i.test(message)
+}
+
+const withPromiseTimeout = async (promise, timeoutMs, label) => {
+  let timer = null
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timer) {
+      clearTimeout(timer)
+    }
+  }
+}
+
+const normalizeAiErrorMessage = (error, fallback) => {
+  if (!error) return fallback
+  const status = getErrorStatus(error)
+  const message = error instanceof Error ? error.message : String(error)
+  if (status === 429 || /insufficient_quota|quota|billing/i.test(message)) {
+    return 'AI provider quota limit reached. Please retry shortly or switch API key.'
+  }
+  return message || fallback
+}
+
+const getAiErrorHttpStatus = (error) => {
+  const status = getErrorStatus(error)
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  if (typeof status === 'number' && status >= 400 && status <= 599) {
+    return status
+  }
+  if (/timeout|timed\s*out/i.test(message)) return 504
+  if (/quota|insufficient_quota|billing|rate\s*limit|too\s*many\s*requests|429/i.test(message)) return 429
+  if (/network|failed to fetch|upstream/i.test(message)) return 502
+  return 500
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const runWithConcurrency = async (items, worker, concurrency = AI_IMAGE_CONCURRENCY) => {
+  const results = []
+  let index = 0
+  const workerCount = Math.max(1, Math.min(concurrency, items.length || 1))
+
+  const runners = Array.from({ length: workerCount }, async () => {
+    while (index < items.length) {
+      const current = index
+      index += 1
+      try {
+        results[current] = { ok: true, value: await worker(items[current], current) }
+      } catch (error) {
+        results[current] = { ok: false, error }
+      }
+    }
+  })
+
+  await Promise.all(runners)
+  return results
+}
+
 const createChatCompletion = async ({ messages, temperature = 0.2, openaiModel = OPENAI_MODEL, huggingFaceModel = HUGGINGFACE_CHAT_MODEL }) => {
-  if (!openai) {
-    throw new Error('OpenAI API key required. Set OPENAI_API_KEY or OPENAI_API_KEYS in environment variables.')
+  const runWithClient = async (client, modelName, allowJsonResponseFormat) => {
+    const payload = {
+      model: modelName,
+      temperature,
+      messages,
+      ...(allowJsonResponseFormat ? { response_format: { type: 'json_object' } } : {}),
+    }
+
+    return await withPromiseTimeout(
+      client.chat.completions.create(payload),
+      AI_CHAT_TIMEOUT_MS,
+      'AI text generation',
+    )
+  }
+
+  const tryOpenAi = async () => {
+    if (!openai) {
+      throw new Error('OpenAI API key required. Set OPENAI_API_KEY or OPENAI_API_KEYS in environment variables.')
+    }
+
+    try {
+      return await runWithClient(openai, openaiModel, true)
+    } catch (error) {
+      const status = getErrorStatus(error)
+      if (status === 429 && OPENAI_API_KEYS.length > 1) {
+        const nextKey = rotateApiKey()
+        console.log('Quota limit hit, rotating to next API key...')
+        openai = new OpenAI({ apiKey: nextKey })
+        return await runWithClient(openai, openaiModel, true)
+      }
+      throw error
+    }
+  }
+
+  const tryHuggingFace = async () => {
+    if (!huggingFaceRouterClient) {
+      throw new Error('Hugging Face key missing. Set HUGGINGFACE_API_KEY in environment variables.')
+    }
+
+    try {
+      return await runWithClient(huggingFaceRouterClient, huggingFaceModel, true)
+    } catch {
+      return await runWithClient(huggingFaceRouterClient, huggingFaceModel, false)
+    }
+  }
+
+  if (selectedAiProvider === 'huggingface') {
+    return await tryHuggingFace()
   }
 
   try {
-    return await openai.chat.completions.create({
-      model: openaiModel,
-      temperature,
-      messages,
-      response_format: { type: 'json_object' },
-    })
+    return await tryOpenAi()
   } catch (error) {
-    const status = getErrorStatus(error)
-    // If quota error and we have multiple keys, rotate and retry
-    if (status === 429 && OPENAI_API_KEYS.length > 1) {
-      const nextKey = rotateApiKey()
-      console.log('Quota limit hit, rotating to next API key...')
-      openai = new OpenAI({ apiKey: nextKey })
-      return await openai.chat.completions.create({
-        model: openaiModel,
-        temperature,
-        messages,
-        response_format: { type: 'json_object' },
-      })
+    if (hasHuggingFaceFallback && (isOpenAiLimitError(error) || isTransientAiError(error))) {
+      console.warn('OpenAI failed; falling back to Hugging Face for chat completion')
+      return await tryHuggingFace()
     }
     throw error
   }
@@ -206,36 +308,83 @@ const parseImageSize = (size) => {
   return { width, height }
 }
 
-const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
-  if (!openai) {
-    throw new Error('OpenAI API key required. Set OPENAI_API_KEY or OPENAI_API_KEYS in environment variables.')
+const fetchImageAsBase64FromUrl = async (url) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), AI_IMAGE_TIMEOUT_MS)
+  try {
+    const response = await fetch(url, { signal: controller.signal })
+    if (!response.ok) {
+      throw new Error(`Image fetch failed (${response.status})`)
+    }
+    const buffer = Buffer.from(await response.arrayBuffer())
+    return buffer.toString('base64')
+  } finally {
+    clearTimeout(timer)
   }
+}
 
+const generateImageBase64 = async ({ prompt, size = '1024x1024' }) => {
   const validDallE3Sizes = ['1024x1024', '1024x1792', '1792x1024']
   const imageSize = validDallE3Sizes.includes(size) ? size : '1024x1024'
 
-  try {
-    const generated = await openai.images.generate({
-      model: 'dall-e-3',
-      prompt,
-      size: imageSize,
-      response_format: 'b64_json',
-    })
-    return generated.data?.[0]?.b64_json ?? null
-  } catch (error) {
-    const status = getErrorStatus(error)
-    // If quota error and we have multiple keys, rotate and retry
-    if (status === 429 && OPENAI_API_KEYS.length > 1) {
-      const nextKey = rotateApiKey()
-      console.log('Image generation quota limit hit, rotating to next API key...')
-      openai = new OpenAI({ apiKey: nextKey })
-      const generated = await openai.images.generate({
-        model: 'dall-e-3',
+  const runImageRequest = async (client, provider) => {
+    const modelName = provider === 'huggingface' ? HUGGINGFACE_IMAGE_MODEL : 'dall-e-3'
+    const generated = await withPromiseTimeout(
+      client.images.generate({
+        model: modelName,
         prompt,
-        size: imageSize,
+        ...(provider === 'openai' ? { size: imageSize } : {}),
         response_format: 'b64_json',
-      })
-      return generated.data?.[0]?.b64_json ?? null
+      }),
+      AI_IMAGE_TIMEOUT_MS,
+      'AI image generation',
+    )
+
+    const entry = generated?.data?.[0]
+    if (entry?.b64_json) return entry.b64_json
+    if (entry?.url) {
+      return await fetchImageAsBase64FromUrl(entry.url)
+    }
+    return null
+  }
+
+  const tryOpenAi = async () => {
+    if (!openai) {
+      throw new Error('OpenAI API key required. Set OPENAI_API_KEY or OPENAI_API_KEYS in environment variables.')
+    }
+
+    try {
+      return await runImageRequest(openai, 'openai')
+    } catch (error) {
+      const status = getErrorStatus(error)
+      if (status === 429 && OPENAI_API_KEYS.length > 1) {
+        const nextKey = rotateApiKey()
+        console.log('Image generation quota limit hit, rotating to next API key...')
+        openai = new OpenAI({ apiKey: nextKey })
+        return await runImageRequest(openai, 'openai')
+      }
+      throw error
+    }
+  }
+
+  const tryHuggingFace = async () => {
+    if (!huggingFaceRouterClient) {
+      throw new Error('Hugging Face key missing. Set HUGGINGFACE_API_KEY in environment variables.')
+    }
+
+    return await runImageRequest(huggingFaceRouterClient, 'huggingface')
+  }
+
+  if (selectedAiProvider === 'huggingface') {
+    return await tryHuggingFace()
+  }
+
+  try {
+    return await tryOpenAi()
+  } catch (error) {
+    if (hasHuggingFaceFallback && (isOpenAiLimitError(error) || isTransientAiError(error))) {
+      console.warn('OpenAI failed; falling back to Hugging Face for image generation')
+      return await tryHuggingFace()
     }
     throw error
   }
@@ -2066,13 +2215,8 @@ app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {
       ...parsed,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Vision analysis failed.'
-    const statusFromProvider =
-      typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number'
-        ? error.status
-        : undefined
-    const isQuotaError = /\b429\b|quota|insufficient_quota|billing|rate\s*limit/i.test(message)
-    const status = statusFromProvider ?? (isQuotaError ? 429 : 500)
+    const message = normalizeAiErrorMessage(error, 'Vision analysis failed.')
+    const status = getAiErrorHttpStatus(error)
     res.status(status).json({ error: message })
   }
 })
@@ -2488,8 +2632,8 @@ app.post('/api/guidance/construction', async (req, res) => {
       stepsUrdu: translated.stepsUrdu.length > 0 ? translated.stepsUrdu : englishGuidance.steps,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Construction guidance generation failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Construction guidance generation failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
@@ -2520,6 +2664,7 @@ app.post('/api/guidance/step-images', async (req, res) => {
 
           if (!b64) {
             lastError = new Error('No image data returned')
+            await sleep(300 * attempt)
             continue
           }
 
@@ -2530,24 +2675,44 @@ app.post('/api/guidance/step-images', async (req, res) => {
           }
         } catch (error) {
           lastError = error
+          if (attempt < 2 && isTransientAiError(error)) {
+            await sleep(500 * attempt)
+          }
         }
       }
 
       throw (lastError instanceof Error ? lastError : new Error(`Image generation failed for step: ${stepTitle}`))
     }
 
-    const imageTasks = steps.map(async (step) => {
-      const stepTitle = String(step?.title ?? 'Construction Step')
-      const stepDescription = String(step?.description ?? '')
-      return generateStepImage(stepTitle, stepDescription)
+    const imageJobs = steps.map((step) => ({
+      stepTitle: String(step?.title ?? 'Construction Step'),
+      stepDescription: String(step?.description ?? ''),
+    }))
+
+    const generationResults = await runWithConcurrency(
+      imageJobs,
+      async (job) => generateStepImage(job.stepTitle, job.stepDescription),
+      AI_IMAGE_CONCURRENCY,
+    )
+
+    const images = generationResults
+      .filter((item) => item?.ok)
+      .map((item) => item.value)
+      .filter(Boolean)
+
+    if (images.length === 0) {
+      const firstError = generationResults.find((item) => item && !item.ok)?.error
+      throw (firstError instanceof Error ? firstError : new Error('Step image generation failed.'))
+    }
+
+    res.json({
+      images,
+      partial: images.length < imageJobs.length,
+      failed: imageJobs.length - images.length,
     })
-
-    const images = await Promise.all(imageTasks)
-
-    res.json({ images })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Step image generation failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Step image generation failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
@@ -2599,8 +2764,8 @@ app.post('/api/advisory/ask', async (req, res) => {
 
     res.json({ answer })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Advisory generation failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Advisory generation failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
@@ -2818,23 +2983,41 @@ app.post('/api/models/resilience-catalog', async (req, res) => {
       },
     ]
 
-    const models = []
+    const modelResults = await runWithConcurrency(
+      modelSpecs,
+      async (spec) => {
+        const prompt = `Photorealistic infrastructure visualization for ${spec.title} in ${country} (${province}). Show realistic construction context, local materials, climate-appropriate design, and civil engineering details. No text overlays.`
+        const imageBase64 = await generateImageBase64({ prompt, size: '1024x1024' })
+        if (!imageBase64) {
+          throw new Error(`No image data returned for ${spec.title}`)
+        }
 
-    for (const spec of modelSpecs) {
-      const prompt = `Photorealistic infrastructure visualization for ${spec.title} in ${country} (${province}). Show realistic construction context, local materials, climate-appropriate design, and civil engineering details. No text overlays.`
-      const imageBase64 = await generateImageBase64({ prompt, size: '1024x1024' })
-      if (!imageBase64) continue
+        return {
+          ...spec,
+          imageDataUrl: `data:image/png;base64,${imageBase64}`,
+        }
+      },
+      AI_IMAGE_CONCURRENCY,
+    )
 
-      models.push({
-        ...spec,
-        imageDataUrl: `data:image/png;base64,${imageBase64}`,
-      })
+    const models = modelResults
+      .filter((item) => item?.ok)
+      .map((item) => item.value)
+      .filter(Boolean)
+
+    if (models.length === 0) {
+      const firstError = modelResults.find((item) => item && !item.ok)?.error
+      throw (firstError instanceof Error ? firstError : new Error('Infra model generation failed.'))
     }
 
-    res.json({ models })
+    res.json({
+      models,
+      partial: models.length < modelSpecs.length,
+      failed: modelSpecs.length - models.length,
+    })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Infra model generation failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Infra model generation failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
@@ -2995,8 +3178,8 @@ app.post('/api/models/research', async (req, res) => {
       },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Infra model research failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Infra model research failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
@@ -3018,23 +3201,42 @@ app.post('/api/models/research-images', async (req, res) => {
     }
 
     const views = ['Front View', 'Back View', 'Left Side View', 'Right Side View', 'Top/Roof View', 'Isometric View']
-    const images = []
 
-    for (const view of views) {
-      const prompt = `Photorealistic civil-infrastructure concept image of ${modelName} for Pakistan (${province}). Required camera angle: ${view}. Show realistic structural details, drainage, seismic safety elements, and material context. No text labels.`
-      const b64 = await generateImageBase64({ prompt, size: '1024x1024' })
-      if (!b64) continue
+    const generationResults = await runWithConcurrency(
+      views,
+      async (view) => {
+        const prompt = `Photorealistic civil-infrastructure concept image of ${modelName} for Pakistan (${province}). Required camera angle: ${view}. Show realistic structural details, drainage, seismic safety elements, and material context. No text labels.`
+        const b64 = await generateImageBase64({ prompt, size: '1024x1024' })
+        if (!b64) {
+          throw new Error(`No image data returned for ${view}`)
+        }
 
-      images.push({
-        view,
-        imageDataUrl: `data:image/png;base64,${b64}`,
-      })
+        return {
+          view,
+          imageDataUrl: `data:image/png;base64,${b64}`,
+        }
+      },
+      AI_IMAGE_CONCURRENCY,
+    )
+
+    const images = generationResults
+      .filter((item) => item?.ok)
+      .map((item) => item.value)
+      .filter(Boolean)
+
+    if (images.length === 0) {
+      const firstError = generationResults.find((item) => item && !item.ok)?.error
+      throw (firstError instanceof Error ? firstError : new Error('Infra model view image generation failed.'))
     }
 
-    res.json({ images })
+    res.json({
+      images,
+      partial: images.length < views.length,
+      failed: views.length - images.length,
+    })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Infra model view image generation failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Infra model view image generation failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
@@ -3118,8 +3320,8 @@ Return strict JSON schema:
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Structural design report generation failed.'
-    res.status(500).json({ error: message })
+    const message = normalizeAiErrorMessage(error, 'Structural design report generation failed.')
+    res.status(getAiErrorHttpStatus(error)).json({ error: message })
   }
 })
 
