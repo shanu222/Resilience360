@@ -80,6 +80,8 @@
       .actions {
         display: flex;
         align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
         gap: 8px;
       }
 
@@ -103,6 +105,76 @@
 
       .btn.success {
         background: linear-gradient(180deg, #22c55e, #15803d);
+      }
+
+      .btn.formula {
+        background: linear-gradient(180deg, #7c3aed, #5b21b6);
+      }
+
+      .formula-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 141;
+        background: rgba(2, 8, 20, 0.72);
+        backdrop-filter: blur(2px);
+      }
+
+      .formula-modal.open {
+        display: flex;
+      }
+
+      .formula-modal-card {
+        width: min(680px, calc(100vw - 24px));
+        max-height: calc(100vh - 28px);
+        overflow: auto;
+        border: 1px solid rgba(140, 116, 255, 0.55);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(14, 12, 43, 0.98), rgba(8, 8, 28, 0.98));
+        padding: 14px;
+      }
+
+      .formula-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .formula-modal-head h3 {
+        margin: 0;
+        font-size: 22px;
+        color: #efe7ff;
+      }
+
+      .formula-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .formula-item {
+        border: 1px solid rgba(157, 133, 255, 0.35);
+        border-radius: 10px;
+        background: rgba(18, 16, 52, 0.8);
+        padding: 10px;
+      }
+
+      .formula-item h4 {
+        margin: 0 0 6px;
+        color: #d8c8ff;
+        font-size: 15px;
+      }
+
+      .formula-item code {
+        display: block;
+        font-family: Consolas, 'Courier New', monospace;
+        color: #f9f7ff;
+        font-size: 14px;
+        line-height: 1.45;
+        white-space: pre-wrap;
       }
 
       .email-modal {
@@ -757,6 +829,7 @@
           <button class="btn" id="autoRotateBtn" type="button">Stop Motion</button>
           <button class="btn" id="fullscreenBtn" type="button">Fullscreen</button>
           <button class="btn primary" id="refreshBtn" type="button">Refresh</button>
+          <button class="btn formula" id="formulaBtn" type="button">Formula</button>
         </div>
       </div>
 
@@ -830,6 +903,37 @@
           <div id="emailStatus" class="email-status"></div>
           <div id="emailThresholdTag" class="email-tag">Threshold: M 5.0+</div>
           <div class="email-sub-list" id="emailSubscribersList"></div>
+        </div>
+      </div>
+
+      <div class="formula-modal" id="formulaModal">
+        <div class="formula-modal-card" role="dialog" aria-modal="true" aria-labelledby="formulaModalTitle">
+          <div class="formula-modal-head">
+            <h3 id="formulaModalTitle">🧮 Seismic Logic & Formula</h3>
+            <button class="btn back" id="formulaModalCloseBtn" type="button">Close</button>
+          </div>
+          <div class="formula-list">
+            <div class="formula-item">
+              <h4>Primary Radius</h4>
+              <code>R₁ (km) = max(2, 10 + 8×(M - 5) - 0.15×DepthKm)</code>
+            </div>
+            <div class="formula-item">
+              <h4>Secondary Radius</h4>
+              <code>R₂ (km) = R₁ × 1.8</code>
+            </div>
+            <div class="formula-item">
+              <h4>Felt Radius</h4>
+              <code>Rfelt (km) = R₁ × 3.2</code>
+            </div>
+            <div class="formula-item">
+              <h4>Affected Area</h4>
+              <code>Area (km²) = π × R²</code>
+            </div>
+            <div class="formula-item">
+              <h4>Population Estimate</h4>
+              <code>Population ≈ Area × PopulationDensityFactor</code>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1849,9 +1953,12 @@
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const autoRotateBtn = document.getElementById('autoRotateBtn');
         const emailAlertsBtn = document.getElementById('emailAlertsBtn');
+        const formulaBtn = document.getElementById('formulaBtn');
         const emailModal = document.getElementById('emailModal');
         const emailModalCloseBtn = document.getElementById('emailModalCloseBtn');
         const emailAddBtn = document.getElementById('emailAddBtn');
+        const formulaModal = document.getElementById('formulaModal');
+        const formulaModalCloseBtn = document.getElementById('formulaModalCloseBtn');
         const emailInput = document.getElementById('emailInput');
         const tabRecentBtn = document.getElementById('tabRecentBtn');
         const tabLocationsBtn = document.getElementById('tabLocationsBtn');
@@ -1902,9 +2009,26 @@
           }
         });
 
+        formulaBtn.addEventListener('click', () => {
+          formulaModal.classList.add('open');
+        });
+
+        formulaModalCloseBtn.addEventListener('click', () => {
+          formulaModal.classList.remove('open');
+        });
+
+        formulaModal.addEventListener('click', (event) => {
+          if (event.target === formulaModal) {
+            formulaModal.classList.remove('open');
+          }
+        });
+
         document.addEventListener('keydown', (event) => {
           if (event.key === 'Escape' && isEmailModalOpen) {
             closeEmailModal();
+          }
+          if (event.key === 'Escape' && formulaModal.classList.contains('open')) {
+            formulaModal.classList.remove('open');
           }
         });
 
