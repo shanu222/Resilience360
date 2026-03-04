@@ -305,6 +305,15 @@ export default function GlobalEarthquakeGlobe({
             >
               {isRefreshing ? 'Syncing...' : 'Refresh'}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowLogicExplainer(true)}
+              aria-label="View calculation formulas"
+              title="View Seismic Calculation Logic"
+              className="logic-formula-btn"
+            >
+              🧮 Logic/Formula
+            </button>
           </div>
         </div>
 
@@ -395,15 +404,6 @@ export default function GlobalEarthquakeGlobe({
               </button>
               <button type="button" onClick={handleResetView} aria-label="Reset view">
                 ⊗
-              <button 
-                type="button" 
-                onClick={() => setShowLogicExplainer(true)} 
-                aria-label="View calculation formulas"
-                title="View Seismic Calculation Logic"
-                className="logic-formula-btn"
-              >
-                🧮
-              </button>
               </button>
             </div>
 
