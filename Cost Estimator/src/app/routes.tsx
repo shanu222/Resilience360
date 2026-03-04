@@ -12,12 +12,13 @@ import { RiskAnalysis } from "./pages/RiskAnalysis";
 import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
 
-export const router = createBrowserRouter([
-  {
-    path: "/",
-    Component: Layout,
-    children: [
-      { index: true, Component: Dashboard },
+export const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      Component: Layout,
+      children: [
+        { index: true, Component: Dashboard },
       { path: "upload", Component: UploadDrawings },
       { path: "ai-takeoff", Component: AIQuantityTakeoff },
       { path: "cost-estimation", Component: CostEstimation },
@@ -30,4 +31,8 @@ export const router = createBrowserRouter([
       { path: "settings", Component: Settings },
     ],
   },
-]);
+],
+{
+  basename: "/cost-estimator",
+}
+);
