@@ -467,6 +467,7 @@
       .globe-wrap {
         height: 100%;
         min-height: 380px;
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -529,12 +530,48 @@
         padding-bottom: 4px;
       }
 
-      .impact-panel {
-        margin: 12px;
+      .impact-popup {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: min(320px, calc(100% - 18px));
+        max-height: min(72vh, 440px);
+        overflow-y: auto;
         border: 1px solid rgba(117, 172, 255, 0.32);
         border-radius: 10px;
-        background: rgba(8, 21, 49, 0.82);
+        background: rgba(8, 21, 49, 0.94);
         padding: 10px;
+        z-index: 8;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        pointer-events: auto;
+      }
+
+      .impact-popup.is-hidden {
+        display: none;
+      }
+
+      .impact-arrow {
+        position: absolute;
+        left: 50%;
+        bottom: -7px;
+        width: 12px;
+        height: 12px;
+        background: rgba(8, 21, 49, 0.94);
+        border-right: 1px solid rgba(117, 172, 255, 0.32);
+        border-bottom: 1px solid rgba(117, 172, 255, 0.32);
+        transform: translateX(-50%) rotate(45deg);
+      }
+
+      .impact-close {
+        width: 22px;
+        height: 22px;
+        border: 1px solid rgba(117, 172, 255, 0.35);
+        border-radius: 6px;
+        background: rgba(6, 18, 44, 0.92);
+        color: #eaf2ff;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
       }
 
       .impact-title {
@@ -547,7 +584,7 @@
 
       .impact-title h4 {
         margin: 0;
-        font-size: 16px;
+        font-size: 13px;
       }
 
       .impact-risk {
@@ -560,7 +597,7 @@
 
       .impact-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
         gap: 8px;
         margin: 8px 0;
       }
@@ -580,19 +617,19 @@
       .impact-item strong {
         display: block;
         margin-top: 3px;
-        font-size: 16px;
+        font-size: 14px;
       }
 
       .impact-subtitle {
         margin: 8px 0 6px;
         color: #9fd1ff;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
       }
 
       .impact-zone-row {
         display: grid;
-        grid-template-columns: repeat(3, minmax(110px, 1fr));
+        grid-template-columns: 1fr;
         gap: 8px;
       }
 
@@ -620,13 +657,13 @@
       .impact-zone-card b {
         display: block;
         margin-bottom: 4px;
-        font-size: 12px;
+        font-size: 11px;
       }
 
       .impact-zone-card span {
         display: block;
         color: #dbeafe;
-        font-size: 11px;
+        font-size: 10px;
       }
 
       .impact-empty {
@@ -702,9 +739,9 @@
           height: 420px;
         }
 
-        .impact-grid,
-        .impact-zone-row {
-          grid-template-columns: 1fr;
+        .impact-popup {
+          width: min(290px, calc(100% - 16px));
+          max-height: min(58vh, 360px);
         }
       }
     </style>
@@ -744,6 +781,14 @@
         <section class="right card">
           <div class="globe-wrap">
             <div id="globeViz" class="globe"></div>
+            <div class="impact-popup is-hidden" id="impactPopup" role="dialog" aria-live="polite" aria-label="Seismic impact details">
+              <div class="impact-title">
+                <h4>Seismic Impact Assessment</h4>
+                <button class="impact-close" id="impactPopupClose" type="button" aria-label="Close impact popup">×</button>
+              </div>
+              <div class="impact-empty">Click an earthquake marker to view details.</div>
+              <div class="impact-arrow" aria-hidden="true"></div>
+            </div>
           </div>
           <div class="tools">
             <button class="tool" id="zoomInBtn">+</button>
@@ -751,12 +796,6 @@
             <button class="tool" id="resetViewBtn">⊗</button>
           </div>
           <div class="mini">World View</div>
-          <div class="impact-panel" id="impactPanel">
-            <div class="impact-title">
-              <h4>Seismic Impact Assessment</h4>
-            </div>
-            <div class="impact-empty">Click an earthquake on the globe to view affected area and infrastructure impact.</div>
-          </div>
         </section>
       </div>
 
@@ -853,6 +892,7 @@
       let selectedId = null;
       let currentAltitude = 1.7;
       let eventsData = [];
+      let selectedImpactEvent = null;
       let locationsData = [];
       let activeLeftTab = 'recent';
       let expandedCountry = null;
@@ -940,6 +980,7 @@
         const width = Math.max(320, Math.floor(host.clientWidth));
         const height = Math.max(280, Math.floor(host.clientHeight));
         globe.width(width).height(height);
+        positionImpactPopup();
       }
 
       function tierClass(m) {
@@ -1496,60 +1537,105 @@
         };
       }
 
-      function renderImpactPanel(eventItem) {
-        const panel = document.getElementById('impactPanel');
-        console.log('renderImpactPanel called', { eventItem, panel });
-        if (!panel || !eventItem) {
-          console.log('Panel or event item missing:', { panel, eventItem });
+      function hideImpactPopup() {
+        const popup = document.getElementById('impactPopup');
+        if (!popup) return;
+        popup.classList.add('is-hidden');
+      }
+
+      function positionImpactPopup() {
+        if (!globe || !selectedImpactEvent) return;
+        const popup = document.getElementById('impactPopup');
+        const host = document.getElementById('globeViz');
+        if (!popup || !host) return;
+
+        const coords = globe.getScreenCoords(selectedImpactEvent.lat, selectedImpactEvent.lng, 0);
+        if (!coords || !Number.isFinite(coords.x) || !Number.isFinite(coords.y)) {
+          hideImpactPopup();
           return;
         }
 
-        try {
-          const assessment = buildImpactAssessment(eventItem);
-          console.log('Assessment built:', assessment);
+        const hostRect = host.getBoundingClientRect();
+        const wrapRect = host.parentElement?.getBoundingClientRect() || hostRect;
+        let pointX = coords.x;
+        let pointY = coords.y;
 
-          panel.innerHTML = `
-            <div class="impact-title">
-              <h4>Seismic Impact Assessment</h4>
-              <span class="impact-risk" style="background:${riskColor(assessment.risk)}">${assessment.risk}</span>
+        if (pointX < 0 || pointY < 0 || pointX > hostRect.width || pointY > hostRect.height) {
+          pointX = coords.x - hostRect.left;
+          pointY = coords.y - hostRect.top;
+        }
+
+        const popupWidth = popup.offsetWidth || 280;
+        const popupHeight = popup.offsetHeight || 320;
+        const leftMin = 6;
+        const leftMax = Math.max(leftMin, wrapRect.width - popupWidth - 6);
+        const topMin = 6;
+        const topMax = Math.max(topMin, wrapRect.height - popupHeight - 10);
+        const desiredLeft = pointX - popupWidth / 2;
+        const desiredTop = pointY - popupHeight - 14;
+
+        popup.style.left = `${Math.max(leftMin, Math.min(leftMax, desiredLeft))}px`;
+        popup.style.top = `${Math.max(topMin, Math.min(topMax, desiredTop))}px`;
+      }
+
+      function renderImpactPopup(eventItem) {
+        const popup = document.getElementById('impactPopup');
+        if (!popup || !eventItem) return;
+
+        const assessment = buildImpactAssessment(eventItem);
+        selectedImpactEvent = eventItem;
+
+        popup.innerHTML = `
+          <div class="impact-title">
+            <h4>Seismic Impact Assessment</h4>
+            <button class="impact-close" id="impactPopupClose" type="button" aria-label="Close impact popup">×</button>
+            <span class="impact-risk" style="background:${riskColor(assessment.risk)}">${assessment.risk}</span>
+          </div>
+          <div class="impact-subtitle">${escapeHtml(eventItem.place || 'Unknown location')} · M ${Number(eventItem.mag || 0).toFixed(1)} · Depth ${Number(eventItem.depthKm || 0).toFixed(1)} km</div>
+          <div class="impact-zone-row">
+            <div class="impact-zone-card primary">
+              <b>Primary Zone</b>
+              <span>Radius: ${assessment.primaryRadiusKm.toFixed(1)} km</span>
+              <span>Area: ${Math.round(assessment.primaryArea).toLocaleString()} km²</span>
+              <span>Population: ~${assessment.primaryPopulation.toLocaleString()}</span>
             </div>
-            <div class="impact-subtitle">${escapeHtml(eventItem.place || 'Unknown location')} · M ${Number(eventItem.mag || 0).toFixed(1)} · Depth ${Number(eventItem.depthKm || 0).toFixed(1)} km</div>
-            <div class="impact-zone-row">
-              <div class="impact-zone-card primary">
-                <b>Primary Zone</b>
-                <span>Radius: ${assessment.primaryRadiusKm.toFixed(1)} km</span>
-                <span>Area: ${Math.round(assessment.primaryArea).toLocaleString()} km²</span>
-                <span>Population: ~${assessment.primaryPopulation.toLocaleString()}</span>
-              </div>
-              <div class="impact-zone-card secondary">
-                <b>Secondary Zone</b>
-                <span>Radius: ${assessment.secondaryRadiusKm.toFixed(1)} km</span>
-                <span>Area: ${Math.round(assessment.secondaryArea).toLocaleString()} km²</span>
-                <span>Population: ~${assessment.secondaryPopulation.toLocaleString()}</span>
-              </div>
-              <div class="impact-zone-card felt">
-                <b>Felt Radius</b>
-                <span>Radius: ${assessment.feltRadiusKm.toFixed(1)} km</span>
-                <span>Area: ${Math.round(assessment.feltArea).toLocaleString()} km²</span>
-                <span>Population: ~${assessment.totalPopulation.toLocaleString()}</span>
-              </div>
+            <div class="impact-zone-card secondary">
+              <b>Secondary Zone</b>
+              <span>Radius: ${assessment.secondaryRadiusKm.toFixed(1)} km</span>
+              <span>Area: ${Math.round(assessment.secondaryArea).toLocaleString()} km²</span>
+              <span>Population: ~${assessment.secondaryPopulation.toLocaleString()}</span>
             </div>
-            <div class="impact-subtitle">Infrastructure in affected area (estimated)</div>
-            <div class="impact-grid">
-              <div class="impact-item"><small>Buildings</small><strong>${assessment.totalInfra.buildings.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Bridges</small><strong>${assessment.totalInfra.bridges.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Roads</small><strong>${assessment.totalInfra.roadsKm.toLocaleString()} km</strong></div>
-              <div class="impact-item"><small>Hospitals</small><strong>${assessment.totalInfra.hospitals.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Schools</small><strong>${assessment.totalInfra.schools.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Emergency Services</small><strong>${assessment.totalInfra.emergency.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Power Stations</small><strong>${assessment.totalInfra.powerStations.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Water Plants</small><strong>${assessment.totalInfra.waterPlants.toLocaleString()}</strong></div>
-              <div class="impact-item"><small>Max Intensity</small><strong>MMI ${assessment.maxMmi.toFixed(1)}</strong></div>
+            <div class="impact-zone-card felt">
+              <b>Felt Radius</b>
+              <span>Radius: ${assessment.feltRadiusKm.toFixed(1)} km</span>
+              <span>Area: ${Math.round(assessment.feltArea).toLocaleString()} km²</span>
+              <span>Population: ~${assessment.totalPopulation.toLocaleString()}</span>
             </div>
-          `;
-          console.log('Panel HTML updated successfully');
-        } catch (error) {
-          console.error('Error rendering impact panel:', error);
+          </div>
+          <div class="impact-subtitle">Infrastructure in affected area (estimated)</div>
+          <div class="impact-grid">
+            <div class="impact-item"><small>Buildings</small><strong>${assessment.totalInfra.buildings.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Bridges</small><strong>${assessment.totalInfra.bridges.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Roads</small><strong>${assessment.totalInfra.roadsKm.toLocaleString()} km</strong></div>
+            <div class="impact-item"><small>Hospitals</small><strong>${assessment.totalInfra.hospitals.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Schools</small><strong>${assessment.totalInfra.schools.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Emergency Services</small><strong>${assessment.totalInfra.emergency.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Power Stations</small><strong>${assessment.totalInfra.powerStations.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Water Plants</small><strong>${assessment.totalInfra.waterPlants.toLocaleString()}</strong></div>
+            <div class="impact-item"><small>Max Intensity</small><strong>MMI ${assessment.maxMmi.toFixed(1)}</strong></div>
+          </div>
+          <div class="impact-arrow" aria-hidden="true"></div>
+        `;
+
+        popup.classList.remove('is-hidden');
+        positionImpactPopup();
+
+        const closeBtn = document.getElementById('impactPopupClose');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            selectedImpactEvent = null;
+            hideImpactPopup();
+          });
         }
       }
 
@@ -1573,6 +1659,9 @@
         controls.autoRotateSpeed = 0.35;
         controls.enableDamping = true;
         controls.dampingFactor = 0.06;
+        if (typeof controls.addEventListener === 'function') {
+          controls.addEventListener('change', positionImpactPopup);
+        }
 
         window.addEventListener('resize', resizeGlobeViewport);
         window.setTimeout(resizeGlobeViewport, 30);
@@ -1647,12 +1736,8 @@
           row.classList.toggle('selected', row.dataset.id === id);
         }
         const selected = eventsData.find((item) => item.id === id) || null;
-        console.log('selectEvent called:', { id, selected });
         if (selected) {
-          console.log('Rendering impact panel for:', selected);
-          renderImpactPanel(selected);
-        } else {
-          console.log('No event found with id:', id);
+          renderImpactPopup(selected);
         }
         refreshPointsAppearance();
         focusOn(id);
@@ -1773,6 +1858,7 @@
         const zoomInBtn = document.getElementById('zoomInBtn');
         const zoomOutBtn = document.getElementById('zoomOutBtn');
         const resetViewBtn = document.getElementById('resetViewBtn');
+        const impactPopupClose = document.getElementById('impactPopupClose');
 
         backBtn.addEventListener('click', () => {
           if (window.history.length > 1) {
@@ -1849,10 +1935,19 @@
           const glb = ensureGlobe();
           currentAltitude = 1.7;
           selectedId = null;
+          selectedImpactEvent = null;
           glb.pointOfView({ ...defaultCenter, altitude: currentAltitude }, 600);
           for (const row of quakeRows) row.classList.remove('selected');
           refreshPointsAppearance();
+          hideImpactPopup();
         });
+
+        if (impactPopupClose) {
+          impactPopupClose.addEventListener('click', () => {
+            selectedImpactEvent = null;
+            hideImpactPopup();
+          });
+        }
 
         setAutoRotation(true);
         setLeftTab(activeLeftTab);
