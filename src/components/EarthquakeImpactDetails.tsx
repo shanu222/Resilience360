@@ -44,7 +44,8 @@ export default function EarthquakeImpactDetails({
               title="View calculation logic and formulas"
               aria-label="Show calculation logic"
             >
-              📐
+              <span className="logic-icon">📐</span>
+              <span className="logic-text">Formula</span>
             </button>
             <button className="earthquake-impact-close" onClick={onClose} aria-label="Close">
               ×

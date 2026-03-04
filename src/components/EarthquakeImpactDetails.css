@@ -61,22 +61,34 @@
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
-  font-size: 1.25rem;
-  line-height: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
+  height: 36px;
+  padding: 0 0.875rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   transition: all 0.2s;
-  padding: 0;
+  white-space: nowrap;
+}
+
+.logic-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.logic-text {
+  font-size: 0.875rem;
+  line-height: 1;
 }
 
 .logic-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .logic-button:active {
@@ -436,6 +448,20 @@
 
   .earthquake-impact-header h2 {
     font-size: 1.25rem;
+  }
+
+  .logic-button {
+    padding: 0 0.625rem;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .logic-icon {
+    font-size: 1rem;
+  }
+
+  .logic-text {
+    font-size: 0.8rem;
   }
 
   .earthquake-impact-body {
