@@ -6421,14 +6421,14 @@ function App() {
         <div className="panel section-panel section-pgbc">
           <h2>{t.sections.costEstimator}</h2>
           <div className="inline-controls">
-            <a href={`${import.meta.env.BASE_URL}retrofit-calculator/`} target="_blank" rel="noreferrer">
+            <a href={`${import.meta.env.BASE_URL}cost-estimator/`} target="_blank" rel="noreferrer">
               Open Cost Estimator in new tab
             </a>
           </div>
           <iframe
             title="Cost Estimator"
             className="pgbc-portal-frame"
-            src={`${import.meta.env.BASE_URL}retrofit-calculator/`}
+            src={`${import.meta.env.BASE_URL}cost-estimator/`}
             loading="lazy"
             referrerPolicy="no-referrer"
           />
