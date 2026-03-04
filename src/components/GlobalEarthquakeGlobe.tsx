@@ -367,7 +367,7 @@ export default function GlobalEarthquakeGlobe({
                 ref={globeRef}
                 width={size.width}
                 height={size.height}
-                globeImageUrl="https://unpkg.com/three-globe/example/img/earth-night.jpg"
+                globeImageUrl="https://unpkg.com/three-globe/example/img/earth-day.jpg"
                 bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
                 backgroundColor="rgba(0,0,0,0)"
                 showAtmosphere
