@@ -62,6 +62,7 @@ type SectionKey =
   | 'materialHubs'
   | 'pgbc'
   | 'retrofitCalculator'
+  | 'costEstimator'
   | 'applyRegion'
   | 'readiness'
   | 'retrofit'
@@ -413,6 +414,7 @@ const translations = {
       materialHubs: '🏗️ Material Hubs',
       pgbc: '🏛️ PGBC Portal',
       retrofitCalculator: '🧮 Retrofit Calculator',
+      costEstimator: '💰 Cost Estimator',
       applyRegion: '📍 Construct in my Region',
       readiness: '📊 Readiness Calculator',
       retrofit: '🧰 Retrofit Guide',
@@ -438,6 +440,7 @@ const translations = {
       materialHubs: '🏗️ میٹریل ہبز',
       pgbc: '🏛️ پی جی بی سی پورٹل',
       retrofitCalculator: '🧮 ریٹروفٹ کیلکولیٹر',
+      costEstimator: '💰 لاگت کا تخمینہ',
       applyRegion: '📍 اپنے علاقے میں تعمیر',
       readiness: '📊 تیاری کیلکولیٹر',
       retrofit: '🧰 ریٹروفٹ گائیڈ',
@@ -590,6 +593,7 @@ const homeSectionKeys: SectionKey[] = [
   'bestPractices',
   'infraModels',
   'retrofit',
+  'costEstimator',
   'riskMaps',
   'designToolkit',
   'pgbc',
@@ -654,6 +658,12 @@ const homeCardMeta: Record<
     icon: '🧮',
     title: 'Retrofit Calculator',
     subtitle: 'AI Defect Cost Workflow',
+    tone: 'tone-f',
+  },
+  costEstimator: {
+    icon: '💰',
+    title: 'Cost Estimator',
+    subtitle: 'Project Cost Analysis Tool',
     tone: 'tone-f',
   },
   applyRegion: {
@@ -6397,6 +6407,26 @@ function App() {
           </div>
           <iframe
             title="Retrofit Calculator"
+            className="pgbc-portal-frame"
+            src={`${import.meta.env.BASE_URL}retrofit-calculator/`}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )
+    }
+
+    if (activeSection === 'costEstimator') {
+      return (
+        <div className="panel section-panel section-pgbc">
+          <h2>{t.sections.costEstimator}</h2>
+          <div className="inline-controls">
+            <a href={`${import.meta.env.BASE_URL}retrofit-calculator/`} target="_blank" rel="noreferrer">
+              Open Cost Estimator in new tab
+            </a>
+          </div>
+          <iframe
+            title="Cost Estimator"
             className="pgbc-portal-frame"
             src={`${import.meta.env.BASE_URL}retrofit-calculator/`}
             loading="lazy"
