@@ -3,6 +3,7 @@ import Globe from 'react-globe.gl'
 import { calculateSeismicImpact } from '../services/seismicImpact'
 import { assessInfrastructureImpact, type InfrastructureImpactAssessment } from '../services/infrastructureAssessment'
 import EarthquakeImpactDetails from './EarthquakeImpactDetails'
+import SeismicLogicExplainer from './SeismicLogicExplainer'
 
 type GlobalEarthquake = {
   id: string
@@ -67,6 +68,7 @@ export default function GlobalEarthquakeGlobe({
   const [manualAltitude, setManualAltitude] = useState(1.2)
   const [cameraCenter, setCameraCenter] = useState({ lat: 20, lng: 15 })
   const [selectedImpactAssessment, setSelectedImpactAssessment] = useState<InfrastructureImpactAssessment | null>(null)
+  const [showLogicExplainer, setShowLogicExplainer] = useState(false)
 
   const selectedEarthquake = useMemo(
     () => earthquakes.find((quake) => quake.id === selectedEarthquakeId) ?? null,
@@ -393,6 +395,15 @@ export default function GlobalEarthquakeGlobe({
               </button>
               <button type="button" onClick={handleResetView} aria-label="Reset view">
                 ⊗
+              <button 
+                type="button" 
+                onClick={() => setShowLogicExplainer(true)} 
+                aria-label="View calculation formulas"
+                title="View Seismic Calculation Logic"
+                className="logic-formula-btn"
+              >
+                🧮
+              </button>
               </button>
             </div>
 
@@ -436,6 +447,11 @@ export default function GlobalEarthquakeGlobe({
             </div>
             <small className="earthquake-foot-sync">Synced at {latestSyncLabel}</small>
           </div>
+
+      {/* Logic Explainer Modal */}
+      {showLogicExplainer && (
+        <SeismicLogicExplainer onClose={() => setShowLogicExplainer(false)} />
+      )}
         </div>
       </div>
       

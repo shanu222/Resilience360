@@ -775,6 +775,24 @@
   font-size: 1.2rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.earthquake-globe-tools button:hover {
+  background: rgba(12, 36, 78, 0.95);
+  border-color: rgba(143, 200, 255, 0.6);
+  transform: scale(1.05);
+}
+
+.earthquake-globe-tools .logic-formula-btn {
+  border: 2px solid rgba(167, 139, 250, 0.5);
+  background: linear-gradient(135deg, rgba(109, 40, 217, 0.3), rgba(139, 92, 246, 0.3));
+  font-size: 1rem;
+}
+
+.earthquake-globe-tools .logic-formula-btn:hover {
+  border-color: rgba(167, 139, 250, 0.8);
+  background: linear-gradient(135deg, rgba(109, 40, 217, 0.5), rgba(139, 92, 246, 0.5));
 }
 
 .earthquake-mini-map {
