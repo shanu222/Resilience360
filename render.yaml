@@ -11,6 +11,8 @@ services:
     envVars:
       - key: GIT_LFS_SKIP_SMUDGE
         value: "1"
+      - key: PORT
+        value: "10000"
       - key: OPENAI_API_KEY
         sync: false
       - key: RECOVERY_EMAIL_PROVIDER
