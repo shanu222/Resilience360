@@ -1,8 +1,12 @@
 import { Loader2, Play, Image, FileText } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { analyzeFileRealtime, createReport, downloadTextFile } from "../services/realtimeAi";
 import { getTransientFile, useEstimator } from "../state/estimatorStore";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 export function AIQuantityTakeoff() {
   const navigate = useNavigate();
@@ -10,9 +14,103 @@ export function AIQuantityTakeoff() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
+  const [pdfPreviewPages, setPdfPreviewPages] = useState<string[]>([]);
+  const [currentPdfPage, setCurrentPdfPage] = useState(0);
+  const [isRenderingPdf, setIsRenderingPdf] = useState(false);
+  const [pdfPreviewError, setPdfPreviewError] = useState("");
+  const pdfPreviewCacheRef = useRef<Map<string, string[]>>(new Map());
 
   const selectedFile =
     state.uploadedFiles.find((file) => file.id === state.selectedFileId) ?? state.uploadedFiles[0] ?? null;
+
+  const selectedFileIsPdf =
+    Boolean(selectedFile) && (selectedFile?.type.toLowerCase().includes("pdf") || selectedFile?.name.toLowerCase().endsWith(".pdf"));
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const renderPdfPages = async () => {
+      if (!selectedFile || !selectedFileIsPdf) {
+        setPdfPreviewPages([]);
+        setCurrentPdfPage(0);
+        setPdfPreviewError("");
+        return;
+      }
+
+      const cached = pdfPreviewCacheRef.current.get(selectedFile.id);
+      if (cached && cached.length > 0) {
+        setPdfPreviewPages(cached);
+        setCurrentPdfPage(0);
+        setPdfPreviewError("");
+        return;
+      }
+
+      const sourceFile = getTransientFile(selectedFile.id);
+      if (!sourceFile) {
+        setPdfPreviewPages([]);
+        setCurrentPdfPage(0);
+        setPdfPreviewError("Preview unavailable for this PDF in current session. Please re-upload the file.");
+        return;
+      }
+
+      setIsRenderingPdf(true);
+      setPdfPreviewError("");
+      setPdfPreviewPages([]);
+      setCurrentPdfPage(0);
+
+      try {
+        const bytes = new Uint8Array(await sourceFile.arrayBuffer());
+        const loadingTask = getDocument({ data: bytes });
+        const pdfDocument = await loadingTask.promise;
+        const pageImages: string[] = [];
+
+        for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
+          const page = await pdfDocument.getPage(pageNumber);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(viewport.width);
+          canvas.height = Math.round(viewport.height);
+          const context = canvas.getContext("2d");
+
+          if (!context) {
+            throw new Error("Could not create preview canvas context.");
+          }
+
+          await page.render({ canvasContext: context, viewport }).promise;
+          pageImages.push(canvas.toDataURL("image/jpeg", 0.9));
+        }
+
+        await pdfDocument.destroy();
+
+        if (isCancelled) {
+          return;
+        }
+
+        pdfPreviewCacheRef.current.set(selectedFile.id, pageImages);
+        setPdfPreviewPages(pageImages);
+        setCurrentPdfPage(0);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+        setPdfPreviewError(error instanceof Error ? error.message : "Could not render PDF preview.");
+      } finally {
+        if (!isCancelled) {
+          setIsRenderingPdf(false);
+        }
+      }
+    };
+
+    void renderPdfPages();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedFile, selectedFileIsPdf]);
+
+  const displayedPreviewImage = selectedFile?.previewDataUrl
+    ? selectedFile.previewDataUrl
+    : (pdfPreviewPages[currentPdfPage] ?? undefined);
 
   const runTakeoff = async () => {
     if (!selectedFile) {
@@ -122,19 +220,57 @@ export function AIQuantityTakeoff() {
         <div className="bg-card rounded-xl p-6 border border-border">
           <h3 className="font-semibold mb-4">Blueprint Preview</h3>
           <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center relative overflow-hidden">
-            {selectedFile?.previewDataUrl ? (
-              <img src={selectedFile.previewDataUrl} alt={selectedFile.name} className="h-full w-full object-contain" />
+            {displayedPreviewImage ? (
+              <img src={displayedPreviewImage} alt={selectedFile?.name ?? "Blueprint preview"} className="h-full w-full object-contain" />
+            ) : isRenderingPdf ? (
+              <div className="relative z-10 text-center px-4 py-3 rounded bg-white/80 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Rendering PDF pages...</p>
+              </div>
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100" />
             )}
-            <div className="relative z-10 text-center px-3 py-2 rounded bg-white/80">
-              {selectedFile ? (
-                <p className="text-sm text-muted-foreground">{selectedFile.name}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">No uploaded drawing selected</p>
-              )}
-            </div>
+            {!displayedPreviewImage && !isRenderingPdf && (
+              <div className="relative z-10 text-center px-3 py-2 rounded bg-white/80">
+                {selectedFile ? (
+                  <p className="text-sm text-muted-foreground">{selectedFile.name}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No uploaded drawing selected</p>
+                )}
+              </div>
+            )}
           </div>
+          {selectedFile && (
+            <p className="mt-3 text-sm text-muted-foreground truncate" title={selectedFile.name}>
+              {selectedFile.name}
+            </p>
+          )}
+          {pdfPreviewError && (
+            <p className="mt-2 text-xs text-red-600">{pdfPreviewError}</p>
+          )}
+          {pdfPreviewPages.length > 0 && (
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                disabled={currentPdfPage <= 0}
+                onClick={() => setCurrentPdfPage((previous) => Math.max(previous - 1, 0))}
+                className="px-3 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-60"
+              >
+                Previous Page
+              </button>
+              <span className="text-xs text-muted-foreground">
+                Page {currentPdfPage + 1} of {pdfPreviewPages.length}
+              </span>
+              <button
+                type="button"
+                disabled={currentPdfPage >= pdfPreviewPages.length - 1}
+                onClick={() => setCurrentPdfPage((previous) => Math.min(previous + 1, pdfPreviewPages.length - 1))}
+                className="px-3 py-1.5 border border-border rounded-lg text-xs hover:bg-muted disabled:opacity-60"
+              >
+                Next Page
+              </button>
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
             {state.uploadedFiles.map((file) => (
               <button
