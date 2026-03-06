@@ -110,12 +110,14 @@ export function Reports() {
                     </div>
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         onClick={() => generateReport(report.title)}
                         className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
                       >
                         Generate
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           const found = reports.find((item) => item.type === report.title);
                           if (found) {
@@ -144,6 +146,7 @@ export function Reports() {
           <h3 className="font-semibold">Report Preview</h3>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => downloadReport("pdf")}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
             >
@@ -151,6 +154,7 @@ export function Reports() {
               Download PDF
             </button>
             <button
+              type="button"
               onClick={() => downloadReport("xlsx")}
               className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
             >
@@ -218,6 +222,7 @@ export function Reports() {
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           onClick={() => {
                             setSelectedReportId(report.id);
                             setStatusMessage(`Previewing ${report.name}.`);
@@ -227,6 +232,7 @@ export function Reports() {
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             downloadTextFile(`${report.name.replace(/\s+/g, "-").toLowerCase()}.txt`, report.content);
                             setStatusMessage(`Downloaded ${report.name}.`);

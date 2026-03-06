@@ -24,28 +24,54 @@ import {
 } from './notifications.mjs'
 import { handleNEATAnalyze, handleNEATMetadata } from './neat/neat.routes.mjs'
 
-dotenv.config()
-
 const app = express()
 const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } })
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const resolvedPort = Number.parseInt(process.env.PORT ?? process.env.VISION_API_PORT ?? '10000', 10)
-const port = Number.isFinite(resolvedPort) && resolvedPort > 0 ? resolvedPort : 10000
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') })
+dotenv.config()
+const resolvedPort = Number.parseInt(process.env.PORT ?? process.env.VISION_API_PORT ?? '8787', 10)
+const port = Number.isFinite(resolvedPort) && resolvedPort > 0 ? resolvedPort : 8787
 const host = process.env.HOST ?? '0.0.0.0'
 const AI_PROVIDER = String(process.env.AI_PROVIDER ?? 'openai').trim().toLowerCase()
 const selectedAiProvider = AI_PROVIDER === 'huggingface' ? 'huggingface' : 'openai'
 const OPENAI_FALLBACK_TO_HUGGINGFACE = String(process.env.OPENAI_FALLBACK_TO_HUGGINGFACE ?? 'true').trim().toLowerCase() !== 'false'
 
 // Support multiple API keys for quota rotation
-const OPENAI_API_KEYS = String(process.env.OPENAI_API_KEYS ?? process.env.OPENAI_API_KEY ?? '')
-  .split(',')
-  .map(key => key.trim())
-  .filter(Boolean)
+const parseApiKeyList = (rawValue) =>
+  String(rawValue ?? '')
+    .split(',')
+    .map((key) => key.trim())
+    .filter(Boolean)
+
+const isPlaceholderApiKey = (key) => /^(sk-your|your-api-key|replace-with)/i.test(String(key ?? '').trim())
+
+const sanitizeApiKeys = (keys) => keys.filter((key) => !isPlaceholderApiKey(key))
+
+const OPENAI_API_KEYS = (() => {
+  const multiKeys = sanitizeApiKeys(parseApiKeyList(process.env.OPENAI_API_KEYS))
+  if (multiKeys.length > 0) {
+    return multiKeys
+  }
+  const singleKey = String(process.env.OPENAI_API_KEY ?? '').trim()
+  return singleKey && !isPlaceholderApiKey(singleKey) ? [singleKey] : []
+})()
 const OPENAI_API_KEY = OPENAI_API_KEYS[0] ?? ''
 const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini').trim()
 const COST_ESTIMATOR_AI_PROVIDER = String(process.env.COST_ESTIMATOR_AI_PROVIDER ?? 'openai').trim().toLowerCase()
 const COST_ESTIMATOR_OPENAI_MODEL = String(process.env.COST_ESTIMATOR_OPENAI_MODEL ?? OPENAI_MODEL).trim()
+const COST_ESTIMATOR_OPENAI_API_KEYS = (() => {
+  const explicitMulti = sanitizeApiKeys(parseApiKeyList(process.env.COST_ESTIMATOR_OPENAI_API_KEYS))
+  if (explicitMulti.length > 0) {
+    return explicitMulti
+  }
+  const explicitSingle = String(process.env.COST_ESTIMATOR_OPENAI_API_KEY ?? '').trim()
+  if (explicitSingle && !isPlaceholderApiKey(explicitSingle)) {
+    return [explicitSingle]
+  }
+  return OPENAI_API_KEYS
+})()
+const COST_ESTIMATOR_OPENAI_API_KEY = COST_ESTIMATOR_OPENAI_API_KEYS[0] ?? ''
 const OPENROUTER_API_KEY = String(process.env.OPENROUTER_API_KEY ?? '').trim()
 const OPENROUTER_MODEL = String(process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini').trim()
 const OPENROUTER_BASE_URL = String(process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1').trim().replace(/\/+$/, '')
@@ -57,6 +83,7 @@ const AZURE_OPENAI_DEPLOYMENT = String(process.env.AZURE_OPENAI_DEPLOYMENT ?? ''
 const AZURE_OPENAI_API_VERSION = String(process.env.AZURE_OPENAI_API_VERSION ?? '2024-10-21').trim()
 
 let currentKeyIndex = 0
+let costEstimatorCurrentKeyIndex = 0
 const rotateApiKey = () => {
   if (OPENAI_API_KEYS.length > 1) {
     currentKeyIndex = (currentKeyIndex + 1) % OPENAI_API_KEYS.length
@@ -67,6 +94,16 @@ const rotateApiKey = () => {
 }
 
 const getCurrentApiKey = () => OPENAI_API_KEYS[currentKeyIndex] || OPENAI_API_KEY
+const rotateCostEstimatorApiKey = () => {
+  if (COST_ESTIMATOR_OPENAI_API_KEYS.length > 1) {
+    costEstimatorCurrentKeyIndex = (costEstimatorCurrentKeyIndex + 1) % COST_ESTIMATOR_OPENAI_API_KEYS.length
+    console.log(`Rotated cost estimator API key ${costEstimatorCurrentKeyIndex + 1}/${COST_ESTIMATOR_OPENAI_API_KEYS.length}`)
+    return COST_ESTIMATOR_OPENAI_API_KEYS[costEstimatorCurrentKeyIndex]
+  }
+  return COST_ESTIMATOR_OPENAI_API_KEY
+}
+const getCurrentCostEstimatorApiKey = () =>
+  COST_ESTIMATOR_OPENAI_API_KEYS[costEstimatorCurrentKeyIndex] || COST_ESTIMATOR_OPENAI_API_KEY
 const MATERIAL_HUBS_SUPABASE_URL = String(process.env.MATERIAL_HUBS_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
 const MATERIAL_HUBS_SUPABASE_ANON_KEY = String(process.env.MATERIAL_HUBS_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
 const MATERIAL_HUBS_ADMIN_EMAILS = String(process.env.MATERIAL_HUBS_ADMIN_EMAILS ?? '')
@@ -329,7 +366,7 @@ const hasCostEstimatorProviderConfig = (provider) => {
   if (provider === 'openrouter') {
     return Boolean(OPENROUTER_API_KEY && OPENROUTER_MODEL)
   }
-  return Boolean(OPENAI_API_KEY)
+  return Boolean(COST_ESTIMATOR_OPENAI_API_KEY)
 }
 
 const getCostEstimatorMissingConfigMessage = (provider) => {
@@ -339,7 +376,7 @@ const getCostEstimatorMissingConfigMessage = (provider) => {
   if (provider === 'openrouter') {
     return 'OpenRouter is not configured. Set OPENROUTER_API_KEY and OPENROUTER_MODEL.'
   }
-  return 'OpenAI is not configured. Set OPENAI_API_KEY or OPENAI_API_KEYS.'
+  return 'OpenAI is not configured. Set COST_ESTIMATOR_OPENAI_API_KEY (or COST_ESTIMATOR_OPENAI_API_KEYS), or OPENAI_API_KEY(S).'
 }
 
 const createCostEstimatorChatCompletion = async ({ provider, messages, temperature = 0.2 }) => {
@@ -453,10 +490,10 @@ const createCostEstimatorChatCompletion = async ({ provider, messages, temperatu
 
   let result = null
   try {
-    result = await runOpenAi(getCurrentApiKey())
+    result = await runOpenAi(getCurrentCostEstimatorApiKey())
   } catch (error) {
-    if (getErrorStatus(error) === 429 && OPENAI_API_KEYS.length > 1) {
-      const rotated = rotateApiKey()
+    if (getErrorStatus(error) === 429 && COST_ESTIMATOR_OPENAI_API_KEYS.length > 1) {
+      const rotated = rotateCostEstimatorApiKey()
       result = await runOpenAi(rotated)
     } else {
       throw error
@@ -2587,6 +2624,109 @@ app.post('/api/cost-estimator/reports', async (req, res) => {
     res.json({ ok: true, updatedAt: saved.updatedAt, reports: saved.state.reports })
   } catch (error) {
     res.status(500).json({ error: `Failed to save report: ${error?.message || error}` })
+  }
+})
+
+app.post('/api/cost-estimator/assistant', async (req, res) => {
+  const prompt = String(req.body?.prompt ?? '').trim()
+  const provider = resolveCostEstimatorProvider(req.body?.provider)
+
+  if (!prompt) {
+    res.status(400).json({ error: 'A prompt is required.' })
+    return
+  }
+
+  try {
+    const sourceState = req.body?.state && typeof req.body.state === 'object'
+      ? req.body.state
+      : (await readCostEstimatorDb()).state
+    const modules = deriveCostEstimatorModules(sourceState)
+    const dashboard = modules.dashboard ?? {}
+    const risk = modules.risk ?? {}
+    const materialCost = Number(dashboard.materialCost ?? 0) || 0
+    const laborCost = Number(dashboard.laborCost ?? 0) || 0
+    const equipmentCost = Number(dashboard.equipmentCost ?? 0) || 0
+    const totalCost = Number(dashboard.totalCost ?? 0) || materialCost + laborCost + equipmentCost
+    const uploadedFiles = Number(dashboard.uploadedFiles ?? 0) || 0
+    const takeoffTypes = Number(dashboard.takeoffTypes ?? 0) || 0
+    const overallRisk = Number(risk.overallRisk ?? 0) || 0
+    const topRiskCards = safeArray(risk.cards)
+      .slice(0, 4)
+      .map((item) => `${String(item?.title ?? 'Unknown Risk')}: ${Number(item?.percentage ?? 0)}%`)
+      .join('; ')
+
+    if (!hasCostEstimatorProviderConfig(provider)) {
+      const fallbackReply =
+        `Live backend summary: estimated total cost is $${Math.round(totalCost).toLocaleString()}, ` +
+        `with materials $${Math.round(materialCost).toLocaleString()}, labor $${Math.round(laborCost).toLocaleString()}, and equipment $${Math.round(equipmentCost).toLocaleString()}. ` +
+        `Current overall risk index is ${Math.round(overallRisk)}%. ` +
+        `Upload completeness is ${uploadedFiles} file(s) and ${takeoffTypes} detected element type(s).`
+
+      res.json({
+        ok: true,
+        provider: 'fallback',
+        model: 'deterministic-live-summary',
+        analyzedAt: new Date().toISOString(),
+        reply: fallbackReply,
+        suggestions: [
+          'Ask for a cost optimization plan by trade.',
+          'Ask for risk mitigation actions for top risk cards.',
+          'Ask for a report-ready executive summary.',
+        ],
+      })
+      return
+    }
+
+    const completion = await createCostEstimatorChatCompletion({
+      provider,
+      temperature: 0.2,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are an expert construction cost estimator assistant. Always return strict JSON only with schema: ' +
+            '{"reply": string, "suggestions": string[]}. Keep reply concise and grounded in provided project context.',
+        },
+        {
+          role: 'user',
+          content:
+            `User question: ${prompt}\n\n` +
+            `Live project context:\n` +
+            `- totalCost: ${totalCost}\n` +
+            `- materialCost: ${materialCost}\n` +
+            `- laborCost: ${laborCost}\n` +
+            `- equipmentCost: ${equipmentCost}\n` +
+            `- uploadedFiles: ${uploadedFiles}\n` +
+            `- takeoffTypes: ${takeoffTypes}\n` +
+            `- overallRisk: ${overallRisk}\n` +
+            `- riskCards: ${topRiskCards || 'No risk cards available'}\n\n` +
+            `Rules:\n` +
+            `- Mention concrete numbers from context when relevant.\n` +
+            `- If data is incomplete, state assumptions explicitly.\n` +
+            `- suggestions must contain up to 3 short follow-up prompts.`,
+        },
+      ],
+    })
+
+    const parsed = extractJson(completion.content)
+    const reply = String(parsed?.reply ?? '').trim() || 'I analyzed the latest estimator data, but no detailed reply text was returned.'
+    const suggestions = safeArray(parsed?.suggestions)
+      .map((item) => String(item ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 3)
+
+    res.json({
+      ok: true,
+      provider: completion.provider,
+      model: completion.model,
+      analyzedAt: new Date().toISOString(),
+      reply,
+      suggestions,
+    })
+  } catch (error) {
+    const message = normalizeAiErrorMessage(error, 'Cost estimator assistant failed.')
+    const status = getAiErrorHttpStatus(error)
+    res.status(status).json({ error: message })
   }
 })
 

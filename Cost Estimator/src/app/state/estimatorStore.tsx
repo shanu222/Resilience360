@@ -84,6 +84,7 @@ export type EstimatorState = {
 type EstimatorContextValue = {
   state: EstimatorState;
   addUploadedFiles: (files: UploadedDrawing[]) => void;
+  removeUploadedFile: (fileId: string) => void;
   setUploadStatus: (fileId: string, status: UploadStatus) => void;
   setSelectedFileId: (fileId: string | null) => void;
   setTakeoffResult: (elements: TakeoffElement[], confidence: number) => void;
@@ -327,6 +328,24 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const removeUploadedFile = useCallback((fileId: string) => {
+    transientFileRegistry.delete(fileId);
+    setState((prev) => {
+      const nextUploadedFiles = prev.uploadedFiles.filter((file) => file.id !== fileId);
+      const nextTakeoffElements = prev.takeoffElements.filter((element) => element.sourceFileId !== fileId);
+      return {
+        ...prev,
+        uploadedFiles: nextUploadedFiles,
+        selectedFileId:
+          prev.selectedFileId === fileId
+            ? nextUploadedFiles[0]?.id ?? null
+            : prev.selectedFileId,
+        takeoffElements: nextTakeoffElements,
+        costItems: deriveCostItemsFromTakeoff(nextTakeoffElements, prev.costItems),
+      };
+    });
+  }, []);
+
   const setSelectedFileId = useCallback((fileId: string | null) => {
     setState((prev) => ({ ...prev, selectedFileId: fileId }));
   }, []);
@@ -415,6 +434,7 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
     () => ({
       state,
       addUploadedFiles,
+      removeUploadedFile,
       setUploadStatus,
       setSelectedFileId,
       setTakeoffResult,
@@ -431,6 +451,7 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
     [
       state,
       addUploadedFiles,
+      removeUploadedFile,
       setUploadStatus,
       setSelectedFileId,
       setTakeoffResult,

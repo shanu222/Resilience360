@@ -55,6 +55,15 @@ export type CostEstimatorModules = {
   dashboard: Record<string, unknown>;
 };
 
+export type CostEstimatorAssistantResponse = {
+  ok: boolean;
+  provider: string;
+  model: string;
+  reply: string;
+  suggestions: string[];
+  analyzedAt: string;
+};
+
 export const loadEstimatorStateFromBackend = async () =>
   callJsonApi<{ ok: boolean; updatedAt: string; state: EstimatorState; modules: CostEstimatorModules }>(
     "/api/cost-estimator/state",
@@ -89,3 +98,45 @@ export const saveEstimatorReportToBackend = async (report: GeneratedReport) =>
       body: JSON.stringify({ report }),
     },
   );
+
+export const loadEstimatorModulesFromBackend = async () =>
+  callJsonApi<{ ok: boolean; updatedAt: string; modules: CostEstimatorModules }>(
+    "/api/cost-estimator/modules/all",
+  );
+
+export const askEstimatorAssistant = async (payload: {
+  prompt: string;
+  provider?: string;
+  state?: EstimatorState;
+}) =>
+  callJsonApi<CostEstimatorAssistantResponse>(
+    "/api/cost-estimator/assistant",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+
+export const requestEstimatorPasswordReset = async (payload: {
+  email: string;
+  fullName: string;
+}) => {
+  const temporaryCode = `R360-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  return callJsonApi<{ ok: boolean; reason?: string; details?: string }>(
+    "/api/recovery/send-credentials",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        portal: "AI Construction Cost Estimator",
+        toEmail: payload.email,
+        fullName: payload.fullName || "Estimator User",
+        role: "Estimator User",
+        username: payload.email,
+        credential: temporaryCode,
+        credentialLabel: "Temporary Reset Code",
+      }),
+    },
+  );
+};

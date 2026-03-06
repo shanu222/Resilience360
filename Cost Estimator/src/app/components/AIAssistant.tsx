@@ -1,5 +1,6 @@
 import { X, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { askEstimatorAssistant } from "../services/costEstimatorApi";
 import { buildAssistantReply } from "../services/realtimeAi";
 import { useEstimator } from "../state/estimatorStore";
 
@@ -13,22 +14,34 @@ export function AIAssistant({ open, onClose }: AIAssistantProps) {
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const now = new Date().toISOString();
+    const prompt = input.trim();
     addAssistantMessage({
       id: `${Date.now()}-user`,
       role: "user",
-      content: input,
+      content: prompt,
       createdAt: now,
     });
 
     setIsThinking(true);
+    try {
+      const response = await askEstimatorAssistant({
+        prompt,
+        state,
+      });
 
-    setTimeout(() => {
+      addAssistantMessage({
+        id: `${Date.now()}-assistant`,
+        role: "assistant",
+        content: response.reply,
+        createdAt: new Date().toISOString(),
+      });
+    } catch {
       const riskIndex = Math.min(95, Math.max(20, Math.round(35 + state.takeoffConfidence * 0.45)));
-      const reply = buildAssistantReply(input, {
+      const reply = buildAssistantReply(prompt, {
         uploadedCount: state.uploadedFiles.length,
         costItems: state.costItems,
         riskIndex,
@@ -40,8 +53,9 @@ export function AIAssistant({ open, onClose }: AIAssistantProps) {
         content: reply,
         createdAt: new Date().toISOString(),
       });
+    } finally {
       setIsThinking(false);
-    }, 650);
+    }
 
     setInput("");
   };
@@ -103,12 +117,12 @@ export function AIAssistant({ open, onClose }: AIAssistantProps) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            onKeyDown={(e) => e.key === "Enter" && void handleSend()}
             placeholder="Ask about cost estimation, materials..."
             className="flex-1 px-4 py-2 rounded-lg bg-input-background border border-border focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
-            onClick={handleSend}
+            onClick={() => void handleSend()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
           >
             <Send className="w-4 h-4" />

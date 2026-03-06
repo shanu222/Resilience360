@@ -24,17 +24,34 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useMemo } from "react";
+import { useEstimatorModules } from "../hooks/useEstimatorModules";
 import { useEstimator } from "../state/estimatorStore";
+
+const toNumber = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 export function Dashboard() {
   const { state } = useEstimator();
+  const { modules, updatedAt, refreshModules, isLoading, error } = useEstimatorModules();
 
-  const materialCost = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
-  const laborCost = materialCost * 0.35;
-  const equipmentCost = materialCost * 0.15;
-  const totalCost = materialCost + laborCost + equipmentCost;
+  const dashboardData = modules.dashboard ?? {};
+  const materialCost = toNumber(
+    dashboardData.materialCost,
+    state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0),
+  );
+  const laborCost = toNumber(dashboardData.laborCost, materialCost * 0.35);
+  const equipmentCost = toNumber(dashboardData.equipmentCost, materialCost * 0.15);
+  const totalCost = toNumber(dashboardData.totalCost, materialCost + laborCost + equipmentCost);
+  const uploadedFiles = toNumber(dashboardData.uploadedFiles, state.uploadedFiles.length);
+  const takeoffTypes = toNumber(
+    dashboardData.takeoffTypes,
+    new Set(state.takeoffElements.map((item) => item.name)).size,
+  );
+
   const otherCost = totalCost * 0.05;
-  const hasDerivedData = state.costItems.length > 0 || state.takeoffElements.length > 0;
+  const hasDerivedData = totalCost > 0 || state.costItems.length > 0 || state.takeoffElements.length > 0;
 
   const costBreakdownData = useMemo(
     () =>
@@ -70,37 +87,41 @@ export function Dashboard() {
             {
               name: "Current Analysis Session",
               location: state.settings.defaultRegion || "Configured region",
-              area: `${Math.max(1, state.takeoffElements.length) * 750} sq ft`,
+              area: `${Math.max(1, takeoffTypes) * 750} sq ft`,
               cost: `$${Math.round(totalCost).toLocaleString()}`,
-              status: state.takeoffElements.length > 0 ? "In Progress" : "Planning",
+              status: takeoffTypes > 0 ? "In Progress" : "Planning",
             },
             {
               name: "Uploaded Document Batch",
               location: state.settings.defaultRegion || "Configured region",
-              area: `${Math.max(1, state.uploadedFiles.length) * 8200} sq ft`,
+              area: `${Math.max(1, uploadedFiles) * 8200} sq ft`,
               cost: `$${Math.round(materialCost).toLocaleString()}`,
-              status: state.uploadedFiles.length > 0 ? "In Progress" : "Planning",
+              status: uploadedFiles > 0 ? "In Progress" : "Planning",
             },
             {
               name: "Generated BOQ",
               location: state.settings.defaultRegion || "Configured region",
-              area: `${Math.max(1, state.takeoffElements.length) * 350} sq ft`,
+              area: `${Math.max(1, takeoffTypes) * 350} sq ft`,
               cost: `$${Math.round(totalCost * 1.08).toLocaleString()}`,
-              status: state.takeoffElements.length > 0 ? "Completed" : "Planning",
+              status: takeoffTypes > 0 ? "Completed" : "Planning",
             },
           ]
         : [],
-    [hasDerivedData, state.settings.defaultRegion, state.takeoffElements.length, state.uploadedFiles.length, totalCost, materialCost],
+    [hasDerivedData, state.settings.defaultRegion, takeoffTypes, uploadedFiles, totalCost, materialCost],
   );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold mb-2">Project Overview</h1>
-        <p className="text-muted-foreground">
-          Live summary generated from uploaded and analyzed documents.
-        </p>
+        <p className="text-muted-foreground">Live summary generated from uploaded and analyzed documents.</p>
+        <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+          <button type="button" onClick={() => void refreshModules()} className="px-3 py-1 border border-border rounded hover:bg-muted">
+            {isLoading ? "Refreshing..." : "Refresh Live Data"}
+          </button>
+          <span>{updatedAt ? `Last sync: ${new Date(updatedAt).toLocaleTimeString()}` : "Waiting for backend sync"}</span>
+          {error && <span className="text-red-600">{error}</span>}
+        </div>
         {!hasDerivedData && (
           <p className="text-sm text-muted-foreground mt-2">
             No analyzed data yet. Upload drawings/photos and run AI analysis to populate this dashboard.
@@ -108,50 +129,27 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Project Cost"
           value={hasDerivedData ? `$${Math.round(totalCost).toLocaleString()}` : "N/A"}
           icon={<DollarSign className="w-6 h-6" />}
           color="bg-primary"
-          trend={{ value: `${state.uploadedFiles.length} files tracked`, isPositive: true }}
+          trend={{ value: `${uploadedFiles} files tracked`, isPositive: true }}
         />
-        <StatCard
-          title="Material Cost"
-          value={hasDerivedData ? `$${Math.round(materialCost).toLocaleString()}` : "N/A"}
-          icon={<Package className="w-6 h-6" />}
-          color="bg-accent"
-        />
-        <StatCard
-          title="Labor Cost"
-          value={hasDerivedData ? `$${Math.round(laborCost).toLocaleString()}` : "N/A"}
-          icon={<Users className="w-6 h-6" />}
-          color="bg-[#8b5cf6]"
-        />
-        <StatCard
-          title="Equipment Cost"
-          value={hasDerivedData ? `$${Math.round(equipmentCost).toLocaleString()}` : "N/A"}
-          icon={<Truck className="w-6 h-6" />}
-          color="bg-[#f59e0b]"
-        />
-        <StatCard
-          title="Estimated Duration"
-          value={hasDerivedData ? `${Math.max(1, Math.round(state.takeoffElements.length / 2) || 1)} Months` : "N/A"}
-          icon={<Clock className="w-6 h-6" />}
-          color="bg-[#10b981]"
-        />
+        <StatCard title="Material Cost" value={hasDerivedData ? `$${Math.round(materialCost).toLocaleString()}` : "N/A"} icon={<Package className="w-6 h-6" />} color="bg-accent" />
+        <StatCard title="Labor Cost" value={hasDerivedData ? `$${Math.round(laborCost).toLocaleString()}` : "N/A"} icon={<Users className="w-6 h-6" />} color="bg-[#8b5cf6]" />
+        <StatCard title="Equipment Cost" value={hasDerivedData ? `$${Math.round(equipmentCost).toLocaleString()}` : "N/A"} icon={<Truck className="w-6 h-6" />} color="bg-[#f59e0b]" />
+        <StatCard title="Estimated Duration" value={hasDerivedData ? `${Math.max(1, Math.round(takeoffTypes / 2) || 1)} Months` : "N/A"} icon={<Clock className="w-6 h-6" />} color="bg-[#10b981]" />
         <StatCard
           title="Cost per Square Foot"
-          value={hasDerivedData ? `$${Math.max(1, Math.round(totalCost / Math.max(1, state.takeoffElements.length * 20 || 1)))}` : "N/A"}
+          value={hasDerivedData ? `$${Math.max(1, Math.round(totalCost / Math.max(1, takeoffTypes * 20 || 1)))}` : "N/A"}
           icon={<TrendingUp className="w-6 h-6" />}
           color="bg-primary"
         />
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cost Breakdown Pie Chart */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <h3 className="font-semibold mb-4">Cost Breakdown</h3>
           {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">Waiting for analysis output.</p>}
@@ -162,9 +160,7 @@ export function Dashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
-                }
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
@@ -179,17 +175,13 @@ export function Dashboard() {
           <div className="mt-4 grid grid-cols-2 gap-4">
             {costBreakdownData.map((item) => (
               <div key={item.name} className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm">{item.name}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Budget vs Actual */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <h3 className="font-semibold mb-4">Budget vs Actual</h3>
           {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">No budget trend available until costs are generated.</p>}
@@ -207,7 +199,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Construction Cost Timeline */}
       <div className="bg-card rounded-xl p-6 border border-border">
         <h3 className="font-semibold mb-4">Construction Cost Timeline</h3>
         {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">Timeline will appear after first successful analysis run.</p>}
@@ -218,25 +209,12 @@ export function Dashboard() {
             <YAxis />
             <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
             <Legend />
-            <Line
-              type="monotone"
-              dataKey="budget"
-              stroke="#3A63FF"
-              strokeWidth={2}
-              name="Budget"
-            />
-            <Line
-              type="monotone"
-              dataKey="actual"
-              stroke="#2EC4B6"
-              strokeWidth={2}
-              name="Actual"
-            />
+            <Line type="monotone" dataKey="budget" stroke="#3A63FF" strokeWidth={2} name="Budget" />
+            <Line type="monotone" dataKey="actual" stroke="#2EC4B6" strokeWidth={2} name="Actual" />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Recent Projects Table */}
       <div>
         <h3 className="font-semibold mb-4">Recent Projects</h3>
         {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">No project records generated yet.</p>}

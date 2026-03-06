@@ -1,5 +1,6 @@
 import { Users, Clock, DollarSign } from "lucide-react";
 import { useMemo } from "react";
+import { useEstimatorModules } from "../hooks/useEstimatorModules";
 import { useEstimator } from "../state/estimatorStore";
 
 const laborTemplate = [
@@ -12,8 +13,20 @@ const laborTemplate = [
 
 export function LaborCost() {
   const { state } = useEstimator();
+  const { modules, updatedAt } = useEstimatorModules();
   const laborBudget = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0) * 0.35;
   const laborTypes = useMemo(() => {
+    const fromBackend = Array.isArray(modules.labor) ? modules.labor : [];
+    if (fromBackend.length > 0) {
+      return fromBackend.map((entry) => ({
+        type: String(entry.type ?? "Unknown"),
+        hourlyRate: Number(entry.hourlyRate ?? 0) || 0,
+        region: String(entry.region ?? state.settings.defaultRegion ?? "Configured Region"),
+        estimatedHours: Number(entry.estimatedHours ?? 0) || 0,
+        totalCost: Number(entry.totalCost ?? 0) || 0,
+      }));
+    }
+
     if (laborBudget <= 0) {
       return [];
     }
@@ -27,7 +40,7 @@ export function LaborCost() {
         totalCost: estimatedHours * trade.hourlyRate,
       };
     });
-  }, [laborBudget, state.settings.defaultRegion]);
+  }, [modules.labor, laborBudget, state.settings.defaultRegion]);
 
   const totalHours = laborTypes.reduce((sum, labor) => sum + labor.estimatedHours, 0);
   const totalCost = laborTypes.reduce((sum, labor) => sum + labor.totalCost, 0);
@@ -40,6 +53,9 @@ export function LaborCost() {
         <h1 className="text-3xl font-semibold mb-2">Labor Cost Database</h1>
         <p className="text-muted-foreground">
           Regional labor rates and estimated costs for construction trades
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          {updatedAt ? `Live sync: ${new Date(updatedAt).toLocaleTimeString()}` : "Waiting for backend module sync"}
         </p>
       </div>
 

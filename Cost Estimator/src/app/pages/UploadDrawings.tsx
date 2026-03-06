@@ -1,14 +1,18 @@
-import { Upload, FileText, CheckCircle, Clock, Play, AlertCircle, Image, Brain } from "lucide-react";
+import { Upload, FileText, CheckCircle, Clock, Play, AlertCircle, Image, Brain, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { analyzeFileRealtime, fileToDataUrl } from "../services/realtimeAi";
 import { getTransientFile, makeUploadedDrawing, registerTransientFile, useEstimator } from "../state/estimatorStore";
 
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+
 export function UploadDrawings() {
-  const { state, addUploadedFiles, setUploadStatus, setTakeoffResult, setSelectedFileId } = useEstimator();
+  const { state, addUploadedFiles, removeUploadedFile, setUploadStatus, setTakeoffResult, setSelectedFileId } = useEstimator();
   const [dragActive, setDragActive] = useState(false);
   const [busyFileId, setBusyFileId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const bimInputRef = useRef<HTMLInputElement | null>(null);
+  const scanInputRef = useRef<HTMLInputElement | null>(null);
 
   const prepareUploadEntries = async (incoming: File[]) => {
     const safeFiles = incoming.slice(0, 20);
@@ -24,14 +28,43 @@ export function UploadDrawings() {
     return entries;
   };
 
-  const handleIncomingFiles = async (fileList: FileList | null) => {
+  const validateFiles = (files: File[]) => {
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        rejected.push(`${file.name} exceeds 50MB limit`);
+        continue;
+      }
+      accepted.push(file);
+    }
+    return { accepted, rejected };
+  };
+
+  const handleIncomingFiles = async (fileList: FileList | null, sourceLabel = "files") => {
     if (!fileList || fileList.length === 0) {
       return;
     }
     const files = Array.from(fileList);
-    const entries = await prepareUploadEntries(files);
+    const { accepted, rejected } = validateFiles(files);
+    if (accepted.length === 0) {
+      setStatusMessage(rejected.length > 0 ? `Unable to upload: ${rejected.join(", ")}.` : "No valid files selected.");
+      return;
+    }
+
+    const entries = await prepareUploadEntries(accepted);
     addUploadedFiles(entries);
-    setStatusMessage(`Uploaded ${entries.length} file${entries.length === 1 ? "" : "s"}.`);
+    const rejectionNote = rejected.length > 0 ? ` Skipped ${rejected.length} file(s): ${rejected.join(", ")}.` : "";
+    setStatusMessage(`Uploaded ${entries.length} ${sourceLabel}.${rejectionNote}`);
+  };
+
+  const triggerPicker = (ref: React.RefObject<HTMLInputElement | null>, message: string) => {
+    if (!ref.current) {
+      setStatusMessage("File picker is not available right now. Refresh and try again.");
+      return;
+    }
+    setStatusMessage(message);
+    ref.current.click();
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -127,6 +160,15 @@ export function UploadDrawings() {
             ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/50"
         }`}
+        role="button"
+        tabIndex={0}
+        onClick={() => triggerPicker(uploadInputRef, "Select drawings or photos to upload.")}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            triggerPicker(uploadInputRef, "Select drawings or photos to upload.");
+          }
+        }}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -144,42 +186,71 @@ export function UploadDrawings() {
             Supports: PDF, CAD, BIM, DWG, IFC (Max size: 50MB)
           </p>
           <input
-            ref={fileInputRef}
+            ref={uploadInputRef}
             type="file"
             multiple
             accept=".pdf,.dwg,.ifc,.dxf,.png,.jpg,.jpeg,.webp,.bmp,.heic,.heif"
             className="hidden"
             onChange={(event) => {
-              void handleIncomingFiles(event.target.files);
+              void handleIncomingFiles(event.target.files, "drawing file(s)");
+              event.currentTarget.value = "";
+            }}
+          />
+          <input
+            ref={bimInputRef}
+            type="file"
+            multiple
+            accept=".ifc,.dwg,.dxf"
+            className="hidden"
+            onChange={(event) => {
+              void handleIncomingFiles(event.target.files, "BIM file(s)");
+              event.currentTarget.value = "";
+            }}
+          />
+          <input
+            ref={scanInputRef}
+            type="file"
+            multiple
+            accept=".png,.jpg,.jpeg,.webp,.bmp,.heic,.heif"
+            className="hidden"
+            onChange={(event) => {
+              void handleIncomingFiles(event.target.files, "blueprint image(s)");
               event.currentTarget.value = "";
             }}
           />
           <div className="flex gap-3">
             <button
-              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                triggerPicker(uploadInputRef, "Select drawings or photos to upload.");
+              }}
               className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
             >
               Upload Files
             </button>
             <button
-              onClick={() => {
-                fileInputRef.current?.click();
-                setStatusMessage("Select BIM or IFC files to import.");
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                triggerPicker(bimInputRef, "Select BIM/CAD files (.ifc, .dwg, .dxf).");
               }}
               className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity"
             >
               Import from BIM
             </button>
             <button
-              onClick={() => {
-                fileInputRef.current?.click();
-                setStatusMessage("Select clear blueprint images for scanning.");
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                triggerPicker(scanInputRef, "Select clear blueprint images for AI scanning.");
               }}
               className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors"
             >
               Scan Blueprint
             </button>
             <button
+              type="button"
               onClick={() => void runAllAnalyses()}
               className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors"
             >
@@ -251,12 +322,24 @@ export function UploadDrawings() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           disabled={busyFileId === file.id}
                           onClick={() => void runAnalysisForFile(file.id)}
                           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
                         >
                           <Play className="w-4 h-4" />
                           {busyFileId === file.id ? "Analyzing..." : "AI Analysis"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            removeUploadedFile(file.id);
+                            setStatusMessage(`Removed ${file.name} from this session.`);
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 border border-border rounded-lg text-xs hover:bg-muted transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remove
                         </button>
                         {state.selectedFileId === file.id && (
                           <span className="inline-flex items-center gap-1 text-xs text-accent">

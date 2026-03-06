@@ -1,11 +1,16 @@
 import { AlertTriangle, TrendingUp, Cloud, Users, DollarSign, Lightbulb } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useEstimatorModules } from "../hooks/useEstimatorModules";
 import { useEstimator } from "../state/estimatorStore";
 
 export function RiskAnalysis() {
   const { state } = useEstimator();
+  const { modules, refreshModules, isLoading, updatedAt } = useEstimatorModules();
   const [lastRefreshAt, setLastRefreshAt] = useState<string>(new Date().toLocaleTimeString());
-  const hasAnalysis = state.takeoffElements.length > 0 || state.costItems.length > 0;
+  const hasAnalysis =
+    state.takeoffElements.length > 0 ||
+    state.costItems.length > 0 ||
+    (Array.isArray(modules.risk?.cards) && modules.risk.cards.length > 0);
 
   const materialCost = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
   const budgetOverrunRisk = Math.min(92, Math.max(25, Math.round(35 + (state.takeoffConfidence ? 100 - state.takeoffConfidence : 22))));
@@ -13,8 +18,22 @@ export function RiskAnalysis() {
   const laborRisk = Math.max(20, 55 - state.uploadedFiles.length * 3);
   const priceRisk = Math.min(88, Math.max(30, Math.round((materialCost / 100000) * 8)));
 
-  const riskCards = useMemo(
-    () => [
+  const riskCards = useMemo(() => {
+    const backendCards = Array.isArray(modules.risk?.cards) ? modules.risk.cards : [];
+    if (backendCards.length > 0) {
+      return backendCards.map((card) => {
+        const percentage = Math.max(0, Math.min(100, Math.round(Number(card?.percentage ?? 0) || 0)));
+        return {
+          title: String(card?.title ?? "Project Risk"),
+          level: percentage >= 70 ? "High" : percentage >= 45 ? "Medium" : "Low",
+          percentage,
+          description: `Live backend model score for ${String(card?.title ?? "this risk domain")}.`,
+          color: percentage >= 70 ? "bg-red-500" : percentage >= 45 ? "bg-yellow-500" : "bg-green-500",
+        };
+      });
+    }
+
+    return [
       {
         title: "Material Price Volatility",
         level: priceRisk >= 70 ? "High" : priceRisk >= 45 ? "Medium" : "Low",
@@ -43,11 +62,10 @@ export function RiskAnalysis() {
         description: `Forecasted variance derived from takeoff confidence (${state.takeoffConfidence || 0}%) and cost profile`,
         color: budgetOverrunRisk >= 70 ? "bg-red-500" : budgetOverrunRisk >= 45 ? "bg-yellow-500" : "bg-green-500",
       },
-    ],
-    [priceRisk, weatherRisk, laborRisk, budgetOverrunRisk, materialCost, state.uploadedFiles.length, state.takeoffConfidence],
-  );
+    ];
+  }, [modules.risk, priceRisk, weatherRisk, laborRisk, budgetOverrunRisk, materialCost, state.uploadedFiles.length, state.takeoffConfidence]);
 
-  const overallRisk = Math.round(
+  const overallRisk = Math.round(Number(modules.risk?.overallRisk ?? 0)) || Math.round(
     riskCards.reduce((sum, risk) => sum + risk.percentage, 0) / Math.max(riskCards.length, 1),
   );
 
@@ -90,12 +108,19 @@ export function RiskAnalysis() {
           Predictive risk assessment and cost optimization recommendations
         </p>
         <button
-          onClick={() => setLastRefreshAt(new Date().toLocaleTimeString())}
+          type="button"
+          onClick={() => {
+            setLastRefreshAt(new Date().toLocaleTimeString());
+            void refreshModules();
+          }}
           className="mt-3 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted"
         >
-          Refresh Live Risk Model
+          {isLoading ? "Refreshing..." : "Refresh Live Risk Model"}
         </button>
         <p className="text-xs text-muted-foreground mt-2">Last refreshed: {lastRefreshAt}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {updatedAt ? `Backend sync: ${new Date(updatedAt).toLocaleTimeString()}` : "Waiting for backend module sync"}
+        </p>
       </div>
 
       {!hasAnalysis && (

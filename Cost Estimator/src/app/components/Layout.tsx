@@ -58,6 +58,7 @@ export function Layout() {
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-2 hover:bg-muted rounded-lg"
             >
@@ -109,6 +110,7 @@ export function Layout() {
         {/* Top bar */}
         <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 hover:bg-muted rounded-lg"
           >
@@ -125,6 +127,7 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => setAssistantOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity"
             >

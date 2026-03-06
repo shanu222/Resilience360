@@ -41,6 +41,7 @@ export function CostEstimation() {
         </div>
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={() => {
               regenerateCostItemsFromTakeoff();
               setSavedMessage("Cost items regenerated from analyzed document elements.");
@@ -50,6 +51,7 @@ export function CostEstimation() {
             Generate from Analysis
           </button>
           <button
+            type="button"
             onClick={handleEditToggle}
             disabled={items.length === 0}
             className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60"

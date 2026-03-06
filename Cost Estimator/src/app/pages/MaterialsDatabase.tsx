@@ -1,5 +1,6 @@
 import { Search, Filter, MapPin, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useEstimatorModules } from "../hooks/useEstimatorModules";
 import { useEstimator } from "../state/estimatorStore";
 
 const inferCategory = (name: string) => {
@@ -14,26 +15,45 @@ const inferCategory = (name: string) => {
 
 export function MaterialsDatabase() {
   const { state } = useEstimator();
+  const { modules, updatedAt } = useEstimatorModules();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const materials = useMemo(
-    () =>
-      state.costItems.map((item) => {
-        const avgCost = item.unitCost;
-        const regionalCost = item.unitCost * 1.05;
-        const trendValue = ((regionalCost - avgCost) / Math.max(avgCost, 1)) * 100;
+  const materials = useMemo(() => {
+    const fromBackend = Array.isArray(modules.materials) ? modules.materials : [];
+    if (fromBackend.length > 0) {
+      return fromBackend.map((item) => {
+        const name = String(item.name ?? "Unknown Material");
+        const category = String(item.category ?? inferCategory(name));
+        const unit = String(item.unit ?? "units");
+        const avgCost = Number(item.avgCost ?? 0) || 0;
+        const regionalCost = Number(item.regionalCost ?? avgCost) || avgCost;
+        const trendValue = Number(item.trend ?? ((regionalCost - avgCost) / Math.max(avgCost, 1)) * 100) || 0;
         return {
-          name: item.item,
-          category: inferCategory(item.item),
-          unit: item.unit,
+          name,
+          category,
+          unit,
           avgCost,
           regionalCost,
           trend: `${trendValue >= 0 ? "+" : ""}${trendValue.toFixed(1)}%`,
         };
-      }),
-    [state.costItems],
-  );
+      });
+    }
+
+    return state.costItems.map((item) => {
+      const avgCost = item.unitCost;
+      const regionalCost = item.unitCost * 1.05;
+      const trendValue = ((regionalCost - avgCost) / Math.max(avgCost, 1)) * 100;
+      return {
+        name: item.item,
+        category: inferCategory(item.item),
+        unit: item.unit,
+        avgCost,
+        regionalCost,
+        trend: `${trendValue >= 0 ? "+" : ""}${trendValue.toFixed(1)}%`,
+      };
+    });
+  }, [modules.materials, state.costItems]);
 
   const categories = ["All", ...new Set(materials.map((m) => m.category))];
 
@@ -51,6 +71,9 @@ export function MaterialsDatabase() {
         <h1 className="text-3xl font-semibold mb-2">Materials Database</h1>
         <p className="text-muted-foreground">
           Comprehensive pricing database for construction materials
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          {updatedAt ? `Live sync: ${new Date(updatedAt).toLocaleTimeString()}` : "Waiting for backend module sync"}
         </p>
       </div>
 

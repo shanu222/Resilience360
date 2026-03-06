@@ -58,15 +58,15 @@ export function BillOfQuantities() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button disabled={!hasRows} onClick={() => downloadBoq("excel")} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
+          <button type="button" disabled={!hasRows} onClick={() => downloadBoq("excel")} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
             <FileSpreadsheet className="w-4 h-4" />
             Export Excel
           </button>
-          <button disabled={!hasRows} onClick={() => downloadBoq("pdf")} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
+          <button type="button" disabled={!hasRows} onClick={() => downloadBoq("pdf")} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
             <FileText className="w-4 h-4" />
             Export PDF
           </button>
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+          <button type="button" onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
             <Printer className="w-4 h-4" />
             Print
           </button>
@@ -171,13 +171,13 @@ export function BillOfQuantities() {
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button disabled={!hasRows} onClick={generateContractorEstimate} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
+        <button type="button" disabled={!hasRows} onClick={generateContractorEstimate} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
           Generate Contractor Estimate
         </button>
-        <button disabled={!hasRows} onClick={() => downloadBoq("pdf")} className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
+        <button type="button" disabled={!hasRows} onClick={() => downloadBoq("pdf")} className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
           Download Report
         </button>
-        <button disabled={!hasRows} onClick={() => void shareWithTeam()} className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-60">
+        <button type="button" disabled={!hasRows} onClick={() => void shareWithTeam()} className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-60">
           Share with Team
         </button>
       </div>

@@ -1,5 +1,6 @@
 import { Truck, Calendar, DollarSign } from "lucide-react";
 import { useMemo } from "react";
+import { useEstimatorModules } from "../hooks/useEstimatorModules";
 import { useEstimator } from "../state/estimatorStore";
 
 const equipmentTemplate = [
@@ -12,8 +13,19 @@ const equipmentTemplate = [
 
 export function EquipmentCost() {
   const { state } = useEstimator();
+  const { modules, updatedAt } = useEstimatorModules();
   const equipmentBudget = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0) * 0.15;
   const equipment = useMemo(() => {
+    const fromBackend = Array.isArray(modules.equipment) ? modules.equipment : [];
+    if (fromBackend.length > 0) {
+      return fromBackend.map((entry) => ({
+        name: String(entry.name ?? "Unknown Equipment"),
+        rentalCost: Number(entry.rentalCost ?? 0) || 0,
+        usageDays: Number(entry.usageDays ?? 0) || 0,
+        totalCost: Number(entry.totalCost ?? 0) || 0,
+      }));
+    }
+
     if (equipmentBudget <= 0) {
       return [];
     }
@@ -26,7 +38,7 @@ export function EquipmentCost() {
         totalCost: usageDays * entry.rentalCost,
       };
     });
-  }, [equipmentBudget]);
+  }, [modules.equipment, equipmentBudget]);
 
   const totalCost = equipment.reduce((sum, eq) => sum + eq.totalCost, 0);
   const totalDays = equipment.reduce((sum, eq) => sum + eq.usageDays, 0);
@@ -39,6 +51,9 @@ export function EquipmentCost() {
         <h1 className="text-3xl font-semibold mb-2">Equipment Cost</h1>
         <p className="text-muted-foreground">
           Construction equipment rental costs and usage tracking
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          {updatedAt ? `Live sync: ${new Date(updatedAt).toLocaleTimeString()}` : "Waiting for backend module sync"}
         </p>
       </div>
 

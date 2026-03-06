@@ -1,5 +1,6 @@
 import { User, Bell, Lock, Globe, Palette, Database } from "lucide-react";
 import { useState } from "react";
+import { requestEstimatorPasswordReset } from "../services/costEstimatorApi";
 import { downloadTextFile } from "../services/realtimeAi";
 import { useEstimator } from "../state/estimatorStore";
 
@@ -30,13 +31,22 @@ export function Settings() {
     setStatusMessage("Application cache cleared and default values restored.");
   };
 
-  const handlePasswordReset = () => {
+  const handlePasswordReset = async () => {
     const recoveryEmail = state.settings.email?.trim();
     if (!recoveryEmail) {
       setStatusMessage("Add an email address in Profile Settings before requesting a password reset.");
       return;
     }
-    setStatusMessage(`Password reset workflow initiated for ${recoveryEmail}.`);
+
+    try {
+      await requestEstimatorPasswordReset({
+        email: recoveryEmail,
+        fullName: state.settings.fullName,
+      });
+      setStatusMessage(`Password reset instructions were sent to ${recoveryEmail}.`);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to send password reset email.");
+    }
   };
 
   return (
@@ -97,7 +107,7 @@ export function Settings() {
             </select>
           </div>
         </div>
-        <button onClick={saveProfile} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+        <button type="button" onClick={saveProfile} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
           Save Changes
         </button>
       </div>
@@ -215,7 +225,7 @@ export function Settings() {
             </select>
           </div>
         </div>
-        <button onClick={saveProfile} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+        <button type="button" onClick={saveProfile} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
           Save Changes
         </button>
       </div>
@@ -227,7 +237,7 @@ export function Settings() {
           <h3 className="font-semibold">Security</h3>
         </div>
         <div className="space-y-4">
-          <button onClick={handlePasswordReset} className="w-full md:w-auto px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+          <button type="button" onClick={() => void handlePasswordReset()} className="w-full md:w-auto px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
             Change Password
           </button>
           <div className="flex items-center justify-between pt-4 border-t border-border">
@@ -235,7 +245,7 @@ export function Settings() {
               <p className="font-medium">Two-Factor Authentication</p>
               <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
             </div>
-            <button onClick={toggleTwoFactor} className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+            <button type="button" onClick={toggleTwoFactor} className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
               {state.settings.twoFactorEnabled ? "Disable" : "Enable"}
             </button>
           </div>
@@ -249,10 +259,10 @@ export function Settings() {
           <h3 className="font-semibold">Data Management</h3>
         </div>
         <div className="space-y-4">
-          <button onClick={exportAllData} className="w-full md:w-auto px-6 py-2 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity">
+          <button type="button" onClick={exportAllData} className="w-full md:w-auto px-6 py-2 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity">
             Export All Data
           </button>
-          <button onClick={clearCache} className="w-full md:w-auto ml-0 md:ml-3 px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+          <button type="button" onClick={clearCache} className="w-full md:w-auto ml-0 md:ml-3 px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
             Clear Cache
           </button>
         </div>

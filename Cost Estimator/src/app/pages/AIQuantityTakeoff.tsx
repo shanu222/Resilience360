@@ -138,6 +138,7 @@ export function AIQuantityTakeoff() {
           <div className="mt-3 flex flex-wrap gap-2">
             {state.uploadedFiles.map((file) => (
               <button
+                type="button"
                 key={file.id}
                 onClick={() => setSelectedFileId(file.id)}
                 className={`px-3 py-1.5 rounded-full text-xs border ${
@@ -151,6 +152,7 @@ export function AIQuantityTakeoff() {
           </div>
           <div className="mt-4 flex gap-3">
             <button
+              type="button"
               onClick={() => void runTakeoff()}
               disabled={isAnalyzing}
               className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
@@ -226,18 +228,21 @@ export function AIQuantityTakeoff() {
       {/* Action Buttons */}
       <div className="flex gap-3">
         <button
+          type="button"
           onClick={() => navigate("/cost-estimation")}
           className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Generate Cost Estimate
         </button>
         <button
+          type="button"
           onClick={exportQuantities}
           className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           Export Quantities
         </button>
         <button
+          type="button"
           onClick={saveResults}
           className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors"
         >
