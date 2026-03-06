@@ -1,37 +1,32 @@
 import { useState } from "react";
 import { Edit2, Save } from "lucide-react";
-
-const costItems = [
-  { item: "Concrete", quantity: 800, unit: "cubic meters", unitCost: 120, total: 96000 },
-  { item: "Steel reinforcement", quantity: 12000, unit: "kg", unitCost: 1.2, total: 14400 },
-  { item: "Brickwork", quantity: 5000, unit: "sq meters", unitCost: 25, total: 125000 },
-  { item: "Paint", quantity: 3000, unit: "sq meters", unitCost: 8, total: 24000 },
-  { item: "Flooring", quantity: 1200, unit: "sq meters", unitCost: 45, total: 54000 },
-  { item: "Doors", quantity: 24, unit: "units", unitCost: 450, total: 10800 },
-  { item: "Windows", quantity: 36, unit: "units", unitCost: 380, total: 13680 },
-  { item: "Electrical", quantity: 1, unit: "lump sum", unitCost: 85000, total: 85000 },
-  { item: "Plumbing", quantity: 1, unit: "lump sum", unitCost: 65000, total: 65000 },
-  { item: "HVAC", quantity: 1, unit: "lump sum", unitCost: 120000, total: 120000 },
-];
+import { useEstimator } from "../state/estimatorStore";
 
 export function CostEstimation() {
-  const [items, setItems] = useState(costItems);
+  const { state, updateCostItemUnitCost } = useEstimator();
   const [editMode, setEditMode] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
+
+  const items = state.costItems.map((item) => ({
+    ...item,
+    total: item.quantity * item.unitCost,
+  }));
 
   const materialCost = items.reduce((sum, item) => sum + item.total, 0);
   const laborCost = materialCost * 0.35;
   const equipmentCost = materialCost * 0.15;
   const totalCost = materialCost + laborCost + equipmentCost;
 
-  const handleUnitCostChange = (index: number, value: string) => {
-    const newItems = [...items];
+  const handleUnitCostChange = (id: string, value: string) => {
     const unitCost = parseFloat(value) || 0;
-    newItems[index] = {
-      ...newItems[index],
-      unitCost,
-      total: newItems[index].quantity * unitCost,
-    };
-    setItems(newItems);
+    updateCostItemUnitCost(id, unitCost);
+  };
+
+  const handleEditToggle = () => {
+    if (editMode) {
+      setSavedMessage(`Saved at ${new Date().toLocaleTimeString()}. Cost totals are updated in real time across the dashboard.`);
+    }
+    setEditMode((prev) => !prev);
   };
 
   return (
@@ -45,7 +40,7 @@ export function CostEstimation() {
           </p>
         </div>
         <button
-          onClick={() => setEditMode(!editMode)}
+          onClick={handleEditToggle}
           className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
         >
           {editMode ? (
@@ -89,7 +84,7 @@ export function CostEstimation() {
                       <input
                         type="number"
                         value={item.unitCost}
-                        onChange={(e) => handleUnitCostChange(idx, e.target.value)}
+                        onChange={(e) => handleUnitCostChange(item.id, e.target.value)}
                         className="w-24 px-3 py-1 rounded border border-border focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     ) : (
@@ -105,6 +100,12 @@ export function CostEstimation() {
           </table>
         </div>
       </div>
+
+      {savedMessage && (
+        <div className="bg-accent/10 border border-accent/20 rounded-lg px-4 py-3 text-sm text-muted-foreground">
+          {savedMessage}
+        </div>
+      )}
 
       {/* Summary Panel */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

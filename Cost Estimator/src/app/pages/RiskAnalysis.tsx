@@ -1,64 +1,85 @@
 import { AlertTriangle, TrendingUp, Cloud, Users, DollarSign, Lightbulb } from "lucide-react";
-
-const riskCards = [
-  {
-    title: "Material Price Volatility",
-    level: "Medium",
-    percentage: 65,
-    description: "Steel and concrete prices show 8% increase trend",
-    color: "bg-yellow-500",
-  },
-  {
-    title: "Weather Delay Risk",
-    level: "Medium",
-    percentage: 55,
-    description: "15 days potential delay due to seasonal weather",
-    color: "bg-yellow-500",
-  },
-  {
-    title: "Labor Shortage Risk",
-    level: "Low",
-    percentage: 35,
-    description: "Adequate skilled labor availability in region",
-    color: "bg-green-500",
-  },
-  {
-    title: "Budget Overrun Risk",
-    level: "High",
-    percentage: 72,
-    description: "Current trajectory shows 12% over budget",
-    color: "bg-red-500",
-  },
-];
-
-const optimizationSuggestions = [
-  {
-    title: "Material Cost Optimization",
-    savings: "$45,000",
-    description: "Switch to alternative concrete supplier with 8% lower pricing",
-    icon: DollarSign,
-  },
-  {
-    title: "Alternative Materials",
-    savings: "$28,000",
-    description: "Use engineered lumber instead of steel beams where applicable",
-    icon: TrendingUp,
-  },
-  {
-    title: "Construction Efficiency",
-    savings: "15 days",
-    description: "Optimize crane usage schedule to reduce rental period",
-    icon: Users,
-  },
-  {
-    title: "Weather Mitigation",
-    savings: "$22,000",
-    description: "Install temporary weather protection for critical phases",
-    icon: Cloud,
-  },
-];
+import { useMemo, useState } from "react";
+import { useEstimator } from "../state/estimatorStore";
 
 export function RiskAnalysis() {
+  const { state } = useEstimator();
+  const [lastRefreshAt, setLastRefreshAt] = useState<string>(new Date().toLocaleTimeString());
+
+  const materialCost = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
+  const budgetOverrunRisk = Math.min(92, Math.max(25, Math.round(35 + (state.takeoffConfidence ? 100 - state.takeoffConfidence : 22))));
+  const weatherRisk = Math.min(78, Math.max(28, 42 + state.uploadedFiles.length * 4));
+  const laborRisk = Math.max(20, 55 - state.uploadedFiles.length * 3);
+  const priceRisk = Math.min(88, Math.max(30, Math.round((materialCost / 100000) * 8)));
+
+  const riskCards = useMemo(
+    () => [
+      {
+        title: "Material Price Volatility",
+        level: priceRisk >= 70 ? "High" : priceRisk >= 45 ? "Medium" : "Low",
+        percentage: priceRisk,
+        description: `Market sensitivity based on current material spend of $${Math.round(materialCost).toLocaleString()}`,
+        color: priceRisk >= 70 ? "bg-red-500" : priceRisk >= 45 ? "bg-yellow-500" : "bg-green-500",
+      },
+      {
+        title: "Weather Delay Risk",
+        level: weatherRisk >= 70 ? "High" : weatherRisk >= 45 ? "Medium" : "Low",
+        percentage: weatherRisk,
+        description: `${Math.round(weatherRisk / 4)} potential delay days based on current schedule profile`,
+        color: weatherRisk >= 70 ? "bg-red-500" : weatherRisk >= 45 ? "bg-yellow-500" : "bg-green-500",
+      },
+      {
+        title: "Labor Shortage Risk",
+        level: laborRisk >= 70 ? "High" : laborRisk >= 45 ? "Medium" : "Low",
+        percentage: laborRisk,
+        description: `Capacity confidence improves with document completeness and active uploads (${state.uploadedFiles.length})`,
+        color: laborRisk >= 70 ? "bg-red-500" : laborRisk >= 45 ? "bg-yellow-500" : "bg-green-500",
+      },
+      {
+        title: "Budget Overrun Risk",
+        level: budgetOverrunRisk >= 70 ? "High" : budgetOverrunRisk >= 45 ? "Medium" : "Low",
+        percentage: budgetOverrunRisk,
+        description: `Forecasted variance derived from takeoff confidence (${state.takeoffConfidence || 0}%) and cost profile`,
+        color: budgetOverrunRisk >= 70 ? "bg-red-500" : budgetOverrunRisk >= 45 ? "bg-yellow-500" : "bg-green-500",
+      },
+    ],
+    [priceRisk, weatherRisk, laborRisk, budgetOverrunRisk, materialCost, state.uploadedFiles.length, state.takeoffConfidence],
+  );
+
+  const overallRisk = Math.round(
+    riskCards.reduce((sum, risk) => sum + risk.percentage, 0) / Math.max(riskCards.length, 1),
+  );
+
+  const optimizationSuggestions = useMemo(
+    () => [
+      {
+        title: "Material Cost Optimization",
+        savings: `$${Math.round(materialCost * 0.05).toLocaleString()}`,
+        description: "Batch purchase core materials and lock supplier rates for 45 days.",
+        icon: DollarSign,
+      },
+      {
+        title: "Alternative Materials",
+        savings: `$${Math.round(materialCost * 0.032).toLocaleString()}`,
+        description: "Use equivalent-grade alternatives for non-structural items to reduce unit rates.",
+        icon: TrendingUp,
+      },
+      {
+        title: "Construction Efficiency",
+        savings: `${Math.max(4, Math.round(state.takeoffElements.length / 3))} days`,
+        description: "Sequence trades around extracted quantities to reduce idle crew time.",
+        icon: Users,
+      },
+      {
+        title: "Weather Mitigation",
+        savings: `$${Math.round(materialCost * 0.02).toLocaleString()}`,
+        description: "Protect high-risk work fronts and shift critical outdoor activities earlier.",
+        icon: Cloud,
+      },
+    ],
+    [materialCost, state.takeoffElements.length],
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -67,6 +88,13 @@ export function RiskAnalysis() {
         <p className="text-muted-foreground">
           Predictive risk assessment and cost optimization recommendations
         </p>
+        <button
+          onClick={() => setLastRefreshAt(new Date().toLocaleTimeString())}
+          className="mt-3 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted"
+        >
+          Refresh Live Risk Model
+        </button>
+        <p className="text-xs text-muted-foreground mt-2">Last refreshed: {lastRefreshAt}</p>
       </div>
 
       {/* Risk Cards */}
@@ -121,10 +149,10 @@ export function RiskAnalysis() {
             </p>
             <div className="flex gap-2">
               <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                Medium Risk
+                {overallRisk >= 70 ? "High Risk" : overallRisk >= 45 ? "Medium Risk" : "Low Risk"}
               </span>
               <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                56.75% Risk Index
+                {overallRisk}% Risk Index
               </span>
             </div>
           </div>
@@ -145,12 +173,12 @@ export function RiskAnalysis() {
                 stroke="#f59e0b"
                 strokeWidth="8"
                 fill="none"
-                strokeDasharray={`${56.75 * 3.51} ${100 * 3.51}`}
+                strokeDasharray={`${overallRisk * 3.51} ${100 * 3.51}`}
                 strokeLinecap="round"
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-semibold">57%</span>
+              <span className="text-2xl font-semibold">{overallRisk}%</span>
             </div>
           </div>
         </div>

@@ -1,46 +1,47 @@
 import { X, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { buildAssistantReply } from "../services/realtimeAi";
+import { useEstimator } from "../state/estimatorStore";
 
 interface AIAssistantProps {
   open: boolean;
   onClose: () => void;
 }
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
 export function AIAssistant({ open, onClose }: AIAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "Hello! I'm your AI Construction Assistant. I can help you with cost estimation, material optimization, risk analysis, and more. How can I assist you today?",
-    },
-  ]);
+  const { state, addAssistantMessage } = useEstimator();
   const [input, setInput] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
 
   const handleSend = () => {
     if (!input.trim()) return;
 
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const now = new Date().toISOString();
+    addAssistantMessage({
+      id: `${Date.now()}-user`,
+      role: "user",
+      content: input,
+      createdAt: now,
+    });
 
-    // Simulate AI response
+    setIsThinking(true);
+
     setTimeout(() => {
-      const responses = [
-        "I'm analyzing your construction project. Based on the current data, I recommend optimizing material procurement to reduce costs by 12%.",
-        "For this project, I suggest using alternative materials that could save approximately $15,000 while maintaining quality standards.",
-        "The risk analysis shows a medium weather delay risk. I recommend adding 2 weeks to the timeline and allocating a 5% contingency budget.",
-        "I've calculated the cost breakdown. Would you like me to generate a detailed BOQ report?",
-      ];
-      const assistantMessage: Message = {
+      const riskIndex = Math.min(95, Math.max(20, Math.round(35 + state.takeoffConfidence * 0.45)));
+      const reply = buildAssistantReply(input, {
+        uploadedCount: state.uploadedFiles.length,
+        costItems: state.costItems,
+        riskIndex,
+      });
+
+      addAssistantMessage({
+        id: `${Date.now()}-assistant`,
         role: "assistant",
-        content: responses[Math.floor(Math.random() * responses.length)],
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
+        content: reply,
+        createdAt: new Date().toISOString(),
+      });
+      setIsThinking(false);
+    }, 650);
 
     setInput("");
   };
@@ -70,9 +71,9 @@ export function AIAssistant({ open, onClose }: AIAssistantProps) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, idx) => (
+        {state.assistantMessages.map((message) => (
           <div
-            key={idx}
+            key={message.id}
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
@@ -86,6 +87,13 @@ export function AIAssistant({ open, onClose }: AIAssistantProps) {
             </div>
           </div>
         ))}
+        {isThinking && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-lg px-4 py-2 bg-muted text-foreground">
+              <p className="text-sm">Analyzing live project data...</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
@@ -95,7 +103,7 @@ export function AIAssistant({ open, onClose }: AIAssistantProps) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask about cost estimation, materials..."
             className="flex-1 px-4 py-2 rounded-lg bg-input-background border border-border focus:outline-none focus:ring-2 focus:ring-ring"
           />

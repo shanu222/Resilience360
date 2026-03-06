@@ -39,6 +39,17 @@ const OPENAI_API_KEYS = String(process.env.OPENAI_API_KEYS ?? process.env.OPENAI
   .filter(Boolean)
 const OPENAI_API_KEY = OPENAI_API_KEYS[0] ?? ''
 const OPENAI_MODEL = String(process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini').trim()
+const COST_ESTIMATOR_AI_PROVIDER = String(process.env.COST_ESTIMATOR_AI_PROVIDER ?? 'openai').trim().toLowerCase()
+const COST_ESTIMATOR_OPENAI_MODEL = String(process.env.COST_ESTIMATOR_OPENAI_MODEL ?? OPENAI_MODEL).trim()
+const OPENROUTER_API_KEY = String(process.env.OPENROUTER_API_KEY ?? '').trim()
+const OPENROUTER_MODEL = String(process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini').trim()
+const OPENROUTER_BASE_URL = String(process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1').trim().replace(/\/+$/, '')
+const OPENROUTER_SITE_URL = String(process.env.OPENROUTER_SITE_URL ?? '').trim()
+const OPENROUTER_SITE_NAME = String(process.env.OPENROUTER_SITE_NAME ?? 'Resilience360 Cost Estimator').trim()
+const AZURE_OPENAI_ENDPOINT = String(process.env.AZURE_OPENAI_ENDPOINT ?? '').trim().replace(/\/+$/, '')
+const AZURE_OPENAI_API_KEY = String(process.env.AZURE_OPENAI_API_KEY ?? '').trim()
+const AZURE_OPENAI_DEPLOYMENT = String(process.env.AZURE_OPENAI_DEPLOYMENT ?? '').trim()
+const AZURE_OPENAI_API_VERSION = String(process.env.AZURE_OPENAI_API_VERSION ?? '2024-10-21').trim()
 
 let currentKeyIndex = 0
 const rotateApiKey = () => {
@@ -296,6 +307,161 @@ const createChatCompletion = async ({ messages, temperature = 0.2, openaiModel =
       return await tryHuggingFace()
     }
     throw error
+  }
+}
+
+const COST_ESTIMATOR_PROVIDERS = new Set(['openai', 'azure', 'openrouter'])
+
+const resolveCostEstimatorProvider = (requestedProvider) => {
+  const candidate = String(requestedProvider ?? COST_ESTIMATOR_AI_PROVIDER).trim().toLowerCase()
+  return COST_ESTIMATOR_PROVIDERS.has(candidate) ? candidate : 'openai'
+}
+
+const hasCostEstimatorProviderConfig = (provider) => {
+  if (provider === 'azure') {
+    return Boolean(AZURE_OPENAI_ENDPOINT && AZURE_OPENAI_API_KEY && AZURE_OPENAI_DEPLOYMENT)
+  }
+  if (provider === 'openrouter') {
+    return Boolean(OPENROUTER_API_KEY && OPENROUTER_MODEL)
+  }
+  return Boolean(OPENAI_API_KEY)
+}
+
+const getCostEstimatorMissingConfigMessage = (provider) => {
+  if (provider === 'azure') {
+    return 'Azure OpenAI is not configured. Set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, and AZURE_OPENAI_DEPLOYMENT.'
+  }
+  if (provider === 'openrouter') {
+    return 'OpenRouter is not configured. Set OPENROUTER_API_KEY and OPENROUTER_MODEL.'
+  }
+  return 'OpenAI is not configured. Set OPENAI_API_KEY or OPENAI_API_KEYS.'
+}
+
+const createCostEstimatorChatCompletion = async ({ provider, messages, temperature = 0.2 }) => {
+  const normalizedProvider = resolveCostEstimatorProvider(provider)
+
+  const callProvider = async ({ endpoint, headers, payload }) => {
+    const response = await withPromiseTimeout(
+      fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      }),
+      AI_CHAT_TIMEOUT_MS,
+      'Cost estimator AI analysis',
+    )
+
+    const raw = await response.text()
+    let json = null
+    try {
+      json = raw ? JSON.parse(raw) : null
+    } catch {
+      json = null
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        (json && (json.error?.message || json.error)) ||
+          `Provider returned ${response.status}`,
+      )
+      error.status = response.status
+      throw error
+    }
+
+    return json
+  }
+
+  if (normalizedProvider === 'azure') {
+    const endpoint =
+      `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${encodeURIComponent(AZURE_OPENAI_DEPLOYMENT)}` +
+      `/chat/completions?api-version=${encodeURIComponent(AZURE_OPENAI_API_VERSION)}`
+
+    const payload = {
+      temperature,
+      messages,
+      response_format: { type: 'json_object' },
+    }
+
+    const result = await callProvider({
+      endpoint,
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': AZURE_OPENAI_API_KEY,
+      },
+      payload,
+    })
+
+    return {
+      provider: normalizedProvider,
+      model: AZURE_OPENAI_DEPLOYMENT,
+      content: String(result?.choices?.[0]?.message?.content ?? ''),
+    }
+  }
+
+  if (normalizedProvider === 'openrouter') {
+    const payload = {
+      model: OPENROUTER_MODEL,
+      temperature,
+      messages,
+      response_format: { type: 'json_object' },
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      ...(OPENROUTER_SITE_URL ? { 'HTTP-Referer': OPENROUTER_SITE_URL } : {}),
+      ...(OPENROUTER_SITE_NAME ? { 'X-Title': OPENROUTER_SITE_NAME } : {}),
+    }
+
+    const result = await callProvider({
+      endpoint: `${OPENROUTER_BASE_URL}/chat/completions`,
+      headers,
+      payload,
+    })
+
+    return {
+      provider: normalizedProvider,
+      model: OPENROUTER_MODEL,
+      content: String(result?.choices?.[0]?.message?.content ?? ''),
+    }
+  }
+
+  const runOpenAi = async (apiKey) => {
+    const payload = {
+      model: COST_ESTIMATOR_OPENAI_MODEL,
+      temperature,
+      messages,
+      response_format: { type: 'json_object' },
+    }
+
+    const result = await callProvider({
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      payload,
+    })
+
+    return result
+  }
+
+  let result = null
+  try {
+    result = await runOpenAi(getCurrentApiKey())
+  } catch (error) {
+    if (getErrorStatus(error) === 429 && OPENAI_API_KEYS.length > 1) {
+      const rotated = rotateApiKey()
+      result = await runOpenAi(rotated)
+    } else {
+      throw error
+    }
+  }
+
+  return {
+    provider: normalizedProvider,
+    model: COST_ESTIMATOR_OPENAI_MODEL,
+    content: String(result?.choices?.[0]?.message?.content ?? ''),
   }
 }
 
@@ -2218,6 +2384,127 @@ app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {
     })
   } catch (error) {
     const message = normalizeAiErrorMessage(error, 'Vision analysis failed.')
+    const status = getAiErrorHttpStatus(error)
+    res.status(status).json({ error: message })
+  }
+})
+
+app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) => {
+  const provider = resolveCostEstimatorProvider(req.body?.provider)
+
+  if (!hasCostEstimatorProviderConfig(provider)) {
+    res.status(503).json({
+      error: getCostEstimatorMissingConfigMessage(provider),
+    })
+    return
+  }
+
+  if (!req.file) {
+    res.status(400).json({ error: 'A file is required for analysis.' })
+    return
+  }
+
+  try {
+    const fileName = String(req.file.originalname ?? 'uploaded-file')
+    const mimeType = String(req.file.mimetype ?? 'application/octet-stream')
+    const fileSizeBytes = Number(req.file.size ?? 0)
+    const region = String(req.body?.region ?? 'Unknown')
+    const projectType = String(req.body?.projectType ?? 'General Construction')
+
+    const isImage = /^image\//i.test(mimeType)
+    const includeInlineImage = isImage && fileSizeBytes <= 4 * 1024 * 1024
+    const imageDataUrl = includeInlineImage
+      ? `data:${mimeType};base64,${req.file.buffer.toString('base64')}`
+      : null
+
+    const userTextPrompt =
+      `Analyze the uploaded construction file and return strict JSON only with this schema:\n` +
+      `{\n` +
+      `  "summary": string,\n` +
+      `  "confidence": number,\n` +
+      `  "riskIndex": number,\n` +
+      `  "recommendations": string[],\n` +
+      `  "elements": [\n` +
+      `    {\n` +
+      `      "name": string,\n` +
+      `      "quantity": number,\n` +
+      `      "measurement": string,\n` +
+      `      "unit": string,\n` +
+      `      "confidence": number\n` +
+      `    }\n` +
+      `  ]\n` +
+      `}.\n\n` +
+      `Rules:\n` +
+      `- confidence, riskIndex, and element confidence must be 0-100 integers.\n` +
+      `- elements must include realistic construction items (walls, slabs, columns, beams, doors, windows, foundation, roof) where applicable.\n` +
+      `- If details are uncertain, still provide best-estimate elements and mention uncertainty in recommendations.\n` +
+      `- Do not include markdown or any text outside JSON.\n\n` +
+      `Context:\n` +
+      `- projectType: ${projectType}\n` +
+      `- region: ${region}\n` +
+      `- fileName: ${fileName}\n` +
+      `- mimeType: ${mimeType}\n` +
+      `- fileSizeBytes: ${fileSizeBytes}\n` +
+      `- imageIncluded: ${includeInlineImage ? 'yes' : 'no'}\n`
+
+    const userContent = imageDataUrl
+      ? [
+          { type: 'text', text: userTextPrompt },
+          { type: 'image_url', image_url: { url: imageDataUrl } },
+        ]
+      : userTextPrompt
+
+    const completion = await createCostEstimatorChatCompletion({
+      provider,
+      temperature: 0.2,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a senior construction cost estimation and quantity takeoff engineer. Return strict JSON only and prioritize practical field estimates.',
+        },
+        {
+          role: 'user',
+          content: userContent,
+        },
+      ],
+    })
+
+    const parsed = extractJson(completion.content)
+    const confidence = Math.max(0, Math.min(100, Math.round(Number(parsed?.confidence ?? 62) || 62)))
+    const riskIndex = Math.max(0, Math.min(100, Math.round(Number(parsed?.riskIndex ?? 48) || 48)))
+
+    const elements = safeArray(parsed?.elements)
+      .map((item, index) => ({
+        id: `${Date.now()}-${index}`,
+        name: String(item?.name ?? 'Unknown Element').trim() || 'Unknown Element',
+        quantity: Math.max(0, Math.round(Number(item?.quantity ?? 0) || 0)),
+        measurement: String(item?.measurement ?? '').trim() || '0',
+        unit: String(item?.unit ?? 'units').trim() || 'units',
+        confidence: Math.max(0, Math.min(100, Math.round(Number(item?.confidence ?? confidence) || confidence))),
+      }))
+      .filter((item) => item.quantity > 0)
+
+    const recommendations = safeArray(parsed?.recommendations)
+      .map((item) => String(item ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 8)
+
+    const summary = String(parsed?.summary ?? '').trim() ||
+      `Model analyzed ${fileName} and generated a construction quantity/cost signal response.`
+
+    res.json({
+      provider: completion.provider,
+      model: completion.model,
+      analyzedAt: new Date().toISOString(),
+      summary,
+      confidence,
+      riskIndex,
+      recommendations,
+      elements,
+    })
+  } catch (error) {
+    const message = normalizeAiErrorMessage(error, 'Cost estimator analysis failed.')
     const status = getAiErrorHttpStatus(error)
     res.status(status).json({ error: message })
   }

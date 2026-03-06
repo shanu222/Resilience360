@@ -1,35 +1,38 @@
-import { Upload, FileText, CheckCircle, Clock, Play } from "lucide-react";
-import { useState } from "react";
-
-const uploadedFiles = [
-  {
-    name: "Floor_Plan_Level_1.pdf",
-    type: "PDF",
-    size: "2.4 MB",
-    status: "Completed",
-  },
-  {
-    name: "Elevation_North.dwg",
-    type: "DWG",
-    size: "5.1 MB",
-    status: "Processing",
-  },
-  {
-    name: "Building_Model.ifc",
-    type: "IFC",
-    size: "18.3 MB",
-    status: "Completed",
-  },
-  {
-    name: "Site_Plan.pdf",
-    type: "PDF",
-    size: "3.7 MB",
-    status: "Completed",
-  },
-];
+import { Upload, FileText, CheckCircle, Clock, Play, AlertCircle, Image, Brain } from "lucide-react";
+import { useRef, useState } from "react";
+import { analyzeFileRealtime, fileToDataUrl } from "../services/realtimeAi";
+import { getTransientFile, makeUploadedDrawing, registerTransientFile, useEstimator } from "../state/estimatorStore";
 
 export function UploadDrawings() {
+  const { state, addUploadedFiles, setUploadStatus, setTakeoffResult, setSelectedFileId } = useEstimator();
   const [dragActive, setDragActive] = useState(false);
+  const [busyFileId, setBusyFileId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const prepareUploadEntries = async (incoming: File[]) => {
+    const safeFiles = incoming.slice(0, 20);
+    const entries = await Promise.all(
+      safeFiles.map(async (file) => {
+        const isImage = file.type.startsWith("image/");
+        const previewDataUrl = isImage && file.size <= 3 * 1024 * 1024 ? await fileToDataUrl(file) : undefined;
+        const entry = makeUploadedDrawing(file, previewDataUrl);
+        registerTransientFile(entry.id, file);
+        return entry;
+      }),
+    );
+    return entries;
+  };
+
+  const handleIncomingFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) {
+      return;
+    }
+    const files = Array.from(fileList);
+    const entries = await prepareUploadEntries(files);
+    addUploadedFiles(entries);
+    setStatusMessage(`Uploaded ${entries.length} file${entries.length === 1 ? "" : "s"}.`);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -45,7 +48,66 @@ export function UploadDrawings() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    // Handle file upload
+    void handleIncomingFiles(e.dataTransfer.files);
+  };
+
+  const runAnalysisForFile = async (fileId: string) => {
+    const selected = state.uploadedFiles.find((item) => item.id === fileId);
+    if (!selected) {
+      return;
+    }
+
+    setBusyFileId(fileId);
+    setUploadStatus(fileId, "Processing");
+    setSelectedFileId(fileId);
+
+    try {
+      const sourceFile = getTransientFile(selected.id);
+      const result = await analyzeFileRealtime(selected, sourceFile);
+      const otherElements = state.takeoffElements.filter((item) => item.sourceFileId !== fileId);
+      setTakeoffResult([...otherElements, ...result.elements], result.confidence);
+      setUploadStatus(fileId, "Completed");
+      setStatusMessage(result.summary);
+    } catch (error) {
+      setUploadStatus(fileId, "Failed");
+      setStatusMessage(error instanceof Error ? error.message : "AI analysis failed.");
+    } finally {
+      setBusyFileId(null);
+    }
+  };
+
+  const runAllAnalyses = async () => {
+    if (state.uploadedFiles.length === 0) {
+      setStatusMessage("Upload one or more files before running AI analysis.");
+      return;
+    }
+
+    let mergedElements = [...state.takeoffElements];
+    let confidenceAccumulator = 0;
+    let analyzedCount = 0;
+
+    for (const file of state.uploadedFiles) {
+      setBusyFileId(file.id);
+      setUploadStatus(file.id, "Processing");
+      try {
+        const sourceFile = getTransientFile(file.id);
+        const result = await analyzeFileRealtime(file, sourceFile);
+        mergedElements = [...mergedElements.filter((item) => item.sourceFileId !== file.id), ...result.elements];
+        confidenceAccumulator += result.confidence;
+        analyzedCount += 1;
+        setUploadStatus(file.id, "Completed");
+      } catch {
+        setUploadStatus(file.id, "Failed");
+      }
+    }
+
+    setBusyFileId(null);
+    if (analyzedCount > 0) {
+      setTakeoffResult(mergedElements, Math.round(confidenceAccumulator / analyzedCount));
+      setStatusMessage(`Completed AI analysis for ${analyzedCount} file${analyzedCount === 1 ? "" : "s"}.`);
+    } else {
+      setStatusMessage("No file could be analyzed. Please retry with valid drawings/photos.");
+    }
   };
 
   return (
@@ -81,17 +143,52 @@ export function UploadDrawings() {
           <p className="text-xs text-muted-foreground mb-6">
             Supports: PDF, CAD, BIM, DWG, IFC (Max size: 50MB)
           </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.dwg,.ifc,.dxf,.png,.jpg,.jpeg,.webp,.bmp,.heic,.heif"
+            className="hidden"
+            onChange={(event) => {
+              void handleIncomingFiles(event.target.files);
+              event.currentTarget.value = "";
+            }}
+          />
           <div className="flex gap-3">
-            <button className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            >
               Upload Files
             </button>
-            <button className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setStatusMessage("Select BIM or IFC files to import.");
+              }}
+              className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity"
+            >
               Import from BIM
             </button>
-            <button className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setStatusMessage("Select clear blueprint images for scanning.");
+              }}
+              className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors"
+            >
               Scan Blueprint
             </button>
+            <button
+              onClick={() => void runAllAnalyses()}
+              className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              Analyze All
+            </button>
           </div>
+          {statusMessage && (
+            <p className="mt-4 text-sm text-muted-foreground">{statusMessage}</p>
+          )}
         </div>
       </div>
 
@@ -111,19 +208,26 @@ export function UploadDrawings() {
                 </tr>
               </thead>
               <tbody>
-                {uploadedFiles.map((file, idx) => (
+                {state.uploadedFiles.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                      No files uploaded yet. Add drawings or photos to begin real-time analysis.
+                    </td>
+                  </tr>
+                )}
+                {state.uploadedFiles.map((file) => (
                   <tr
-                    key={idx}
+                    key={file.id}
                     className="border-b border-border last:border-0 hover:bg-muted/30"
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-primary" />
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedFileId(file.id)}>
+                        {file.previewDataUrl ? <Image className="w-5 h-5 text-primary" /> : <FileText className="w-5 h-5 text-primary" />}
                         <span className="text-sm">{file.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm">{file.type}</td>
-                    <td className="px-6 py-4 text-sm">{file.size}</td>
+                    <td className="px-6 py-4 text-sm">{file.sizeLabel}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {file.status === "Completed" ? (
@@ -131,19 +235,36 @@ export function UploadDrawings() {
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-sm text-green-600">Completed</span>
                           </>
+                        ) : file.status === "Failed" ? (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-red-600" />
+                            <span className="text-sm text-red-600">Failed</span>
+                          </>
                         ) : (
                           <>
                             <Clock className="w-4 h-4 text-yellow-600" />
-                            <span className="text-sm text-yellow-600">Processing</span>
+                            <span className="text-sm text-yellow-600">{file.status}</span>
                           </>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity">
-                        <Play className="w-4 h-4" />
-                        AI Analysis
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={busyFileId === file.id}
+                          onClick={() => void runAnalysisForFile(file.id)}
+                          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+                        >
+                          <Play className="w-4 h-4" />
+                          {busyFileId === file.id ? "Analyzing..." : "AI Analysis"}
+                        </button>
+                        {state.selectedFileId === file.id && (
+                          <span className="inline-flex items-center gap-1 text-xs text-accent">
+                            <Brain className="w-3 h-3" />
+                            Selected
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

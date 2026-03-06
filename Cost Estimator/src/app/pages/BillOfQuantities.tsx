@@ -1,4 +1,6 @@
 import { Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { buildReportContent, createReport, downloadTextFile } from "../services/realtimeAi";
+import { useEstimator } from "../state/estimatorStore";
 
 const boqItems = [
   {
@@ -100,7 +102,48 @@ const boqItems = [
 ];
 
 export function BillOfQuantities() {
-  const totalAmount = boqItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const { state, addReport } = useEstimator();
+  const liveRows = state.costItems.map((item, index) => ({
+    itemNo: `${index + 1}.0`,
+    description: item.item,
+    quantity: item.quantity,
+    unit: item.unit,
+    unitPrice: item.unitCost,
+    totalPrice: item.quantity * item.unitCost,
+  }));
+
+  const sourceRows = liveRows.length > 0 ? liveRows : boqItems;
+  const totalAmount = sourceRows.reduce((sum, item) => sum + item.totalPrice, 0);
+
+  const downloadBoq = (format: "excel" | "pdf") => {
+    const header = "Item No,Description,Quantity,Unit,Unit Price,Total Price";
+    const body = sourceRows.map((item) => `${item.itemNo},${item.description},${item.quantity},${item.unit},${item.unitPrice},${item.totalPrice}`);
+    const content = [header, ...body].join("\n");
+    const extension = format === "excel" ? "csv" : "txt";
+    downloadTextFile(`boq-export.${extension}`, content);
+  };
+
+  const generateContractorEstimate = () => {
+    const riskIndex = Math.min(95, Math.max(20, Math.round(40 + state.takeoffConfidence * 0.4)));
+    const content = buildReportContent({
+      type: "Contractor Estimate",
+      uploadedFiles: state.uploadedFiles,
+      takeoffElements: state.takeoffElements,
+      costItems: state.costItems,
+      settings: state.settings,
+      riskIndex,
+    });
+    addReport(createReport("Contractor Estimate", content));
+  };
+
+  const shareWithTeam = async () => {
+    const shareText = `BOQ total: $${Math.round(totalAmount * 1.15).toLocaleString()} | Files: ${state.uploadedFiles.length} | Generated: ${new Date().toLocaleString()}`;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(shareText);
+      return;
+    }
+    window.prompt("Copy BOQ summary:", shareText);
+  };
 
   return (
     <div className="space-y-6">
@@ -113,15 +156,15 @@ export function BillOfQuantities() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+          <button onClick={() => downloadBoq("excel")} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-opacity">
             <FileSpreadsheet className="w-4 h-4" />
             Export Excel
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+          <button onClick={() => downloadBoq("pdf")} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 transition-opacity">
             <FileText className="w-4 h-4" />
             Export PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
             <Printer className="w-4 h-4" />
             Print
           </button>
@@ -166,7 +209,7 @@ export function BillOfQuantities() {
               </tr>
             </thead>
             <tbody>
-              {boqItems.map((item, idx) => (
+              {sourceRows.map((item, idx) => (
                 <tr
                   key={idx}
                   className="border-b border-border last:border-0 hover:bg-muted/30"
@@ -219,13 +262,13 @@ export function BillOfQuantities() {
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+        <button onClick={generateContractorEstimate} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
           Generate Contractor Estimate
         </button>
-        <button className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity">
+        <button onClick={() => downloadBoq("pdf")} className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity">
           Download Report
         </button>
-        <button className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
+        <button onClick={() => void shareWithTeam()} className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
           Share with Team
         </button>
       </div>

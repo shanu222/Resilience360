@@ -23,22 +23,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-const costBreakdownData = [
-  { name: "Materials", value: 450000, color: "#3A63FF" },
-  { name: "Labor", value: 280000, color: "#2EC4B6" },
-  { name: "Equipment", value: 120000, color: "#8b5cf6" },
-  { name: "Other", value: 50000, color: "#f59e0b" },
-];
-
-const timelineData = [
-  { month: "Jan", budget: 100000, actual: 95000 },
-  { month: "Feb", budget: 150000, actual: 160000 },
-  { month: "Mar", budget: 200000, actual: 195000 },
-  { month: "Apr", budget: 250000, actual: 240000 },
-  { month: "May", budget: 300000, actual: 310000 },
-  { month: "Jun", budget: 350000, actual: 340000 },
-];
+import { useMemo } from "react";
+import { useEstimator } from "../state/estimatorStore";
 
 const recentProjects = [
   {
@@ -72,6 +58,62 @@ const recentProjects = [
 ];
 
 export function Dashboard() {
+  const { state } = useEstimator();
+
+  const materialCost = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
+  const laborCost = materialCost * 0.35;
+  const equipmentCost = materialCost * 0.15;
+  const totalCost = materialCost + laborCost + equipmentCost;
+  const otherCost = totalCost * 0.05;
+
+  const costBreakdownData = useMemo(
+    () => [
+      { name: "Materials", value: materialCost, color: "#3A63FF" },
+      { name: "Labor", value: laborCost, color: "#2EC4B6" },
+      { name: "Equipment", value: equipmentCost, color: "#8b5cf6" },
+      { name: "Other", value: otherCost, color: "#f59e0b" },
+    ],
+    [materialCost, laborCost, equipmentCost, otherCost],
+  );
+
+  const timelineData = useMemo(() => {
+    const base = totalCost / 6;
+    const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    return labels.map((month, index) => {
+      const budget = Math.round(base * (index + 1));
+      const factor = 0.92 + ((index % 3) * 0.06);
+      const actual = Math.round(budget * factor);
+      return { month, budget, actual };
+    });
+  }, [totalCost]);
+
+  const recentProjects = useMemo(
+    () => [
+      {
+        name: "AI-Assisted Project (Current)",
+        location: state.settings.defaultRegion,
+        area: `${Math.max(22000, state.takeoffElements.length * 750).toLocaleString()} sq ft`,
+        cost: `$${Math.round(totalCost).toLocaleString()}`,
+        status: "In Progress",
+      },
+      {
+        name: "Uploaded File Set",
+        location: state.settings.defaultRegion,
+        area: `${(state.uploadedFiles.length * 8200 || 12000).toLocaleString()} sq ft`,
+        cost: `$${Math.round(materialCost).toLocaleString()}`,
+        status: state.uploadedFiles.length > 0 ? "In Progress" : "Planning",
+      },
+      {
+        name: "Auto BOQ Draft",
+        location: state.settings.defaultRegion,
+        area: `${(state.takeoffElements.length * 350 || 9000).toLocaleString()} sq ft`,
+        cost: `$${Math.round(totalCost * 1.08).toLocaleString()}`,
+        status: state.takeoffElements.length > 0 ? "Completed" : "Planning",
+      },
+    ],
+    [state.settings.defaultRegion, state.takeoffElements.length, state.uploadedFiles.length, totalCost, materialCost],
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -86,38 +128,38 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Project Cost"
-          value="$900,000"
+          value={`$${Math.round(totalCost).toLocaleString()}`}
           icon={<DollarSign className="w-6 h-6" />}
           color="bg-primary"
-          trend={{ value: "8.5% from last month", isPositive: true }}
+          trend={{ value: `${state.uploadedFiles.length} files tracked`, isPositive: true }}
         />
         <StatCard
           title="Material Cost"
-          value="$450,000"
+          value={`$${Math.round(materialCost).toLocaleString()}`}
           icon={<Package className="w-6 h-6" />}
           color="bg-accent"
         />
         <StatCard
           title="Labor Cost"
-          value="$280,000"
+          value={`$${Math.round(laborCost).toLocaleString()}`}
           icon={<Users className="w-6 h-6" />}
           color="bg-[#8b5cf6]"
         />
         <StatCard
           title="Equipment Cost"
-          value="$120,000"
+          value={`$${Math.round(equipmentCost).toLocaleString()}`}
           icon={<Truck className="w-6 h-6" />}
           color="bg-[#f59e0b]"
         />
         <StatCard
           title="Estimated Duration"
-          value="18 Months"
+          value={`${Math.max(6, Math.round(state.takeoffElements.length / 2) || 12)} Months`}
           icon={<Clock className="w-6 h-6" />}
           color="bg-[#10b981]"
         />
         <StatCard
           title="Cost per Square Foot"
-          value="$180"
+          value={`$${Math.max(110, Math.round(totalCost / Math.max(1, state.takeoffElements.length * 20 || 3000)))}`}
           icon={<TrendingUp className="w-6 h-6" />}
           color="bg-primary"
         />

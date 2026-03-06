@@ -1,4 +1,7 @@
 import { FileText, Download, Eye, Calendar } from "lucide-react";
+import { useMemo, useState } from "react";
+import { buildReportContent, createReport, downloadTextFile } from "../services/realtimeAi";
+import { useEstimator } from "../state/estimatorStore";
 
 const reportTypes = [
   {
@@ -55,6 +58,51 @@ const recentReports = [
 ];
 
 export function Reports() {
+  const { state, addReport } = useEstimator();
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
+
+  const reports = useMemo(() => {
+    const mapped = state.reports.map((report) => ({
+      name: report.name,
+      type: report.type,
+      date: report.date,
+      size: report.size,
+      id: report.id,
+      content: report.content,
+    }));
+    return [...mapped, ...recentReports.map((item, idx) => ({ ...item, id: `seed-${idx}`, content: `${item.name}\n${item.type}` }))];
+  }, [state.reports]);
+
+  const selectedReport = reports.find((report) => report.id === selectedReportId) ?? null;
+
+  const generateReport = (type: string) => {
+    const riskIndex = Math.min(95, Math.max(18, Math.round(40 + state.takeoffConfidence * 0.4)));
+    const content = buildReportContent({
+      type,
+      uploadedFiles: state.uploadedFiles,
+      takeoffElements: state.takeoffElements,
+      costItems: state.costItems,
+      settings: state.settings,
+      riskIndex,
+    });
+    const report = createReport(type, content);
+    addReport(report);
+    setSelectedReportId(report.id);
+    setStatusMessage(`${type} generated and saved.`);
+  };
+
+  const downloadReport = (format: "pdf" | "xlsx" | "txt") => {
+    if (!selectedReport) {
+      setStatusMessage("Select or generate a report first.");
+      return;
+    }
+    const extension = format === "xlsx" ? "csv" : format;
+    const filename = `${selectedReport.name.replace(/\s+/g, "-").toLowerCase()}.${extension}`;
+    downloadTextFile(filename, selectedReport.content);
+    setStatusMessage(`Downloaded ${selectedReport.name} as ${format.toUpperCase()}.`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -87,10 +135,24 @@ export function Reports() {
                       <span>Last generated: {report.lastGenerated}</span>
                     </div>
                     <div className="flex gap-2">
-                      <button className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity">
+                      <button
+                        onClick={() => generateReport(report.title)}
+                        className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
+                      >
                         Generate
                       </button>
-                      <button className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition-colors">
+                      <button
+                        onClick={() => {
+                          const found = reports.find((item) => item.type === report.title);
+                          if (found) {
+                            setSelectedReportId(found.id);
+                            setStatusMessage(`Previewing ${found.name}.`);
+                          } else {
+                            setStatusMessage(`No ${report.title} available yet. Generate it first.`);
+                          }
+                        }}
+                        className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition-colors"
+                      >
                         Preview
                       </button>
                     </div>
@@ -107,22 +169,35 @@ export function Reports() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Report Preview</h3>
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => downloadReport("pdf")}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
+            >
               <Download className="w-4 h-4" />
               Download PDF
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => downloadReport("xlsx")}
+              className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
+            >
               <Download className="w-4 h-4" />
               Download Excel
             </button>
           </div>
         </div>
         <div className="aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <Eye className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">Select a report type to preview</p>
-          </div>
+          {selectedReport ? (
+            <div className="w-full h-full p-5 overflow-auto">
+              <pre className="text-xs whitespace-pre-wrap">{selectedReport.content}</pre>
+            </div>
+          ) : (
+            <div className="text-center">
+              <Eye className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">Select a report type to preview</p>
+            </div>
+          )}
         </div>
+        {statusMessage && <p className="mt-3 text-sm text-muted-foreground">{statusMessage}</p>}
       </div>
 
       {/* Recent Reports */}
@@ -141,9 +216,9 @@ export function Reports() {
                 </tr>
               </thead>
               <tbody>
-                {recentReports.map((report, idx) => (
+                {reports.map((report) => (
                   <tr
-                    key={idx}
+                    key={report.id}
                     className="border-b border-border last:border-0 hover:bg-muted/30"
                   >
                     <td className="px-6 py-4">
@@ -161,10 +236,22 @@ export function Reports() {
                     <td className="px-6 py-4 text-sm text-muted-foreground">{report.size}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
-                        <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+                        <button
+                          onClick={() => {
+                            setSelectedReportId(report.id);
+                            setStatusMessage(`Previewing ${report.name}.`);
+                          }}
+                          className="p-2 hover:bg-muted rounded-lg transition-colors"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+                        <button
+                          onClick={() => {
+                            downloadTextFile(`${report.name.replace(/\s+/g, "-").toLowerCase()}.txt`, report.content);
+                            setStatusMessage(`Downloaded ${report.name}.`);
+                          }}
+                          className="p-2 hover:bg-muted rounded-lg transition-colors"
+                        >
                           <Download className="w-4 h-4" />
                         </button>
                       </div>
