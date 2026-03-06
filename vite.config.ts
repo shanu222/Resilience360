@@ -41,6 +41,12 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,json,woff2,mp4}'],
         maximumFileSizeToCacheInBytes: 60 * 1024 * 1024,
+        navigateFallbackDenylist: [
+          /^\/cost-estimator(?:\/|$)/,
+          /^\/coe-portal(?:\/|$)/,
+          /^\/material-hubs(?:\/|$)/,
+          /^\/retrofit-calculator(?:\/|$)/,
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/tile\.openstreetmap\.org\/.*/i,
