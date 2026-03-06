@@ -6,6 +6,29 @@ export type FileAnalysisResult = {
   elements: TakeoffElement[];
   riskIndex: number;
   recommendations: string[];
+  documentHash?: string;
+  drawingType?: string;
+  deterministicInference?: { temperature: number; topP: number; seed: number };
+  quantitiesFromDocumentOnly?: boolean;
+  formula?: string;
+  costBreakdown?: {
+    materialCost: number;
+    laborCost: number;
+    equipmentCost: number;
+    totalCost: number;
+  };
+  validation?: {
+    isValid: boolean;
+    issues: string[];
+    recalculated: boolean;
+    checks: {
+      drawingScaleDetection: boolean;
+      unitStandardization: boolean;
+      geometryValidation: boolean;
+    };
+  };
+  debug?: Record<string, unknown>;
+  fromCache?: boolean;
 };
 
 const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
@@ -66,6 +89,7 @@ export const analyzeFileRealtime = async (
       const form = new FormData();
       form.append("file", sourceFile, sourceFile.name);
       form.append("provider", requestedProvider);
+      form.append("debug", "true");
       form.append("projectType", "Construction Cost Estimation");
       form.append("region", "Pakistan");
 
@@ -117,6 +141,61 @@ export const analyzeFileRealtime = async (
         riskIndex,
         recommendations,
         elements,
+        documentHash: body?.documentHash ? String(body.documentHash) : undefined,
+        drawingType: body?.drawingType ? String(body.drawingType) : undefined,
+        deterministicInference:
+          body?.deterministicInference && typeof body.deterministicInference === "object"
+            ? {
+                temperature: Number((body.deterministicInference as Record<string, unknown>).temperature ?? 0),
+                topP: Number((body.deterministicInference as Record<string, unknown>).topP ?? 0),
+                seed: Number((body.deterministicInference as Record<string, unknown>).seed ?? 42),
+              }
+            : undefined,
+        quantitiesFromDocumentOnly: Boolean(body?.quantitiesFromDocumentOnly),
+        formula: body?.formula ? String(body.formula) : undefined,
+        costBreakdown:
+          body?.costBreakdown && typeof body.costBreakdown === "object"
+            ? {
+                materialCost: Number((body.costBreakdown as Record<string, unknown>).materialCost ?? 0),
+                laborCost: Number((body.costBreakdown as Record<string, unknown>).laborCost ?? 0),
+                equipmentCost: Number((body.costBreakdown as Record<string, unknown>).equipmentCost ?? 0),
+                totalCost: Number((body.costBreakdown as Record<string, unknown>).totalCost ?? 0),
+              }
+            : undefined,
+        validation:
+          body?.validation && typeof body.validation === "object"
+            ? {
+                isValid: Boolean((body.validation as Record<string, unknown>).isValid),
+                issues: Array.isArray((body.validation as Record<string, unknown>).issues)
+                  ? ((body.validation as Record<string, unknown>).issues as unknown[]).map((item) => String(item))
+                  : [],
+                recalculated: Boolean((body.validation as Record<string, unknown>).recalculated),
+                checks:
+                  (body.validation as Record<string, unknown>).checks &&
+                  typeof (body.validation as Record<string, unknown>).checks === "object"
+                    ? {
+                        drawingScaleDetection: Boolean(
+                          ((body.validation as Record<string, unknown>).checks as Record<string, unknown>)
+                            .drawingScaleDetection,
+                        ),
+                        unitStandardization: Boolean(
+                          ((body.validation as Record<string, unknown>).checks as Record<string, unknown>)
+                            .unitStandardization,
+                        ),
+                        geometryValidation: Boolean(
+                          ((body.validation as Record<string, unknown>).checks as Record<string, unknown>)
+                            .geometryValidation,
+                        ),
+                      }
+                    : {
+                        drawingScaleDetection: false,
+                        unitStandardization: false,
+                        geometryValidation: false,
+                      },
+              }
+            : undefined,
+        debug: body?.debug && typeof body.debug === "object" ? (body.debug as Record<string, unknown>) : undefined,
+        fromCache: Boolean(body?.fromCache),
       };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("Cost estimator AI request failed");

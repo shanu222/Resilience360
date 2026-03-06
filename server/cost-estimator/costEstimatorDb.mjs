@@ -170,12 +170,80 @@ const inferCategory = (name) => {
   return 'General'
 }
 
+const deterministicRateDb = {
+  Walls: { laborRate: 18, equipmentRate: 6, laborHoursPerUnit: 0.45, equipmentHoursPerUnit: 0.15 },
+  Slabs: { laborRate: 24, equipmentRate: 12, laborHoursPerUnit: 0.7, equipmentHoursPerUnit: 0.25 },
+  Columns: { laborRate: 22, equipmentRate: 10, laborHoursPerUnit: 0.65, equipmentHoursPerUnit: 0.2 },
+  Beams: { laborRate: 21, equipmentRate: 9, laborHoursPerUnit: 0.55, equipmentHoursPerUnit: 0.2 },
+  Doors: { laborRate: 17, equipmentRate: 4, laborHoursPerUnit: 1.4, equipmentHoursPerUnit: 0.08 },
+  Windows: { laborRate: 16, equipmentRate: 4, laborHoursPerUnit: 1.2, equipmentHoursPerUnit: 0.08 },
+  Foundation: { laborRate: 25, equipmentRate: 13, laborHoursPerUnit: 0.75, equipmentHoursPerUnit: 0.3 },
+  Roof: { laborRate: 20, equipmentRate: 8, laborHoursPerUnit: 0.5, equipmentHoursPerUnit: 0.2 },
+}
+
+const fallbackRates = { laborRate: 18, equipmentRate: 7, laborHoursPerUnit: 0.4, equipmentHoursPerUnit: 0.15 }
+
+const lookupRates = (itemName) => deterministicRateDb[String(itemName ?? '').trim()] ?? fallbackRates
+
+const buildDeterministicCosts = (costItems) => {
+  const rows = (Array.isArray(costItems) ? costItems : []).map((item) => {
+    const rates = lookupRates(item.item)
+    const quantity = Math.max(0, Number(item.quantity ?? 0) || 0)
+    const materialCost = quantity * Math.max(0, Number(item.unitCost ?? 0) || 0)
+    const laborHours = quantity * rates.laborHoursPerUnit
+    const equipmentHours = quantity * rates.equipmentHoursPerUnit
+    const laborCost = laborHours * rates.laborRate
+    const equipmentCost = equipmentHours * rates.equipmentRate
+    return {
+      item: item.item,
+      materialCost,
+      laborHours,
+      laborRate: rates.laborRate,
+      laborCost,
+      equipmentHours,
+      equipmentRate: rates.equipmentRate,
+      equipmentCost,
+    }
+  })
+
+  return rows.reduce(
+    (acc, row) => {
+      acc.materialCost += row.materialCost
+      acc.laborCost += row.laborCost
+      acc.equipmentCost += row.equipmentCost
+      acc.totalCost += row.materialCost + row.laborCost + row.equipmentCost
+      acc.laborRows.push({
+        type: row.item,
+        hourlyRate: row.laborRate,
+        estimatedHours: Math.max(1, Math.round(row.laborHours)),
+        totalCost: row.laborCost,
+      })
+      acc.equipmentRows.push({
+        name: row.item,
+        rentalCost: row.equipmentRate,
+        usageDays: Math.max(1, Math.round(row.equipmentHours / 8)),
+        totalCost: row.equipmentCost,
+      })
+      return acc
+    },
+    {
+      materialCost: 0,
+      laborCost: 0,
+      equipmentCost: 0,
+      totalCost: 0,
+      laborRows: [],
+      equipmentRows: [],
+    },
+  )
+}
+
 export const deriveCostEstimatorModules = (state) => {
   const safeState = sanitizeState(state)
-  const materialCost = safeState.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0)
-  const laborCost = materialCost * 0.35
-  const equipmentCost = materialCost * 0.15
-  const totalCost = materialCost + laborCost + equipmentCost
+  const deterministicCosts = buildDeterministicCosts(safeState.costItems)
+  const materialCost = deterministicCosts.materialCost
+  const laborCost = deterministicCosts.laborCost
+  const equipmentCost = deterministicCosts.equipmentCost
+  const totalCost = deterministicCosts.totalCost
 
   const materials = safeState.costItems.map((item) => {
     const avgCost = item.unitCost
@@ -191,44 +259,12 @@ export const deriveCostEstimatorModules = (state) => {
     }
   })
 
-  const laborTemplate = [
-    { type: 'Mason', hourlyRate: 28 },
-    { type: 'Steel Fixer', hourlyRate: 32 },
-    { type: 'Concrete Worker', hourlyRate: 26 },
-    { type: 'Finishing Crew', hourlyRate: 24 },
-    { type: 'MEP Technician', hourlyRate: 35 },
-  ]
-  const perLaborBudget = laborTemplate.length ? laborCost / laborTemplate.length : 0
-  const labor = laborCost <= 0
-    ? []
-    : laborTemplate.map((entry) => {
-        const estimatedHours = Math.max(8, Math.round(perLaborBudget / entry.hourlyRate))
-        return {
-          ...entry,
-          region: safeState.settings.defaultRegion || 'Configured Region',
-          estimatedHours,
-          totalCost: estimatedHours * entry.hourlyRate,
-        }
-      })
+  const labor = deterministicCosts.laborRows.map((entry) => ({
+    ...entry,
+    region: safeState.settings.defaultRegion || 'Configured Region',
+  }))
 
-  const equipmentTemplate = [
-    { name: 'Excavator', rentalCost: 850 },
-    { name: 'Concrete Mixer', rentalCost: 420 },
-    { name: 'Scaffolding System', rentalCost: 300 },
-    { name: 'Material Lift', rentalCost: 260 },
-    { name: 'Generator', rentalCost: 180 },
-  ]
-  const perEquipmentBudget = equipmentTemplate.length ? equipmentCost / equipmentTemplate.length : 0
-  const equipment = equipmentCost <= 0
-    ? []
-    : equipmentTemplate.map((entry) => {
-        const usageDays = Math.max(3, Math.round(perEquipmentBudget / entry.rentalCost))
-        return {
-          ...entry,
-          usageDays,
-          totalCost: usageDays * entry.rentalCost,
-        }
-      })
+  const equipment = deterministicCosts.equipmentRows
 
   const priceRisk = Math.min(88, Math.max(30, Math.round((materialCost / 100000) * 8)))
   const weatherRisk = Math.min(78, Math.max(28, 42 + safeState.uploadedFiles.length * 4))

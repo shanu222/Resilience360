@@ -14,6 +14,16 @@ export function AIQuantityTakeoff() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
+  const [latestDebugPayload, setLatestDebugPayload] = useState<Record<string, unknown> | null>(null);
+  const [latestFormula, setLatestFormula] = useState<string>("");
+  const [latestCostBreakdown, setLatestCostBreakdown] = useState<{
+    materialCost: number;
+    laborCost: number;
+    equipmentCost: number;
+    totalCost: number;
+  } | null>(null);
+  const [latestValidationIssues, setLatestValidationIssues] = useState<string[]>([]);
+  const [latestDocumentHash, setLatestDocumentHash] = useState<string>("");
   const [pdfPreviewPages, setPdfPreviewPages] = useState<string[]>([]);
   const [currentPdfPage, setCurrentPdfPage] = useState(0);
   const [isRenderingPdf, setIsRenderingPdf] = useState(false);
@@ -132,8 +142,15 @@ export function AIQuantityTakeoff() {
         ...result.elements,
       ];
       setTakeoffResult(merged, result.confidence);
+      setLatestDebugPayload(result.debug ?? null);
+      setLatestFormula(result.formula ?? "");
+      setLatestCostBreakdown(result.costBreakdown ?? null);
+      setLatestValidationIssues(result.validation?.issues ?? []);
+      setLatestDocumentHash(result.documentHash ?? "");
       setUploadStatus(selectedFile.id, "Completed");
-      setStatusMessage(result.summary);
+      setStatusMessage(
+        `${result.summary}${result.fromCache ? " (Loaded from deterministic cache)" : ""}`,
+      );
       setProgress(100);
     } catch (error) {
       setUploadStatus(selectedFile.id, "Failed");
@@ -384,6 +401,59 @@ export function AIQuantityTakeoff() {
         >
           Save Results
         </button>
+      </div>
+
+      <div className="bg-card rounded-xl p-6 border border-border space-y-4">
+        <h3 className="font-semibold">Deterministic Debug Mode</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="p-3 rounded-lg bg-muted/50 border border-border">
+            <p className="text-muted-foreground">Document Fingerprint</p>
+            <p className="font-mono text-xs break-words">{latestDocumentHash || "No analysis yet"}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 border border-border">
+            <p className="text-muted-foreground">Deterministic Formula</p>
+            <p>{latestFormula || "Run analysis to view formula."}</p>
+          </div>
+        </div>
+
+        {latestCostBreakdown && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-muted-foreground">Material Cost</p>
+              <p className="font-medium">${latestCostBreakdown.materialCost.toLocaleString()}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-muted-foreground">Labor Cost</p>
+              <p className="font-medium">${latestCostBreakdown.laborCost.toLocaleString()}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-muted-foreground">Equipment Cost</p>
+              <p className="font-medium">${latestCostBreakdown.equipmentCost.toLocaleString()}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-muted-foreground">Total Cost</p>
+              <p className="font-medium">${latestCostBreakdown.totalCost.toLocaleString()}</p>
+            </div>
+          </div>
+        )}
+
+        {latestValidationIssues.length > 0 && (
+          <div className="p-3 rounded-lg border border-yellow-500/40 bg-yellow-100/40">
+            <p className="font-medium text-yellow-800 mb-2">Verification Layer Flags</p>
+            <ul className="text-sm text-yellow-800 list-disc pl-5 space-y-1">
+              {latestValidationIssues.map((issue, index) => (
+                <li key={`${issue}-${index}`}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="p-3 rounded-lg bg-muted/50 border border-border">
+          <p className="text-muted-foreground mb-2">Pipeline Debug Output</p>
+          <pre className="text-xs whitespace-pre-wrap break-words max-h-80 overflow-auto">
+            {latestDebugPayload ? JSON.stringify(latestDebugPayload, null, 2) : "Run analysis to view detected elements, dimensions, quantities, and detailed pipeline output."}
+          </pre>
+        </div>
       </div>
     </div>
   );

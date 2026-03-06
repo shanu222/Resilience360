@@ -15,6 +15,18 @@ import {
   writeCostEstimatorState,
 } from './cost-estimator/costEstimatorDb.mjs'
 import {
+  DETERMINISTIC_INFERENCE,
+  ai_quantity_extractor,
+  boq_generator,
+  buildDocumentFingerprint,
+  buildValidation,
+  cost_calculator,
+  document_parser,
+  getCachedQuantityResult,
+  measurement_engine,
+  setCachedQuantityResult,
+} from './cost-estimator/deterministicPipeline.mjs'
+import {
   registerDevice,
   unregisterDevice,
   updateSubscriptionPreferences,
@@ -36,6 +48,8 @@ const host = process.env.HOST ?? '0.0.0.0'
 const AI_PROVIDER = String(process.env.AI_PROVIDER ?? 'openai').trim().toLowerCase()
 const selectedAiProvider = AI_PROVIDER === 'huggingface' ? 'huggingface' : 'openai'
 const OPENAI_FALLBACK_TO_HUGGINGFACE = String(process.env.OPENAI_FALLBACK_TO_HUGGINGFACE ?? 'true').trim().toLowerCase() !== 'false'
+const COST_ESTIMATOR_INFERENCE_SEED = Number(process.env.COST_ESTIMATOR_INFERENCE_SEED ?? DETERMINISTIC_INFERENCE.seed) || DETERMINISTIC_INFERENCE.seed
+const COST_ESTIMATOR_DEBUG_DEFAULT = String(process.env.COST_ESTIMATOR_DEBUG_DEFAULT ?? 'false').trim().toLowerCase() === 'true'
 
 // Support multiple API keys for quota rotation
 const parseApiKeyList = (rawValue) =>
@@ -379,7 +393,13 @@ const getCostEstimatorMissingConfigMessage = (provider) => {
   return 'OpenAI is not configured. Set COST_ESTIMATOR_OPENAI_API_KEY (or COST_ESTIMATOR_OPENAI_API_KEYS), or OPENAI_API_KEY(S).'
 }
 
-const createCostEstimatorChatCompletion = async ({ provider, messages, temperature = 0.2 }) => {
+const createCostEstimatorChatCompletion = async ({
+  provider,
+  messages,
+  temperature = DETERMINISTIC_INFERENCE.temperature,
+  topP = DETERMINISTIC_INFERENCE.topP,
+  seed = DETERMINISTIC_INFERENCE.seed,
+}) => {
   const normalizedProvider = resolveCostEstimatorProvider(provider)
 
   const callProvider = async ({ endpoint, headers, payload }) => {
@@ -420,6 +440,8 @@ const createCostEstimatorChatCompletion = async ({ provider, messages, temperatu
 
     const payload = {
       temperature,
+      top_p: topP,
+      seed,
       messages,
       response_format: { type: 'json_object' },
     }
@@ -444,6 +466,8 @@ const createCostEstimatorChatCompletion = async ({ provider, messages, temperatu
     const payload = {
       model: OPENROUTER_MODEL,
       temperature,
+      top_p: topP,
+      seed,
       messages,
       response_format: { type: 'json_object' },
     }
@@ -472,6 +496,8 @@ const createCostEstimatorChatCompletion = async ({ provider, messages, temperatu
     const payload = {
       model: COST_ESTIMATOR_OPENAI_MODEL,
       temperature,
+      top_p: topP,
+      seed,
       messages,
       response_format: { type: 'json_object' },
     }
@@ -2433,13 +2459,7 @@ app.post('/api/vision/analyze', upload.single('image'), async (req, res) => {
 
 app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) => {
   const provider = resolveCostEstimatorProvider(req.body?.provider)
-
-  if (!hasCostEstimatorProviderConfig(provider)) {
-    res.status(503).json({
-      error: getCostEstimatorMissingConfigMessage(provider),
-    })
-    return
-  }
+  const providerConfigured = hasCostEstimatorProviderConfig(provider)
 
   if (!req.file) {
     res.status(400).json({ error: 'A file is required for analysis.' })
@@ -2452,6 +2472,44 @@ app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) 
     const fileSizeBytes = Number(req.file.size ?? 0)
     const region = String(req.body?.region ?? 'Unknown')
     const projectType = String(req.body?.projectType ?? 'General Construction')
+    const debugModeRaw = String(req.body?.debug ?? '').trim().toLowerCase()
+    const debugMode = debugModeRaw ? debugModeRaw === 'true' : COST_ESTIMATOR_DEBUG_DEFAULT
+    const deterministicInference = {
+      temperature: 0,
+      topP: 0,
+      seed: COST_ESTIMATOR_INFERENCE_SEED,
+    }
+
+    const documentFingerprint = buildDocumentFingerprint({
+      buffer: req.file.buffer,
+      fileName,
+      mimeType,
+    })
+
+    const cached = await getCachedQuantityResult(documentFingerprint.hash)
+    if (cached?.result && typeof cached.result === 'object') {
+      const cachedResult = cached.result
+      const responsePayload = {
+        ...cachedResult,
+        fromCache: true,
+        documentHash: documentFingerprint.hash,
+        deterministicInference,
+      }
+
+      if (!debugMode) {
+        delete responsePayload.debug
+      }
+
+      res.json(responsePayload)
+      return
+    }
+
+    // Step 1: Parse document
+    const parseContext = document_parser.parse({
+      buffer: req.file.buffer,
+      fileName,
+      mimeType,
+    })
 
     const isImage = /^image\//i.test(mimeType)
     const includeInlineImage = isImage && fileSizeBytes <= 4 * 1024 * 1024
@@ -2459,35 +2517,53 @@ app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) 
       ? `data:${mimeType};base64,${req.file.buffer.toString('base64')}`
       : null
 
+    const extractedTextSample = parseContext.extractedTokens.slice(0, 600).join(' ')
+
     const userTextPrompt =
       `Analyze the uploaded construction file and return strict JSON only with this schema:\n` +
       `{\n` +
       `  "summary": string,\n` +
+      `  "drawingType": "architectural"|"structural"|"civil",\n` +
+      `  "detectedScale": string,\n` +
       `  "confidence": number,\n` +
       `  "riskIndex": number,\n` +
       `  "recommendations": string[],\n` +
+      `  "validation": {\n` +
+      `    "notes": string[]\n` +
+      `  },\n` +
       `  "elements": [\n` +
       `    {\n` +
       `      "name": string,\n` +
       `      "quantity": number,\n` +
       `      "measurement": string,\n` +
       `      "unit": string,\n` +
-      `      "confidence": number\n` +
+      `      "confidence": number,\n` +
+      `      "sourceType": "geometry_detection"|"dimension_labels"|"schedules"|"legends"|"measurable_elements",\n` +
+      `      "evidence": string\n` +
       `    }\n` +
       `  ]\n` +
       `}.\n\n` +
       `Rules:\n` +
       `- confidence, riskIndex, and element confidence must be 0-100 integers.\n` +
-      `- elements must include realistic construction items (walls, slabs, columns, beams, doors, windows, foundation, roof) where applicable.\n` +
-      `- If details are uncertain, still provide best-estimate elements and mention uncertainty in recommendations.\n` +
+      `- Only include quantities that can be directly justified by document evidence.\n` +
+      `- Do NOT infer, assume, or hallucinate quantities. If evidence is missing, return zero elements and explain in recommendations.\n` +
+      `- For each element provide an evidence snippet taken from detected geometry, dimensions, schedules, or legends.\n` +
       `- Do not include markdown or any text outside JSON.\n\n` +
+      `Deep deterministic pipeline context:\n` +
+      `- step1_document_parser.drawingType: ${parseContext.drawingType}\n` +
+      `- step1_document_parser.detectedScale: ${parseContext.scale.drawingScale ?? 'unknown'}\n` +
+      `- step1_document_parser.unitHint: ${parseContext.scale.unitHint ?? 'unknown'}\n` +
+      `- step2_vision_element_detection_required: walls, slabs, columns, beams, doors, windows, stairs, foundations, parking areas, site elements\n` +
+      `- step3_measurement_extraction_required: lengths, areas, volumes, counts\n` +
+      `- step4_quantity_calculation_required: concrete volume, steel weight, wall area, paint area, excavation volume (only if evidence exists)\n\n` +
       `Context:\n` +
       `- projectType: ${projectType}\n` +
       `- region: ${region}\n` +
       `- fileName: ${fileName}\n` +
       `- mimeType: ${mimeType}\n` +
       `- fileSizeBytes: ${fileSizeBytes}\n` +
-      `- imageIncluded: ${includeInlineImage ? 'yes' : 'no'}\n`
+      `- imageIncluded: ${includeInlineImage ? 'yes' : 'no'}\n` +
+      `- extractedTextSample: ${extractedTextSample || 'none'}\n`
 
     const userContent = imageDataUrl
       ? [
@@ -2496,36 +2572,66 @@ app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) 
         ]
       : userTextPrompt
 
-    const completion = await createCostEstimatorChatCompletion({
-      provider,
-      temperature: 0.2,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a senior construction cost estimation and quantity takeoff engineer. Return strict JSON only and prioritize practical field estimates.',
-        },
-        {
-          role: 'user',
-          content: userContent,
-        },
-      ],
-    })
+    const completion = providerConfigured
+      ? await createCostEstimatorChatCompletion({
+          provider,
+          temperature: deterministicInference.temperature,
+          topP: deterministicInference.topP,
+          seed: deterministicInference.seed,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a senior construction cost estimation and quantity takeoff engineer. Return strict JSON only. ' +
+                'Be deterministic, evidence-based, and never assume missing measurements.',
+            },
+            {
+              role: 'user',
+              content: userContent,
+            },
+          ],
+        })
+      : {
+          provider: 'deterministic-fallback',
+          model: 'rule-based-no-assumptions',
+          content: JSON.stringify({
+            summary:
+              'AI provider is not configured. Deterministic fallback kept quantities empty to avoid assumptions and preserve document-only extraction rules.',
+            drawingType: parseContext.drawingType,
+            detectedScale: parseContext.scale.drawingScale ?? 'unknown',
+            confidence: 0,
+            riskIndex: 0,
+            recommendations: [getCostEstimatorMissingConfigMessage(provider)],
+            validation: {
+              notes: ['Configure AI provider to enable vision + OCR extraction.'],
+            },
+            elements: [],
+          }),
+        }
 
     const parsed = extractJson(completion.content)
     const confidence = Math.max(0, Math.min(100, Math.round(Number(parsed?.confidence ?? 62) || 62)))
     const riskIndex = Math.max(0, Math.min(100, Math.round(Number(parsed?.riskIndex ?? 48) || 48)))
 
-    const elements = safeArray(parsed?.elements)
-      .map((item, index) => ({
-        id: `${Date.now()}-${index}`,
-        name: String(item?.name ?? 'Unknown Element').trim() || 'Unknown Element',
-        quantity: Math.max(0, Math.round(Number(item?.quantity ?? 0) || 0)),
-        measurement: String(item?.measurement ?? '').trim() || '0',
-        unit: String(item?.unit ?? 'units').trim() || 'units',
-        confidence: Math.max(0, Math.min(100, Math.round(Number(item?.confidence ?? confidence) || confidence))),
-      }))
-      .filter((item) => item.quantity > 0)
+    // Step 2 + 3: Element detection and measurement extraction (deterministic normalization)
+    const normalizedElements = ai_quantity_extractor.normalizeElements(parsed?.elements, confidence)
+    const measuredRows = measurement_engine.compute(normalizedElements)
+
+    // Verification Layer
+    const verification = buildValidation({ measuredRows, parseContext })
+
+    // Step 4: Quantity -> BOQ -> Deterministic Cost Formula
+    const boqRows = boq_generator.fromMeasurements(verification.verifiedRows)
+    const costResult = cost_calculator.calculate(boqRows)
+
+    const elements = verification.verifiedRows.map((item, index) => ({
+      id: `${documentFingerprint.hash.slice(0, 12)}-${index}`,
+      name: item.name,
+      quantity: item.quantity,
+      measurement: item.measurement,
+      unit: item.unit,
+      confidence: item.confidence,
+    }))
 
     const recommendations = safeArray(parsed?.recommendations)
       .map((item) => String(item ?? '').trim())
@@ -2535,7 +2641,7 @@ app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) 
     const summary = String(parsed?.summary ?? '').trim() ||
       `Model analyzed ${fileName} and generated a construction quantity/cost signal response.`
 
-    res.json({
+    const responsePayload = {
       provider: completion.provider,
       model: completion.model,
       analyzedAt: new Date().toISOString(),
@@ -2544,7 +2650,64 @@ app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) 
       riskIndex,
       recommendations,
       elements,
+      documentHash: documentFingerprint.hash,
+      drawingType: String(parsed?.drawingType ?? parseContext.drawingType),
+      deterministicInference,
+      quantitiesFromDocumentOnly: true,
+      formula:
+        'Total Cost = (Material Quantity × Unit Material Cost) + (Labor Hours × Labor Rate) + (Equipment Hours × Equipment Rate)',
+      costBreakdown: {
+        materialCost: Number(costResult.totals.materialCost.toFixed(2)),
+        laborCost: Number(costResult.totals.laborCost.toFixed(2)),
+        equipmentCost: Number(costResult.totals.equipmentCost.toFixed(2)),
+        totalCost: Number(costResult.totals.totalCost.toFixed(2)),
+      },
+      validation: verification.validation,
+      debug: {
+        documentFingerprint: documentFingerprint.hash,
+        pipeline: {
+          document_parser: {
+            drawingType: parseContext.drawingType,
+            detectedScale: parseContext.scale.drawingScale,
+            unitHint: parseContext.scale.unitHint,
+            tokenCount: parseContext.parseMetadata.tokenCount,
+          },
+          ai_quantity_extractor: {
+            detectedElements: normalizedElements.map((item) => ({
+              name: item.name,
+              sourceType: item.sourceType,
+              evidence: item.evidence,
+            })),
+          },
+          measurement_engine: measuredRows.map((row) => ({
+            name: row.name,
+            measurement: row.measurement,
+            numericMeasurement: row.numericMeasurement,
+            unit: row.unit,
+          })),
+          boq_generator: costResult.lineItems,
+          cost_calculator: costResult.totals,
+          suggested_accuracy_modules: {
+            documentFingerprinting: true,
+            drawingScaleDetection: true,
+            unitStandardization: true,
+            geometryValidation: true,
+            multiPassAnalysis: ['vision_object_detection', 'ocr_text_pass', 'geometry_reconciliation'],
+          },
+        },
+      },
+      fromCache: false,
+    }
+
+    await setCachedQuantityResult(documentFingerprint.hash, {
+      result: responsePayload,
     })
+
+    if (!debugMode) {
+      delete responsePayload.debug
+    }
+
+    res.json(responsePayload)
   } catch (error) {
     const message = normalizeAiErrorMessage(error, 'Cost estimator analysis failed.')
     const status = getAiErrorHttpStatus(error)
@@ -2679,7 +2842,9 @@ app.post('/api/cost-estimator/assistant', async (req, res) => {
 
     const completion = await createCostEstimatorChatCompletion({
       provider,
-      temperature: 0.2,
+      temperature: DETERMINISTIC_INFERENCE.temperature,
+      topP: DETERMINISTIC_INFERENCE.topP,
+      seed: COST_ESTIMATOR_INFERENCE_SEED,
       messages: [
         {
           role: 'system',

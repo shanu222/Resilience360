@@ -7,14 +7,46 @@ export function CostEstimation() {
   const [editMode, setEditMode] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
 
-  const items = state.costItems.map((item) => ({
-    ...item,
-    total: item.quantity * item.unitCost,
-  }));
+  const deterministicRateDb: Record<
+    string,
+    { laborRate: number; equipmentRate: number; laborHoursPerUnit: number; equipmentHoursPerUnit: number }
+  > = {
+    Walls: { laborRate: 18, equipmentRate: 6, laborHoursPerUnit: 0.45, equipmentHoursPerUnit: 0.15 },
+    Slabs: { laborRate: 24, equipmentRate: 12, laborHoursPerUnit: 0.7, equipmentHoursPerUnit: 0.25 },
+    Columns: { laborRate: 22, equipmentRate: 10, laborHoursPerUnit: 0.65, equipmentHoursPerUnit: 0.2 },
+    Beams: { laborRate: 21, equipmentRate: 9, laborHoursPerUnit: 0.55, equipmentHoursPerUnit: 0.2 },
+    Doors: { laborRate: 17, equipmentRate: 4, laborHoursPerUnit: 1.4, equipmentHoursPerUnit: 0.08 },
+    Windows: { laborRate: 16, equipmentRate: 4, laborHoursPerUnit: 1.2, equipmentHoursPerUnit: 0.08 },
+    Foundation: { laborRate: 25, equipmentRate: 13, laborHoursPerUnit: 0.75, equipmentHoursPerUnit: 0.3 },
+    Roof: { laborRate: 20, equipmentRate: 8, laborHoursPerUnit: 0.5, equipmentHoursPerUnit: 0.2 },
+  };
 
-  const materialCost = items.reduce((sum, item) => sum + item.total, 0);
-  const laborCost = materialCost * 0.35;
-  const equipmentCost = materialCost * 0.15;
+  const fallbackRates = { laborRate: 18, equipmentRate: 7, laborHoursPerUnit: 0.4, equipmentHoursPerUnit: 0.15 };
+
+  const items = state.costItems.map((item) => {
+    const rates = deterministicRateDb[item.item] ?? fallbackRates;
+    const materialCost = item.quantity * item.unitCost;
+    const laborHours = item.quantity * rates.laborHoursPerUnit;
+    const equipmentHours = item.quantity * rates.equipmentHoursPerUnit;
+    const laborCost = laborHours * rates.laborRate;
+    const equipmentCost = equipmentHours * rates.equipmentRate;
+    const total = materialCost + laborCost + equipmentCost;
+    return {
+      ...item,
+      total,
+      materialCost,
+      laborHours,
+      laborRate: rates.laborRate,
+      laborCost,
+      equipmentHours,
+      equipmentRate: rates.equipmentRate,
+      equipmentCost,
+    };
+  });
+
+  const materialCost = items.reduce((sum, item) => sum + item.materialCost, 0);
+  const laborCost = items.reduce((sum, item) => sum + item.laborCost, 0);
+  const equipmentCost = items.reduce((sum, item) => sum + item.equipmentCost, 0);
   const totalCost = materialCost + laborCost + equipmentCost;
 
   const handleUnitCostChange = (id: string, value: string) => {
@@ -137,13 +169,13 @@ export function CostEstimation() {
           </h3>
         </div>
         <div className="bg-card rounded-xl p-6 border border-border">
-          <p className="text-sm text-muted-foreground mb-1">Labor Cost (35%)</p>
+          <p className="text-sm text-muted-foreground mb-1">Labor Cost (Hours × Rate)</p>
           <h3 className="text-2xl font-semibold text-accent">
             ${laborCost.toLocaleString()}
           </h3>
         </div>
         <div className="bg-card rounded-xl p-6 border border-border">
-          <p className="text-sm text-muted-foreground mb-1">Equipment Cost (15%)</p>
+          <p className="text-sm text-muted-foreground mb-1">Equipment Cost (Hours × Rate)</p>
           <h3 className="text-2xl font-semibold" style={{ color: "#8b5cf6" }}>
             ${equipmentCost.toLocaleString()}
           </h3>
@@ -167,6 +199,10 @@ export function CostEstimation() {
           <p className="text-muted-foreground">
             <span className="font-medium text-foreground">Item Total</span> = Quantity × Unit
             Cost
+          </p>
+          <p className="text-muted-foreground">
+            <span className="font-medium text-foreground">Deterministic Formula</span> =
+            (Material Quantity × Unit Material Cost) + (Labor Hours × Labor Rate) + (Equipment Hours × Equipment Rate)
           </p>
         </div>
       </div>
