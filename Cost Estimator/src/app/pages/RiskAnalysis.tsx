@@ -5,6 +5,7 @@ import { useEstimator } from "../state/estimatorStore";
 export function RiskAnalysis() {
   const { state } = useEstimator();
   const [lastRefreshAt, setLastRefreshAt] = useState<string>(new Date().toLocaleTimeString());
+  const hasAnalysis = state.takeoffElements.length > 0 || state.costItems.length > 0;
 
   const materialCost = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
   const budgetOverrunRisk = Math.min(92, Math.max(25, Math.round(35 + (state.takeoffConfidence ? 100 - state.takeoffConfidence : 22))));
@@ -96,6 +97,15 @@ export function RiskAnalysis() {
         </button>
         <p className="text-xs text-muted-foreground mt-2">Last refreshed: {lastRefreshAt}</p>
       </div>
+
+      {!hasAnalysis && (
+        <div className="bg-card rounded-xl border border-border p-8 text-center text-sm text-muted-foreground">
+          No risk data available yet. Upload and analyze drawings/photos first to generate real risk results.
+        </div>
+      )}
+
+      {hasAnalysis && (
+        <>
 
       {/* Risk Cards */}
       <div>
@@ -241,6 +251,8 @@ export function RiskAnalysis() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

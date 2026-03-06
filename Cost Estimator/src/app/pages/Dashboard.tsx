@@ -26,37 +26,6 @@ import {
 import { useMemo } from "react";
 import { useEstimator } from "../state/estimatorStore";
 
-const recentProjects = [
-  {
-    name: "Downtown Office Complex",
-    location: "New York, NY",
-    area: "50,000 sq ft",
-    cost: "$2,500,000",
-    status: "In Progress",
-  },
-  {
-    name: "Residential Tower",
-    location: "Los Angeles, CA",
-    area: "80,000 sq ft",
-    cost: "$4,200,000",
-    status: "Completed",
-  },
-  {
-    name: "Shopping Mall Renovation",
-    location: "Chicago, IL",
-    area: "120,000 sq ft",
-    cost: "$6,800,000",
-    status: "Planning",
-  },
-  {
-    name: "Industrial Warehouse",
-    location: "Houston, TX",
-    area: "200,000 sq ft",
-    cost: "$8,500,000",
-    status: "In Progress",
-  },
-];
-
 export function Dashboard() {
   const { state } = useEstimator();
 
@@ -65,18 +34,25 @@ export function Dashboard() {
   const equipmentCost = materialCost * 0.15;
   const totalCost = materialCost + laborCost + equipmentCost;
   const otherCost = totalCost * 0.05;
+  const hasDerivedData = state.costItems.length > 0 || state.takeoffElements.length > 0;
 
   const costBreakdownData = useMemo(
-    () => [
-      { name: "Materials", value: materialCost, color: "#3A63FF" },
-      { name: "Labor", value: laborCost, color: "#2EC4B6" },
-      { name: "Equipment", value: equipmentCost, color: "#8b5cf6" },
-      { name: "Other", value: otherCost, color: "#f59e0b" },
-    ],
-    [materialCost, laborCost, equipmentCost, otherCost],
+    () =>
+      hasDerivedData
+        ? [
+            { name: "Materials", value: materialCost, color: "#3A63FF" },
+            { name: "Labor", value: laborCost, color: "#2EC4B6" },
+            { name: "Equipment", value: equipmentCost, color: "#8b5cf6" },
+            { name: "Other", value: otherCost, color: "#f59e0b" },
+          ]
+        : [],
+    [hasDerivedData, materialCost, laborCost, equipmentCost, otherCost],
   );
 
   const timelineData = useMemo(() => {
+    if (!hasDerivedData) {
+      return [];
+    }
     const base = totalCost / 6;
     const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
     return labels.map((month, index) => {
@@ -85,33 +61,36 @@ export function Dashboard() {
       const actual = Math.round(budget * factor);
       return { month, budget, actual };
     });
-  }, [totalCost]);
+  }, [hasDerivedData, totalCost]);
 
   const recentProjects = useMemo(
-    () => [
-      {
-        name: "AI-Assisted Project (Current)",
-        location: state.settings.defaultRegion,
-        area: `${Math.max(22000, state.takeoffElements.length * 750).toLocaleString()} sq ft`,
-        cost: `$${Math.round(totalCost).toLocaleString()}`,
-        status: "In Progress",
-      },
-      {
-        name: "Uploaded File Set",
-        location: state.settings.defaultRegion,
-        area: `${(state.uploadedFiles.length * 8200 || 12000).toLocaleString()} sq ft`,
-        cost: `$${Math.round(materialCost).toLocaleString()}`,
-        status: state.uploadedFiles.length > 0 ? "In Progress" : "Planning",
-      },
-      {
-        name: "Auto BOQ Draft",
-        location: state.settings.defaultRegion,
-        area: `${(state.takeoffElements.length * 350 || 9000).toLocaleString()} sq ft`,
-        cost: `$${Math.round(totalCost * 1.08).toLocaleString()}`,
-        status: state.takeoffElements.length > 0 ? "Completed" : "Planning",
-      },
-    ],
-    [state.settings.defaultRegion, state.takeoffElements.length, state.uploadedFiles.length, totalCost, materialCost],
+    () =>
+      hasDerivedData
+        ? [
+            {
+              name: "Current Analysis Session",
+              location: state.settings.defaultRegion || "Configured region",
+              area: `${Math.max(1, state.takeoffElements.length) * 750} sq ft`,
+              cost: `$${Math.round(totalCost).toLocaleString()}`,
+              status: state.takeoffElements.length > 0 ? "In Progress" : "Planning",
+            },
+            {
+              name: "Uploaded Document Batch",
+              location: state.settings.defaultRegion || "Configured region",
+              area: `${Math.max(1, state.uploadedFiles.length) * 8200} sq ft`,
+              cost: `$${Math.round(materialCost).toLocaleString()}`,
+              status: state.uploadedFiles.length > 0 ? "In Progress" : "Planning",
+            },
+            {
+              name: "Generated BOQ",
+              location: state.settings.defaultRegion || "Configured region",
+              area: `${Math.max(1, state.takeoffElements.length) * 350} sq ft`,
+              cost: `$${Math.round(totalCost * 1.08).toLocaleString()}`,
+              status: state.takeoffElements.length > 0 ? "Completed" : "Planning",
+            },
+          ]
+        : [],
+    [hasDerivedData, state.settings.defaultRegion, state.takeoffElements.length, state.uploadedFiles.length, totalCost, materialCost],
   );
 
   return (
@@ -120,46 +99,51 @@ export function Dashboard() {
       <div>
         <h1 className="text-3xl font-semibold mb-2">Project Overview</h1>
         <p className="text-muted-foreground">
-          Welcome back! Here's a summary of your construction projects.
+          Live summary generated from uploaded and analyzed documents.
         </p>
+        {!hasDerivedData && (
+          <p className="text-sm text-muted-foreground mt-2">
+            No analyzed data yet. Upload drawings/photos and run AI analysis to populate this dashboard.
+          </p>
+        )}
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Project Cost"
-          value={`$${Math.round(totalCost).toLocaleString()}`}
+          value={hasDerivedData ? `$${Math.round(totalCost).toLocaleString()}` : "N/A"}
           icon={<DollarSign className="w-6 h-6" />}
           color="bg-primary"
           trend={{ value: `${state.uploadedFiles.length} files tracked`, isPositive: true }}
         />
         <StatCard
           title="Material Cost"
-          value={`$${Math.round(materialCost).toLocaleString()}`}
+          value={hasDerivedData ? `$${Math.round(materialCost).toLocaleString()}` : "N/A"}
           icon={<Package className="w-6 h-6" />}
           color="bg-accent"
         />
         <StatCard
           title="Labor Cost"
-          value={`$${Math.round(laborCost).toLocaleString()}`}
+          value={hasDerivedData ? `$${Math.round(laborCost).toLocaleString()}` : "N/A"}
           icon={<Users className="w-6 h-6" />}
           color="bg-[#8b5cf6]"
         />
         <StatCard
           title="Equipment Cost"
-          value={`$${Math.round(equipmentCost).toLocaleString()}`}
+          value={hasDerivedData ? `$${Math.round(equipmentCost).toLocaleString()}` : "N/A"}
           icon={<Truck className="w-6 h-6" />}
           color="bg-[#f59e0b]"
         />
         <StatCard
           title="Estimated Duration"
-          value={`${Math.max(6, Math.round(state.takeoffElements.length / 2) || 12)} Months`}
+          value={hasDerivedData ? `${Math.max(1, Math.round(state.takeoffElements.length / 2) || 1)} Months` : "N/A"}
           icon={<Clock className="w-6 h-6" />}
           color="bg-[#10b981]"
         />
         <StatCard
           title="Cost per Square Foot"
-          value={`$${Math.max(110, Math.round(totalCost / Math.max(1, state.takeoffElements.length * 20 || 3000)))}`}
+          value={hasDerivedData ? `$${Math.max(1, Math.round(totalCost / Math.max(1, state.takeoffElements.length * 20 || 1)))}` : "N/A"}
           icon={<TrendingUp className="w-6 h-6" />}
           color="bg-primary"
         />
@@ -170,6 +154,7 @@ export function Dashboard() {
         {/* Cost Breakdown Pie Chart */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <h3 className="font-semibold mb-4">Cost Breakdown</h3>
+          {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">Waiting for analysis output.</p>}
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -207,6 +192,7 @@ export function Dashboard() {
         {/* Budget vs Actual */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <h3 className="font-semibold mb-4">Budget vs Actual</h3>
+          {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">No budget trend available until costs are generated.</p>}
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={timelineData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -224,6 +210,7 @@ export function Dashboard() {
       {/* Construction Cost Timeline */}
       <div className="bg-card rounded-xl p-6 border border-border">
         <h3 className="font-semibold mb-4">Construction Cost Timeline</h3>
+        {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">Timeline will appear after first successful analysis run.</p>}
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={timelineData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -252,6 +239,7 @@ export function Dashboard() {
       {/* Recent Projects Table */}
       <div>
         <h3 className="font-semibold mb-4">Recent Projects</h3>
+        {!hasDerivedData && <p className="text-sm text-muted-foreground mb-2">No project records generated yet.</p>}
         <DataTable
           columns={[
             { key: "name", label: "Project Name" },

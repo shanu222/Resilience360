@@ -1,24 +1,36 @@
 import { Truck, Calendar, DollarSign } from "lucide-react";
+import { useMemo } from "react";
+import { useEstimator } from "../state/estimatorStore";
 
-const equipment = [
-  { name: "Excavator (Large)", rentalCost: 850, usageDays: 25, totalCost: 21250 },
-  { name: "Tower Crane", rentalCost: 1200, usageDays: 90, totalCost: 108000 },
-  { name: "Concrete Mixer Truck", rentalCost: 450, usageDays: 30, totalCost: 13500 },
-  { name: "Concrete Pump", rentalCost: 550, usageDays: 20, totalCost: 11000 },
-  { name: "Bulldozer", rentalCost: 750, usageDays: 18, totalCost: 13500 },
-  { name: "Wheel Loader", rentalCost: 600, usageDays: 35, totalCost: 21000 },
-  { name: "Forklift (5 ton)", rentalCost: 280, usageDays: 60, totalCost: 16800 },
-  { name: "Scaffolding System", rentalCost: 350, usageDays: 120, totalCost: 42000 },
-  { name: "Generator (100 kW)", rentalCost: 180, usageDays: 150, totalCost: 27000 },
-  { name: "Compressor (Heavy Duty)", rentalCost: 120, usageDays: 90, totalCost: 10800 },
-  { name: "Aerial Work Platform", rentalCost: 320, usageDays: 45, totalCost: 14400 },
-  { name: "Dump Truck", rentalCost: 400, usageDays: 40, totalCost: 16000 },
+const equipmentTemplate = [
+  { name: "Excavator", rentalCost: 850 },
+  { name: "Concrete Mixer", rentalCost: 420 },
+  { name: "Scaffolding System", rentalCost: 300 },
+  { name: "Material Lift", rentalCost: 260 },
+  { name: "Generator", rentalCost: 180 },
 ];
 
 export function EquipmentCost() {
+  const { state } = useEstimator();
+  const equipmentBudget = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0) * 0.15;
+  const equipment = useMemo(() => {
+    if (equipmentBudget <= 0) {
+      return [];
+    }
+    const perType = equipmentBudget / equipmentTemplate.length;
+    return equipmentTemplate.map((entry) => {
+      const usageDays = Math.max(3, Math.round(perType / entry.rentalCost));
+      return {
+        ...entry,
+        usageDays,
+        totalCost: usageDays * entry.rentalCost,
+      };
+    });
+  }, [equipmentBudget]);
+
   const totalCost = equipment.reduce((sum, eq) => sum + eq.totalCost, 0);
   const totalDays = equipment.reduce((sum, eq) => sum + eq.usageDays, 0);
-  const avgDailyCost = totalCost / totalDays;
+  const avgDailyCost = totalDays > 0 ? totalCost / totalDays : 0;
 
   return (
     <div className="space-y-6">
@@ -58,7 +70,7 @@ export function EquipmentCost() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm text-muted-foreground mb-1">Avg. Daily Cost</p>
-              <h3 className="text-2xl font-semibold">${avgDailyCost.toFixed(2)}</h3>
+              <h3 className="text-2xl font-semibold">{avgDailyCost > 0 ? `$${avgDailyCost.toFixed(2)}` : "N/A"}</h3>
             </div>
             <div className="bg-[#f59e0b] rounded-lg p-3 text-white">
               <Truck className="w-6 h-6" />
@@ -80,6 +92,13 @@ export function EquipmentCost() {
               </tr>
             </thead>
             <tbody>
+              {equipment.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    No equipment allocation yet. Analyze uploaded documents to generate equipment requirements.
+                  </td>
+                </tr>
+              )}
               {equipment.map((eq, idx) => (
                 <tr
                   key={idx}
@@ -132,7 +151,7 @@ export function EquipmentCost() {
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-border">
               <span className="text-sm text-muted-foreground">Monthly Rate</span>
-              <span className="text-sm font-medium">35% discount</span>
+              <span className="text-sm font-medium">Derived from generated usage plan</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Operator</span>

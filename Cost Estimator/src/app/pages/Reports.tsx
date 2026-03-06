@@ -8,52 +8,21 @@ const reportTypes = [
     title: "Cost Report",
     description: "Detailed breakdown of all project costs including materials, labor, and equipment",
     icon: FileText,
-    lastGenerated: "March 3, 2026",
   },
   {
     title: "Budget Analysis",
     description: "Comprehensive budget vs actual spending analysis with variance reports",
     icon: FileText,
-    lastGenerated: "March 2, 2026",
   },
   {
     title: "BOQ Report",
     description: "Complete Bill of Quantities for contractor bidding and estimation",
     icon: FileText,
-    lastGenerated: "March 1, 2026",
   },
   {
     title: "Project Summary",
     description: "Executive summary with key metrics, timeline, and financial overview",
     icon: FileText,
-    lastGenerated: "February 28, 2026",
-  },
-];
-
-const recentReports = [
-  {
-    name: "Monthly Cost Report - February 2026",
-    type: "Cost Report",
-    date: "March 1, 2026",
-    size: "2.4 MB",
-  },
-  {
-    name: "Q1 Budget Analysis",
-    type: "Budget Analysis",
-    date: "February 28, 2026",
-    size: "1.8 MB",
-  },
-  {
-    name: "BOQ - Downtown Office Complex",
-    type: "BOQ Report",
-    date: "February 25, 2026",
-    size: "3.2 MB",
-  },
-  {
-    name: "Project Summary - Week 8",
-    type: "Project Summary",
-    date: "February 22, 2026",
-    size: "1.5 MB",
   },
 ];
 
@@ -63,7 +32,7 @@ export function Reports() {
   const [statusMessage, setStatusMessage] = useState("");
 
   const reports = useMemo(() => {
-    const mapped = state.reports.map((report) => ({
+    return state.reports.map((report) => ({
       name: report.name,
       type: report.type,
       date: report.date,
@@ -71,12 +40,15 @@ export function Reports() {
       id: report.id,
       content: report.content,
     }));
-    return [...mapped, ...recentReports.map((item, idx) => ({ ...item, id: `seed-${idx}`, content: `${item.name}\n${item.type}` }))];
   }, [state.reports]);
 
   const selectedReport = reports.find((report) => report.id === selectedReportId) ?? null;
 
   const generateReport = (type: string) => {
+    if (state.costItems.length === 0 && state.takeoffElements.length === 0) {
+      setStatusMessage("No analyzed project data available. Upload and analyze documents first.");
+      return;
+    }
     const riskIndex = Math.min(95, Math.max(18, Math.round(40 + state.takeoffConfidence * 0.4)));
     const content = buildReportContent({
       type,
@@ -132,7 +104,9 @@ export function Reports() {
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
                       <Calendar className="w-3 h-3" />
-                      <span>Last generated: {report.lastGenerated}</span>
+                      <span>
+                        Last generated: {reports.find((item) => item.type === report.title)?.date ?? "Not generated yet"}
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -216,6 +190,13 @@ export function Reports() {
                 </tr>
               </thead>
               <tbody>
+                {reports.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                      No reports generated yet. Use "Generate" on any report type to create real report data.
+                    </td>
+                  </tr>
+                )}
                 {reports.map((report) => (
                   <tr
                     key={report.id}

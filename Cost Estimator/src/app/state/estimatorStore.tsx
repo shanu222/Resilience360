@@ -82,6 +82,7 @@ type EstimatorContextValue = {
   setUploadStatus: (fileId: string, status: UploadStatus) => void;
   setSelectedFileId: (fileId: string | null) => void;
   setTakeoffResult: (elements: TakeoffElement[], confidence: number) => void;
+  regenerateCostItemsFromTakeoff: () => void;
   clearTakeoffResult: () => void;
   updateCostItemUnitCost: (itemId: string, unitCost: number) => void;
   addReport: (report: GeneratedReport) => void;
@@ -114,25 +115,14 @@ const makeId = () => {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
-const defaultCostItems: CostItem[] = [
-  { id: "cost-concrete", item: "Concrete", quantity: 800, unit: "cubic meters", unitCost: 120 },
-  { id: "cost-steel", item: "Steel reinforcement", quantity: 12000, unit: "kg", unitCost: 1.2 },
-  { id: "cost-brickwork", item: "Brickwork", quantity: 5000, unit: "sq meters", unitCost: 25 },
-  { id: "cost-paint", item: "Paint", quantity: 3000, unit: "sq meters", unitCost: 8 },
-  { id: "cost-flooring", item: "Flooring", quantity: 1200, unit: "sq meters", unitCost: 45 },
-  { id: "cost-doors", item: "Doors", quantity: 24, unit: "units", unitCost: 450 },
-  { id: "cost-windows", item: "Windows", quantity: 36, unit: "units", unitCost: 380 },
-  { id: "cost-electrical", item: "Electrical", quantity: 1, unit: "lump sum", unitCost: 85000 },
-  { id: "cost-plumbing", item: "Plumbing", quantity: 1, unit: "lump sum", unitCost: 65000 },
-  { id: "cost-hvac", item: "HVAC", quantity: 1, unit: "lump sum", unitCost: 120000 },
-];
+const defaultCostItems: CostItem[] = [];
 
 const defaultSettings: SettingsState = {
-  fullName: "John Doe",
-  email: "john.doe@company.com",
-  company: "ABC Construction Inc.",
-  role: "Civil Engineer",
-  defaultRegion: "New York, NY",
+  fullName: "",
+  email: "",
+  company: "",
+  role: "Project Engineer",
+  defaultRegion: "Pakistan",
   currency: "USD ($)",
   measurementSystem: "Imperial (ft, in)",
   timezone: "Eastern Time (ET)",
@@ -144,15 +134,47 @@ const defaultSettings: SettingsState = {
   twoFactorEnabled: false,
 };
 
-const defaultAssistantMessages: AssistantMessage[] = [
-  {
-    id: "assistant-welcome",
-    role: "assistant",
-    content:
-      "Hello! I can help with cost estimation, quantity extraction, risk analysis, and report generation using your uploaded drawings and photos.",
-    createdAt: new Date().toISOString(),
-  },
-];
+const defaultAssistantMessages: AssistantMessage[] = [];
+
+const unitCostByElement: Record<string, { unitCost: number; unit: string }> = {
+  Walls: { unitCost: 28, unit: "sq meters" },
+  Slabs: { unitCost: 120, unit: "sq meters" },
+  Columns: { unitCost: 95, unit: "units" },
+  Beams: { unitCost: 80, unit: "linear meters" },
+  Foundation: { unitCost: 135, unit: "cubic meters" },
+  Roof: { unitCost: 65, unit: "sq meters" },
+  Doors: { unitCost: 450, unit: "units" },
+  Windows: { unitCost: 380, unit: "units" },
+};
+
+const deriveCostItemsFromTakeoff = (
+  elements: TakeoffElement[],
+  existingItems: CostItem[] = [],
+): CostItem[] => {
+  const grouped = new Map<string, { quantity: number; unit: string }>();
+  elements.forEach((element) => {
+    if (!element.name || element.quantity <= 0) {
+      return;
+    }
+    const current = grouped.get(element.name) ?? { quantity: 0, unit: element.unit || "units" };
+    current.quantity += element.quantity;
+    current.unit = element.unit || current.unit;
+    grouped.set(element.name, current);
+  });
+
+  const existingByName = new Map(existingItems.map((item) => [item.item, item]));
+  return Array.from(grouped.entries()).map(([name, groupedValue], index) => {
+    const fallback = unitCostByElement[name] ?? { unitCost: 60, unit: groupedValue.unit || "units" };
+    const existing = existingByName.get(name);
+    return {
+      id: existing?.id ?? `cost-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index}`,
+      item: name,
+      quantity: groupedValue.quantity,
+      unit: groupedValue.unit || fallback.unit,
+      unitCost: existing?.unitCost ?? fallback.unitCost,
+    };
+  });
+};
 
 const defaultState: EstimatorState = {
   uploadedFiles: [],
@@ -173,16 +195,21 @@ const sanitizeLoadedState = (raw: unknown): EstimatorState => {
     return defaultState;
   }
   const loaded = raw as Partial<EstimatorState>;
+  const loadedCostItems = Array.isArray(loaded.costItems) ? loaded.costItems : [];
+  const hasLegacySeededItems = loadedCostItems.some((item) => item?.id?.startsWith("cost-"));
+  const hasRealInputSignals =
+    (Array.isArray(loaded.uploadedFiles) && loaded.uploadedFiles.length > 0) ||
+    (Array.isArray(loaded.takeoffElements) && loaded.takeoffElements.length > 0);
+  const normalizedCostItems = hasLegacySeededItems && !hasRealInputSignals ? [] : loadedCostItems;
+
   return {
     ...defaultState,
     ...loaded,
-    costItems: Array.isArray(loaded.costItems) && loaded.costItems.length > 0 ? loaded.costItems : defaultCostItems,
+    costItems: normalizedCostItems,
     uploadedFiles: Array.isArray(loaded.uploadedFiles) ? loaded.uploadedFiles : [],
     takeoffElements: Array.isArray(loaded.takeoffElements) ? loaded.takeoffElements : [],
     reports: Array.isArray(loaded.reports) ? loaded.reports : [],
-    assistantMessages: Array.isArray(loaded.assistantMessages) && loaded.assistantMessages.length > 0
-      ? loaded.assistantMessages
-      : defaultAssistantMessages,
+    assistantMessages: Array.isArray(loaded.assistantMessages) ? loaded.assistantMessages : defaultAssistantMessages,
     settings: {
       ...defaultSettings,
       ...(loaded.settings ?? {}),
@@ -256,9 +283,17 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
   const setTakeoffResult = useCallback((elements: TakeoffElement[], confidence: number) => {
     setState((prev) => ({
       ...prev,
+      costItems: deriveCostItemsFromTakeoff(elements, prev.costItems),
       takeoffElements: elements,
       takeoffConfidence: confidence,
       takeoffLastRunAt: new Date().toISOString(),
+    }));
+  }, []);
+
+  const regenerateCostItemsFromTakeoff = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      costItems: deriveCostItemsFromTakeoff(prev.takeoffElements, prev.costItems),
     }));
   }, []);
 
@@ -268,6 +303,7 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
       takeoffElements: [],
       takeoffConfidence: 0,
       takeoffLastRunAt: null,
+      costItems: [],
     }));
   }, []);
 
@@ -328,6 +364,7 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
       setUploadStatus,
       setSelectedFileId,
       setTakeoffResult,
+      regenerateCostItemsFromTakeoff,
       clearTakeoffResult,
       updateCostItemUnitCost,
       addReport,
@@ -343,6 +380,7 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
       setUploadStatus,
       setSelectedFileId,
       setTakeoffResult,
+      regenerateCostItemsFromTakeoff,
       clearTakeoffResult,
       updateCostItemUnitCost,
       addReport,

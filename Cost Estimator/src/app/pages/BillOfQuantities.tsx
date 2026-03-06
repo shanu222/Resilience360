@@ -2,105 +2,6 @@ import { Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { buildReportContent, createReport, downloadTextFile } from "../services/realtimeAi";
 import { useEstimator } from "../state/estimatorStore";
 
-const boqItems = [
-  {
-    itemNo: "1.0",
-    description: "Site Preparation and Earthwork",
-    quantity: 1,
-    unit: "Lump Sum",
-    unitPrice: 25000,
-    totalPrice: 25000,
-  },
-  {
-    itemNo: "1.1",
-    description: "Excavation for foundation",
-    quantity: 800,
-    unit: "cubic meters",
-    unitPrice: 45,
-    totalPrice: 36000,
-  },
-  {
-    itemNo: "2.0",
-    description: "Concrete Work",
-    quantity: 800,
-    unit: "cubic meters",
-    unitPrice: 120,
-    totalPrice: 96000,
-  },
-  {
-    itemNo: "2.1",
-    description: "Steel reinforcement",
-    quantity: 12000,
-    unit: "kg",
-    unitPrice: 1.2,
-    totalPrice: 14400,
-  },
-  {
-    itemNo: "3.0",
-    description: "Masonry Work - Brickwork",
-    quantity: 5000,
-    unit: "sq meters",
-    unitPrice: 25,
-    totalPrice: 125000,
-  },
-  {
-    itemNo: "4.0",
-    description: "Plastering and Finishing",
-    quantity: 3000,
-    unit: "sq meters",
-    unitPrice: 15,
-    totalPrice: 45000,
-  },
-  {
-    itemNo: "5.0",
-    description: "Flooring - Ceramic tiles",
-    quantity: 1200,
-    unit: "sq meters",
-    unitPrice: 45,
-    totalPrice: 54000,
-  },
-  {
-    itemNo: "6.0",
-    description: "Painting works",
-    quantity: 3000,
-    unit: "sq meters",
-    unitPrice: 8,
-    totalPrice: 24000,
-  },
-  {
-    itemNo: "7.0",
-    description: "Doors and Windows",
-    quantity: 60,
-    unit: "units",
-    unitPrice: 420,
-    totalPrice: 25200,
-  },
-  {
-    itemNo: "8.0",
-    description: "Electrical Installation",
-    quantity: 1,
-    unit: "Lump Sum",
-    unitPrice: 85000,
-    totalPrice: 85000,
-  },
-  {
-    itemNo: "9.0",
-    description: "Plumbing Installation",
-    quantity: 1,
-    unit: "Lump Sum",
-    unitPrice: 65000,
-    totalPrice: 65000,
-  },
-  {
-    itemNo: "10.0",
-    description: "HVAC System",
-    quantity: 1,
-    unit: "Lump Sum",
-    unitPrice: 120000,
-    totalPrice: 120000,
-  },
-];
-
 export function BillOfQuantities() {
   const { state, addReport } = useEstimator();
   const liveRows = state.costItems.map((item, index) => ({
@@ -112,7 +13,8 @@ export function BillOfQuantities() {
     totalPrice: item.quantity * item.unitCost,
   }));
 
-  const sourceRows = liveRows.length > 0 ? liveRows : boqItems;
+  const sourceRows = liveRows;
+  const hasRows = sourceRows.length > 0;
   const totalAmount = sourceRows.reduce((sum, item) => sum + item.totalPrice, 0);
 
   const downloadBoq = (format: "excel" | "pdf") => {
@@ -156,11 +58,11 @@ export function BillOfQuantities() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => downloadBoq("excel")} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+          <button disabled={!hasRows} onClick={() => downloadBoq("excel")} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
             <FileSpreadsheet className="w-4 h-4" />
             Export Excel
           </button>
-          <button onClick={() => downloadBoq("pdf")} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+          <button disabled={!hasRows} onClick={() => downloadBoq("pdf")} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
             <FileText className="w-4 h-4" />
             Export PDF
           </button>
@@ -177,19 +79,19 @@ export function BillOfQuantities() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Project Name</p>
-            <p className="font-medium">Downtown Office Complex</p>
+            <p className="font-medium">Current Uploaded Project</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Location</p>
-            <p className="font-medium">New York, NY</p>
+            <p className="font-medium">{state.settings.defaultRegion || "Not configured"}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Date</p>
-            <p className="font-medium">March 4, 2026</p>
+            <p className="font-medium">{new Date().toLocaleDateString()}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">BOQ Number</p>
-            <p className="font-medium">BOQ-2026-0147</p>
+            <p className="font-medium">{`BOQ-${Date.now().toString().slice(-6)}`}</p>
           </div>
         </div>
       </div>
@@ -209,6 +111,13 @@ export function BillOfQuantities() {
               </tr>
             </thead>
             <tbody>
+              {sourceRows.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    BOQ is empty. Upload and analyze documents to generate bill of quantities entries.
+                  </td>
+                </tr>
+              )}
               {sourceRows.map((item, idx) => (
                 <tr
                   key={idx}
@@ -262,13 +171,13 @@ export function BillOfQuantities() {
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button onClick={generateContractorEstimate} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+        <button disabled={!hasRows} onClick={generateContractorEstimate} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
           Generate Contractor Estimate
         </button>
-        <button onClick={() => downloadBoq("pdf")} className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity">
+        <button disabled={!hasRows} onClick={() => downloadBoq("pdf")} className="px-6 py-3 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
           Download Report
         </button>
-        <button onClick={() => void shareWithTeam()} className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
+        <button disabled={!hasRows} onClick={() => void shareWithTeam()} className="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-60">
           Share with Team
         </button>
       </div>

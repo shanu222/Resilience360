@@ -1,22 +1,37 @@
 import { Users, Clock, DollarSign } from "lucide-react";
+import { useMemo } from "react";
+import { useEstimator } from "../state/estimatorStore";
 
-const laborTypes = [
-  { type: "Carpenter", hourlyRate: 45, region: "New York, NY", estimatedHours: 480, totalCost: 21600 },
-  { type: "Electrician", hourlyRate: 55, region: "New York, NY", estimatedHours: 360, totalCost: 19800 },
-  { type: "Plumber", hourlyRate: 52, region: "New York, NY", estimatedHours: 280, totalCost: 14560 },
-  { type: "Mason", hourlyRate: 42, region: "New York, NY", estimatedHours: 520, totalCost: 21840 },
-  { type: "Painter", hourlyRate: 38, region: "New York, NY", estimatedHours: 320, totalCost: 12160 },
-  { type: "Welder", hourlyRate: 48, region: "New York, NY", estimatedHours: 240, totalCost: 11520 },
-  { type: "HVAC Technician", hourlyRate: 58, region: "New York, NY", estimatedHours: 280, totalCost: 16240 },
-  { type: "Roofer", hourlyRate: 44, region: "New York, NY", estimatedHours: 200, totalCost: 8800 },
-  { type: "Concrete Worker", hourlyRate: 40, region: "New York, NY", estimatedHours: 360, totalCost: 14400 },
-  { type: "Drywall Installer", hourlyRate: 36, region: "New York, NY", estimatedHours: 280, totalCost: 10080 },
+const laborTemplate = [
+  { type: "Mason", hourlyRate: 28 },
+  { type: "Steel Fixer", hourlyRate: 32 },
+  { type: "Concrete Worker", hourlyRate: 26 },
+  { type: "Finishing Crew", hourlyRate: 24 },
+  { type: "MEP Technician", hourlyRate: 35 },
 ];
 
 export function LaborCost() {
+  const { state } = useEstimator();
+  const laborBudget = state.costItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0) * 0.35;
+  const laborTypes = useMemo(() => {
+    if (laborBudget <= 0) {
+      return [];
+    }
+    const perTradeBudget = laborBudget / laborTemplate.length;
+    return laborTemplate.map((trade) => {
+      const estimatedHours = Math.max(8, Math.round(perTradeBudget / trade.hourlyRate));
+      return {
+        ...trade,
+        region: state.settings.defaultRegion || "Configured Region",
+        estimatedHours,
+        totalCost: estimatedHours * trade.hourlyRate,
+      };
+    });
+  }, [laborBudget, state.settings.defaultRegion]);
+
   const totalHours = laborTypes.reduce((sum, labor) => sum + labor.estimatedHours, 0);
   const totalCost = laborTypes.reduce((sum, labor) => sum + labor.totalCost, 0);
-  const avgHourlyRate = totalCost / totalHours;
+  const avgHourlyRate = totalHours > 0 ? totalCost / totalHours : 0;
 
   return (
     <div className="space-y-6">
@@ -56,7 +71,7 @@ export function LaborCost() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm text-muted-foreground mb-1">Avg. Hourly Rate</p>
-              <h3 className="text-2xl font-semibold">${avgHourlyRate.toFixed(2)}</h3>
+              <h3 className="text-2xl font-semibold">{avgHourlyRate > 0 ? `$${avgHourlyRate.toFixed(2)}` : "N/A"}</h3>
             </div>
             <div className="bg-[#8b5cf6] rounded-lg p-3 text-white">
               <Users className="w-6 h-6" />
@@ -79,6 +94,13 @@ export function LaborCost() {
               </tr>
             </thead>
             <tbody>
+              {laborTypes.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    No labor data yet. Upload and analyze documents to generate labor distribution.
+                  </td>
+                </tr>
+              )}
               {laborTypes.map((labor, idx) => (
                 <tr
                   key={idx}
@@ -128,7 +150,7 @@ export function LaborCost() {
           <div className="space-y-3">
             <div className="flex justify-between items-center pb-2 border-b border-border">
               <span className="text-sm text-muted-foreground">Base Rate</span>
-              <span className="text-sm font-medium">$42.50/hr</span>
+              <span className="text-sm font-medium">{avgHourlyRate > 0 ? `$${avgHourlyRate.toFixed(2)}/hr` : "N/A"}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-border">
               <span className="text-sm text-muted-foreground">Regional Adjustment</span>
@@ -148,11 +170,9 @@ export function LaborCost() {
         <div className="bg-card rounded-xl p-6 border border-border">
           <h3 className="font-semibold mb-4">Labor Cost Notes</h3>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Rates include base pay, benefits, and insurance</p>
-            <p>• Overtime calculated at 1.5x for hours over 40/week</p>
-            <p>• Union rates may vary based on local agreements</p>
-            <p>• Specialized certifications may increase rates by 10-20%</p>
-            <p>• Weekend work typically adds 25% premium</p>
+            <p>• Labor estimates are auto-derived from analyzed quantities and cost profile.</p>
+            <p>• Adjust hourly rates after receiving real contractor quotations.</p>
+            <p>• Run analysis again after drawing revisions to refresh labor allocation.</p>
           </div>
         </div>
       </div>

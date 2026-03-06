@@ -3,7 +3,7 @@ import { Edit2, Save } from "lucide-react";
 import { useEstimator } from "../state/estimatorStore";
 
 export function CostEstimation() {
-  const { state, updateCostItemUnitCost } = useEstimator();
+  const { state, updateCostItemUnitCost, regenerateCostItemsFromTakeoff } = useEstimator();
   const [editMode, setEditMode] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
 
@@ -39,22 +39,34 @@ export function CostEstimation() {
             Detailed cost calculation for construction materials and services
           </p>
         </div>
-        <button
-          onClick={handleEditToggle}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-        >
-          {editMode ? (
-            <>
-              <Save className="w-4 h-4" />
-              Save Changes
-            </>
-          ) : (
-            <>
-              <Edit2 className="w-4 h-4" />
-              Edit Costs
-            </>
-          )}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              regenerateCostItemsFromTakeoff();
+              setSavedMessage("Cost items regenerated from analyzed document elements.");
+            }}
+            className="flex items-center gap-2 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors"
+          >
+            Generate from Analysis
+          </button>
+          <button
+            onClick={handleEditToggle}
+            disabled={items.length === 0}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            {editMode ? (
+              <>
+                <Save className="w-4 h-4" />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Edit2 className="w-4 h-4" />
+                Edit Costs
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Cost Table */}
@@ -71,6 +83,13 @@ export function CostEstimation() {
               </tr>
             </thead>
             <tbody>
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    No cost items yet. Upload documents and run AI analysis to generate real estimation rows.
+                  </td>
+                </tr>
+              )}
               {items.map((item, idx) => (
                 <tr
                   key={idx}

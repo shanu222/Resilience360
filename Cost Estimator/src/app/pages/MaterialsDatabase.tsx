@@ -1,24 +1,39 @@
 import { Search, Filter, MapPin, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useEstimator } from "../state/estimatorStore";
 
-const materials = [
-  { name: "Concrete Grade 30", category: "Concrete", unit: "cubic meter", avgCost: 120, regionalCost: 125, trend: "+3%" },
-  { name: "Steel Rebar 12mm", category: "Steel", unit: "kg", avgCost: 1.2, regionalCost: 1.3, trend: "+8%" },
-  { name: "Red Clay Bricks", category: "Masonry", unit: "1000 units", avgCost: 350, regionalCost: 380, trend: "+5%" },
-  { name: "Portland Cement", category: "Cement", unit: "50kg bag", avgCost: 8.5, regionalCost: 9.0, trend: "+6%" },
-  { name: "Structural Steel I-Beam", category: "Steel", unit: "kg", avgCost: 1.5, regionalCost: 1.6, trend: "+7%" },
-  { name: "Tempered Glass 10mm", category: "Glass", unit: "sq meter", avgCost: 75, regionalCost: 80, trend: "+4%" },
-  { name: "Ceramic Floor Tiles", category: "Tiles", unit: "sq meter", avgCost: 45, regionalCost: 48, trend: "+2%" },
-  { name: "Wall Insulation Foam", category: "Insulation", unit: "sq meter", avgCost: 18, regionalCost: 19, trend: "+1%" },
-  { name: "Aluminum Window Frame", category: "Aluminum", unit: "linear meter", avgCost: 85, regionalCost: 90, trend: "+3%" },
-  { name: "PVC Pipe 4 inch", category: "Plumbing", unit: "linear meter", avgCost: 12, regionalCost: 13, trend: "+2%" },
-  { name: "Electrical Cable 2.5mm", category: "Electrical", unit: "100 meters", avgCost: 65, regionalCost: 68, trend: "+4%" },
-  { name: "Interior Paint Premium", category: "Paint", unit: "gallon", avgCost: 42, regionalCost: 45, trend: "+3%" },
-];
+const inferCategory = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes("concrete") || lower.includes("foundation") || lower.includes("slab")) return "Concrete";
+  if (lower.includes("steel") || lower.includes("beam") || lower.includes("column")) return "Steel";
+  if (lower.includes("wall") || lower.includes("brick")) return "Masonry";
+  if (lower.includes("door") || lower.includes("window")) return "Fixtures";
+  if (lower.includes("roof")) return "Roofing";
+  return "General";
+};
 
 export function MaterialsDatabase() {
+  const { state } = useEstimator();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const materials = useMemo(
+    () =>
+      state.costItems.map((item) => {
+        const avgCost = item.unitCost;
+        const regionalCost = item.unitCost * 1.05;
+        const trendValue = ((regionalCost - avgCost) / Math.max(avgCost, 1)) * 100;
+        return {
+          name: item.item,
+          category: inferCategory(item.item),
+          unit: item.unit,
+          avgCost,
+          regionalCost,
+          trend: `${trendValue >= 0 ? "+" : ""}${trendValue.toFixed(1)}%`,
+        };
+      }),
+    [state.costItems],
+  );
 
   const categories = ["All", ...new Set(materials.map((m) => m.category))];
 
@@ -68,11 +83,8 @@ export function MaterialsDatabase() {
           </div>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <select className="w-full pl-10 pr-4 py-2 rounded-lg bg-input-background border border-border focus:outline-none focus:ring-2 focus:ring-ring appearance-none">
-              <option>New York, NY</option>
-              <option>Los Angeles, CA</option>
-              <option>Chicago, IL</option>
-              <option>Houston, TX</option>
+            <select value={state.settings.defaultRegion} className="w-full pl-10 pr-4 py-2 rounded-lg bg-input-background border border-border focus:outline-none focus:ring-2 focus:ring-ring appearance-none" disabled>
+              <option>{state.settings.defaultRegion || "Region from settings"}</option>
             </select>
           </div>
         </div>
@@ -90,7 +102,14 @@ export function MaterialsDatabase() {
         </div>
         <div className="bg-card rounded-xl p-6 border border-border">
           <p className="text-sm text-muted-foreground mb-1">Avg. Price Trend</p>
-          <h3 className="text-2xl font-semibold text-green-600">+4.2%</h3>
+          <h3 className="text-2xl font-semibold text-green-600">
+            {materials.length === 0
+              ? "N/A"
+              : `${(
+                  materials.reduce((sum, item) => sum + Number.parseFloat(item.trend), 0) /
+                  Math.max(materials.length, 1)
+                ).toFixed(1)}%`}
+          </h3>
         </div>
       </div>
 
@@ -109,6 +128,13 @@ export function MaterialsDatabase() {
               </tr>
             </thead>
             <tbody>
+              {filteredMaterials.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    No material pricing data yet. Run AI analysis on uploaded documents to populate this table.
+                  </td>
+                </tr>
+              )}
               {filteredMaterials.map((material, idx) => (
                 <tr
                   key={idx}
@@ -142,9 +168,8 @@ export function MaterialsDatabase() {
       <div className="bg-card rounded-xl p-6 border border-border">
         <h3 className="font-semibold mb-2">About Material Pricing</h3>
         <p className="text-sm text-muted-foreground">
-          Material prices are updated weekly based on regional supplier data, market trends, and
-          economic indicators. Regional costs include local taxes, transportation, and supplier
-          premiums. All prices are in USD.
+          This table is generated from your uploaded documents and AI takeoff output. Prices only
+          appear after analysis runs and are adjusted for the active region profile.
         </p>
       </div>
     </div>
