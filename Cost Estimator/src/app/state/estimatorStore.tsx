@@ -1,4 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  loadEstimatorStateFromBackend,
+  saveEstimatorReportToBackend,
+  saveEstimatorStateToBackend,
+} from "../services/costEstimatorApi";
 
 export type UploadStatus = "Uploaded" | "Processing" | "Completed" | "Failed";
 
@@ -64,7 +69,7 @@ export type AssistantMessage = {
   createdAt: string;
 };
 
-type EstimatorState = {
+export type EstimatorState = {
   uploadedFiles: UploadedDrawing[];
   selectedFileId: string | null;
   takeoffElements: TakeoffElement[];
@@ -240,6 +245,8 @@ export const makeUploadedDrawing = (file: File, previewDataUrl?: string): Upload
 });
 
 export function EstimatorProvider({ children }: { children: React.ReactNode }) {
+  const syncTimerRef = useRef<number | null>(null);
+  const hasHydratedRef = useRef(false);
   const [state, setState] = useState<EstimatorState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -254,6 +261,50 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  useEffect(() => {
+    let active = true;
+    const hydrateFromBackend = async () => {
+      try {
+        const response = await loadEstimatorStateFromBackend();
+        if (!active || !response?.state) {
+          return;
+        }
+        setState(sanitizeLoadedState(response.state as unknown));
+      } catch {
+        // Keep local state when backend is unavailable.
+      } finally {
+        hasHydratedRef.current = true;
+      }
+    };
+
+    void hydrateFromBackend();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) {
+      return;
+    }
+
+    if (syncTimerRef.current !== null) {
+      window.clearTimeout(syncTimerRef.current);
+    }
+
+    syncTimerRef.current = window.setTimeout(() => {
+      void saveEstimatorStateToBackend(state).catch(() => {
+        // Keep working offline when backend sync fails.
+      });
+    }, 450);
+
+    return () => {
+      if (syncTimerRef.current !== null) {
+        window.clearTimeout(syncTimerRef.current);
+      }
+    };
   }, [state]);
 
   const addUploadedFiles = useCallback((files: UploadedDrawing[]) => {
@@ -321,6 +372,9 @@ export function EstimatorProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       reports: [report, ...prev.reports],
     }));
+    void saveEstimatorReportToBackend(report).catch(() => {
+      // Report remains in local state if backend write fails.
+    });
   }, []);
 
   const setReports = useCallback((reports: GeneratedReport[]) => {

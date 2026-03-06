@@ -10,6 +10,11 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { predictRetrofitMl, retrainRetrofitMlModel } from './ml/retrofitMlModel.mjs'
 import {
+  deriveCostEstimatorModules,
+  readCostEstimatorDb,
+  writeCostEstimatorState,
+} from './cost-estimator/costEstimatorDb.mjs'
+import {
   registerDevice,
   unregisterDevice,
   updateSubscriptionPreferences,
@@ -2507,6 +2512,81 @@ app.post('/api/cost-estimator/analyze', upload.single('file'), async (req, res) 
     const message = normalizeAiErrorMessage(error, 'Cost estimator analysis failed.')
     const status = getAiErrorHttpStatus(error)
     res.status(status).json({ error: message })
+  }
+})
+
+app.get('/api/cost-estimator/state', async (_req, res) => {
+  try {
+    const database = await readCostEstimatorDb()
+    const modules = deriveCostEstimatorModules(database.state)
+    res.json({
+      ok: true,
+      version: database.version,
+      updatedAt: database.updatedAt,
+      state: database.state,
+      modules,
+    })
+  } catch (error) {
+    res.status(500).json({ error: `Failed to load estimator state: ${error?.message || error}` })
+  }
+})
+
+app.put('/api/cost-estimator/state', async (req, res) => {
+  try {
+    const incomingState = req.body?.state ?? req.body
+    const saved = await writeCostEstimatorState(incomingState)
+    const modules = deriveCostEstimatorModules(saved.state)
+    res.json({
+      ok: true,
+      version: saved.version,
+      updatedAt: saved.updatedAt,
+      state: saved.state,
+      modules,
+    })
+  } catch (error) {
+    res.status(500).json({ error: `Failed to save estimator state: ${error?.message || error}` })
+  }
+})
+
+app.get('/api/cost-estimator/modules/:moduleName', async (req, res) => {
+  try {
+    const moduleName = String(req.params.moduleName ?? '').trim().toLowerCase()
+    const database = await readCostEstimatorDb()
+    const modules = deriveCostEstimatorModules(database.state)
+
+    if (moduleName === 'all') {
+      res.json({ ok: true, updatedAt: database.updatedAt, modules })
+      return
+    }
+
+    if (!(moduleName in modules)) {
+      res.status(404).json({ error: `Unknown module '${moduleName}'.` })
+      return
+    }
+
+    res.json({ ok: true, updatedAt: database.updatedAt, module: moduleName, data: modules[moduleName] })
+  } catch (error) {
+    res.status(500).json({ error: `Failed to read estimator module data: ${error?.message || error}` })
+  }
+})
+
+app.post('/api/cost-estimator/reports', async (req, res) => {
+  try {
+    const report = req.body?.report
+    if (!report || typeof report !== 'object') {
+      res.status(400).json({ error: 'Report payload is required.' })
+      return
+    }
+
+    const database = await readCostEstimatorDb()
+    const nextState = {
+      ...database.state,
+      reports: [report, ...safeArray(database.state.reports)].slice(0, 200),
+    }
+    const saved = await writeCostEstimatorState(nextState)
+    res.json({ ok: true, updatedAt: saved.updatedAt, reports: saved.state.reports })
+  } catch (error) {
+    res.status(500).json({ error: `Failed to save report: ${error?.message || error}` })
   }
 })
 

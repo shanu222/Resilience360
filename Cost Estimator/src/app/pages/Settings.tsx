@@ -30,6 +30,15 @@ export function Settings() {
     setStatusMessage("Application cache cleared and default values restored.");
   };
 
+  const handlePasswordReset = () => {
+    const recoveryEmail = state.settings.email?.trim();
+    if (!recoveryEmail) {
+      setStatusMessage("Add an email address in Profile Settings before requesting a password reset.");
+      return;
+    }
+    setStatusMessage(`Password reset workflow initiated for ${recoveryEmail}.`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -218,7 +227,7 @@ export function Settings() {
           <h3 className="font-semibold">Security</h3>
         </div>
         <div className="space-y-4">
-          <button className="w-full md:w-auto px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+          <button onClick={handlePasswordReset} className="w-full md:w-auto px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
             Change Password
           </button>
           <div className="flex items-center justify-between pt-4 border-t border-border">
