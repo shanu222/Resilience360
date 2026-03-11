@@ -8,6 +8,12 @@ export function HomePage() {
   const avgStockPercentage = hubs.length > 0
     ? Math.round(hubs.reduce((sum, hub) => sum + hub.stockPercentage, 0) / hubs.length)
     : 0;
+  const readyCount = hubs.filter((hub) => hub.status === 'ready').length;
+  const moderateCount = hubs.filter((hub) => hub.status === 'moderate').length;
+  const criticalCount = hubs.filter((hub) => hub.status === 'critical').length;
+  const readyPercentage = hubs.length > 0 ? Math.round((readyCount / hubs.length) * 100) : 0;
+  const moderatePercentage = hubs.length > 0 ? Math.round((moderateCount / hubs.length) * 100) : 0;
+  const criticalPercentage = hubs.length > 0 ? Math.round((criticalCount / hubs.length) * 100) : 0;
 
   if (isLoading) {
     return <div className="max-w-7xl mx-auto px-4 py-10 text-gray-600">Loading portal data...</div>;
@@ -85,9 +91,23 @@ export function HomePage() {
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <Shield className="h-10 w-10 text-orange-600" />
-              <span className="text-3xl font-bold text-gray-900">24/7</span>
+              <span className="text-3xl font-bold text-gray-900">{hubs.length}</span>
             </div>
-            <p className="text-sm text-gray-600">Emergency Response Ready</p>
+            <p className="text-sm text-gray-600">Hub Status Split</p>
+            <div className="mt-3 space-y-1 text-xs font-semibold">
+              <div className="flex items-center justify-between text-green-700">
+                <span>Ready</span>
+                <span>{readyPercentage}% ({readyCount})</span>
+              </div>
+              <div className="flex items-center justify-between text-amber-700">
+                <span>Moderate</span>
+                <span>{moderatePercentage}% ({moderateCount})</span>
+              </div>
+              <div className="flex items-center justify-between text-red-700">
+                <span>Critical</span>
+                <span>{criticalPercentage}% ({criticalCount})</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

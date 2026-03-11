@@ -2,7 +2,8 @@ import { MapPin, Package, TrendingUp, AlertCircle } from "lucide-react";
 import { useLiveHubData } from "../../hooks/useLiveHubData";
 
 export function HubLocations() {
-  const { hubs, isLoading, error } = useLiveHubData();
+  const { hubs, inventory, isLoading, error } = useLiveHubData();
+  const totalCapacity = hubs.reduce((sum, hub) => sum + hub.capacity, 0);
 
   if (isLoading) {
     return <div className="max-w-7xl mx-auto px-4 py-10 text-gray-600">Loading hub locations...</div>;
@@ -61,7 +62,11 @@ export function HubLocations() {
 
       {/* Hub Details */}
       <div className="space-y-6">
-        {hubs.map((hub) => (
+        {hubs.map((hub) => {
+          const hubInventory = inventory.find((item) => item.hubId === hub.id);
+          const activeMaterialTypes = hubInventory?.materials.length ?? 0;
+
+          return (
           <div key={hub.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow">
             <div className="grid grid-cols-1 lg:grid-cols-3">
               {/* Main Info */}
@@ -176,7 +181,7 @@ export function HubLocations() {
 
                   <div className="bg-white rounded-lg p-4 shadow-sm">
                     <div className="text-sm text-gray-600 mb-1">Active Materials</div>
-                    <div className="text-2xl font-bold text-gray-900">5</div>
+                    <div className="text-2xl font-bold text-gray-900">{activeMaterialTypes}</div>
                     <div className="text-xs text-gray-500">types</div>
                   </div>
                 </div>
@@ -195,7 +200,8 @@ export function HubLocations() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Impact Areas Section */}
@@ -207,7 +213,7 @@ export function HubLocations() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-            <div className="text-3xl font-bold mb-2">600</div>
+            <div className="text-3xl font-bold mb-2">{totalCapacity}</div>
             <div className="text-emerald-50">Total Homes Capacity</div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">

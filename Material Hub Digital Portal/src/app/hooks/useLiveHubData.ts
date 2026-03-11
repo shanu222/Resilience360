@@ -19,6 +19,36 @@ const byUpdatedDateDesc = (left: string, right: string) => {
   return b - a;
 };
 
+function deriveHubMetrics(entries: MaterialEntry[]): Pick<MaterialHub, 'stockPercentage' | 'damagePercentage' | 'status'> {
+  if (entries.length === 0) {
+    return {
+      stockPercentage: 0,
+      damagePercentage: 0,
+      status: 'critical',
+    };
+  }
+
+  const totalStockPercentage = entries.reduce((sum, item) => sum + item.percentageRemaining, 0);
+  const totalDamaged = entries.reduce((sum, item) => sum + item.damaged, 0);
+  const totalGross = entries.reduce((sum, item) => sum + item.opening + item.received, 0);
+
+  const stockPercentage = Math.round(totalStockPercentage / entries.length);
+  const damagePercentage = totalGross > 0 ? Math.round((totalDamaged / totalGross) * 100) : 0;
+
+  const status: MaterialHub['status'] =
+    stockPercentage >= 75 && damagePercentage <= 10
+      ? 'ready'
+      : stockPercentage >= 50 && damagePercentage <= 20
+        ? 'moderate'
+        : 'critical';
+
+  return {
+    stockPercentage,
+    damagePercentage,
+    status,
+  };
+}
+
 export function useLiveHubData(): LiveHubDataState {
   const [hubs, setHubs] = useState<MaterialHub[]>([]);
   const [entries, setEntries] = useState<MaterialEntry[]>([]);
@@ -31,21 +61,6 @@ export function useLiveHubData(): LiveHubDataState {
 
     try {
       if (!isSupabaseConfigured) {
-        const fallbackHubs: MaterialHub[] = mockHubs.map((hub) => ({
-          id: hub.id,
-          name: hub.name,
-          location: hub.location,
-          district: hub.district,
-          latitude: hub.coordinates[0],
-          longitude: hub.coordinates[1],
-          capacity: hub.capacity,
-          status: hub.status,
-          stockPercentage: hub.stockPercentage,
-          damagePercentage: hub.damagePercentage,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-
         const fallbackEntries: MaterialEntry[] = mockInventory.flatMap((inventoryItem) =>
           inventoryItem.materials.map((entry) => ({
             id: entry.id,
@@ -63,13 +78,44 @@ export function useLiveHubData(): LiveHubDataState {
           })),
         );
 
+        const fallbackHubs: MaterialHub[] = mockHubs.map((hub) => {
+          const hubEntries = fallbackEntries.filter((entry) => entry.hubId === hub.id);
+          const metrics = deriveHubMetrics(hubEntries);
+
+          return {
+            id: hub.id,
+            name: hub.name,
+            location: hub.location,
+            district: hub.district,
+            latitude: hub.coordinates[0],
+            longitude: hub.coordinates[1],
+            capacity: hub.capacity,
+            status: metrics.status,
+            stockPercentage: metrics.stockPercentage,
+            damagePercentage: metrics.damagePercentage,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+        });
+
         setHubs(fallbackHubs);
         setEntries(fallbackEntries);
         return;
       }
 
       const [nextHubs, nextEntries] = await Promise.all([listHubs(), listMaterialEntries()]);
-      setHubs(nextHubs);
+      const nextHubsWithDerivedMetrics = nextHubs.map((hub) => {
+        const hubEntries = nextEntries.filter((entry) => entry.hubId === hub.id);
+        const metrics = deriveHubMetrics(hubEntries);
+        return {
+          ...hub,
+          status: metrics.status,
+          stockPercentage: metrics.stockPercentage,
+          damagePercentage: metrics.damagePercentage,
+        };
+      });
+
+      setHubs(nextHubsWithDerivedMetrics);
       setEntries(nextEntries);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Unable to load live data.';
