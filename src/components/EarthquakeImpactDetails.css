@@ -282,6 +282,29 @@
   font-size: 1rem;
 }
 
+.accuracy-mode-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.accuracy-mode-badge-exact {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.accuracy-mode-badge-fallback {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
 /* Critical Infrastructure */
 .critical-infra-alert {
   background: #fef2f2;

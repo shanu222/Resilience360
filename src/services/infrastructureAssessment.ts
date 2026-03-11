@@ -67,6 +67,15 @@ export type InfrastructureImpactAssessment = {
     high: number
     currency: string
   }
+
+  // Optional metadata when building counts are sourced externally
+  buildingCountSource?: {
+    source: string
+    method: string
+    accuracyMode: 'WFS exact' | 'Atlas statistical fallback'
+    confidence: 'High' | 'Medium' | 'Low'
+    note?: string
+  }
 }
 
 /**
@@ -472,6 +481,71 @@ export function assessInfrastructureImpact(
     totalInfrastructure: totalInfra,
     criticalInfraAtRisk,
     estimatedEconomicLoss,
+  }
+}
+
+const BUILDING_VALUE_USD = 150000
+
+const updateEstimateWithBuildingTotal = (estimate: InfrastructureEstimate, nextBuildingTotal: number): InfrastructureEstimate => {
+  const safeNextTotal = Math.max(0, Math.round(nextBuildingTotal))
+  const currentTotal = Math.max(1, estimate.buildings.total)
+
+  const residentialRatio = estimate.buildings.residential / currentTotal
+  const commercialRatio = estimate.buildings.commercial / currentTotal
+
+  const residential = Math.max(0, Math.round(safeNextTotal * residentialRatio))
+  const commercial = Math.max(0, Math.round(safeNextTotal * commercialRatio))
+  const industrial = Math.max(0, safeNextTotal - residential - commercial)
+
+  const totalAssets = estimate.totalAssets - estimate.buildings.total + safeNextTotal
+  const estimatedValue = estimate.estimatedValue - estimate.buildings.total * BUILDING_VALUE_USD + safeNextTotal * BUILDING_VALUE_USD
+
+  return {
+    ...estimate,
+    buildings: {
+      residential,
+      commercial,
+      industrial,
+      total: safeNextTotal,
+    },
+    totalAssets: Math.max(0, totalAssets),
+    estimatedValue: Math.max(0, estimatedValue),
+  }
+}
+
+export function applyObservedBuildingCount(
+  assessment: InfrastructureImpactAssessment,
+  observedTotalBuildings: number,
+  source: InfrastructureImpactAssessment['buildingCountSource'],
+): InfrastructureImpactAssessment {
+  const safeObserved = Math.max(0, Math.round(observedTotalBuildings))
+
+  const currentPrimary = Math.max(0, assessment.primaryZone.buildings.total)
+  const currentSecondary = Math.max(0, assessment.secondaryZone.buildings.total)
+  const currentFelt = Math.max(0, assessment.feltZone.buildings.total)
+  const currentTotal = Math.max(1, currentPrimary + currentSecondary + currentFelt)
+
+  const primaryShare = currentPrimary / currentTotal
+  const secondaryShare = currentSecondary / currentTotal
+
+  const nextPrimaryTotal = Math.round(safeObserved * primaryShare)
+  const nextSecondaryTotal = Math.round(safeObserved * secondaryShare)
+  const nextFeltTotal = Math.max(0, safeObserved - nextPrimaryTotal - nextSecondaryTotal)
+
+  const primaryZone = updateEstimateWithBuildingTotal(assessment.primaryZone, nextPrimaryTotal)
+  const secondaryZone = updateEstimateWithBuildingTotal(assessment.secondaryZone, nextSecondaryTotal)
+  const feltZone = updateEstimateWithBuildingTotal(assessment.feltZone, nextFeltTotal)
+  const totalInfrastructure = combineInfrastructureEstimates([primaryZone, secondaryZone, feltZone])
+  const estimatedEconomicLoss = estimateEconomicLoss(assessment.seismicAssessment, primaryZone, secondaryZone)
+
+  return {
+    ...assessment,
+    primaryZone,
+    secondaryZone,
+    feltZone,
+    totalInfrastructure,
+    estimatedEconomicLoss,
+    buildingCountSource: source,
   }
 }
 

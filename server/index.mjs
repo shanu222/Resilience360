@@ -148,6 +148,16 @@ const GLOBAL_EARTHQUAKE_FEED_URL =
 const GLOBAL_EARTHQUAKE_FEED_URL_BACKUP =
   process.env.GLOBAL_EARTHQUAKE_FEED_URL_BACKUP ??
   'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
+const GLOBAL_BUILDING_ATLAS_WFS_URL =
+  process.env.GLOBAL_BUILDING_ATLAS_WFS_URL ??
+  'https://tubvsig-so2sat-vm1.srv.mwn.de/geoserver/ows?'
+const GLOBAL_BUILDING_ATLAS_WFS_LAYER_CANDIDATES =
+  String(process.env.GLOBAL_BUILDING_ATLAS_WFS_LAYERS ?? 'GBA:ODbLPolygon,GBA.ODbLPolygon,GBA:Polygon,GBA.Polygon')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+const GLOBAL_BUILDING_ATLAS_ROOT =
+  process.env.GLOBAL_BUILDING_ATLAS_ROOT ?? path.resolve(__dirname, '..', 'GlobalBuildingAtlas-main')
 const EMSC_EARTHQUAKE_FEED_URL =
   process.env.EMSC_EARTHQUAKE_FEED_URL ??
   'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=100'
@@ -650,6 +660,190 @@ const fetchRemoteText = async (url, timeoutMs = 14000) => {
 const fetchRemoteJson = async (url, timeoutMs = 14000) => {
   const text = await fetchRemoteText(url, timeoutMs)
   return JSON.parse(text)
+}
+
+let atlasCountryStatsCache = null
+let atlasCountryStatsLoadedAt = 0
+
+const normalizeCountryName = (value) =>
+  String(value ?? '')
+    .toLowerCase()
+    .replace(/[()'.]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const atlasCountryAliases = {
+  pakistan: 'PAK',
+  'united states': 'USA',
+  usa: 'USA',
+  'united states of america': 'USA',
+  russia: 'RUS',
+  'russian federation': 'RUS',
+  turkey: 'TUR',
+  turkiye: 'TUR',
+  iran: 'IRN',
+  india: 'IND',
+  china: 'CHN',
+  afghanistan: 'AFG',
+}
+
+const parseAtlasHitsCount = (responseText) => {
+  const matched = responseText.match(/numberMatched="([0-9]+)"/i)
+  if (matched?.[1]) return Number.parseInt(matched[1], 10)
+  const features = responseText.match(/numberOfFeatures="([0-9]+)"/i)
+  if (features?.[1]) return Number.parseInt(features[1], 10)
+  return NaN
+}
+
+const tryCountBuildingsFromAtlasWfs = async ({ lat, lng, radiusKm }) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radiusKm) || radiusKm <= 0) {
+    return null
+  }
+
+  const safeRadiusKm = Math.max(1, Math.min(120, radiusKm))
+  const latDelta = safeRadiusKm / 110.574
+  const lngDelta = safeRadiusKm / (111.32 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)))
+
+  const minLat = lat - latDelta
+  const maxLat = lat + latDelta
+  const minLng = lng - lngDelta
+  const maxLng = lng + lngDelta
+
+  for (const typeName of GLOBAL_BUILDING_ATLAS_WFS_LAYER_CANDIDATES) {
+    const url =
+      `${GLOBAL_BUILDING_ATLAS_WFS_URL}` +
+      `service=WFS&version=2.0.0&request=GetFeature&typeNames=${encodeURIComponent(typeName)}` +
+      '&resultType=hits&srsName=EPSG:4326' +
+      `&bbox=${minLng},${minLat},${maxLng},${maxLat},EPSG:4326`
+
+    try {
+      const text = await fetchRemoteText(url, 9000)
+      const count = parseAtlasHitsCount(text)
+      if (Number.isFinite(count) && count >= 0) {
+        const boxAreaSqKm = (maxLat - minLat) * (maxLng - minLng) * 111.32 * 110.574
+        const circleAreaSqKm = Math.PI * safeRadiusKm * safeRadiusKm
+        const areaScale = boxAreaSqKm > 0 ? Math.min(1, circleAreaSqKm / boxAreaSqKm) : 1
+        return {
+          estimatedBuildings: Math.round(count * areaScale),
+          source: 'GlobalBuildingAtlas WFS',
+          method: 'Spatial count from WFS hits query (bbox-adjusted to circle)',
+          accuracyMode: 'WFS exact',
+          confidence: 'High',
+          note:
+            safeRadiusKm < radiusKm
+              ? `Radius clipped to ${safeRadiusKm} km for stable query performance.`
+              : undefined,
+        }
+      }
+    } catch {
+      // Try next layer candidate.
+    }
+  }
+
+  return null
+}
+
+const loadAtlasCountryStats = async () => {
+  const now = Date.now()
+  if (atlasCountryStatsCache && now - atlasCountryStatsLoadedAt < 10 * 60 * 1000) {
+    return atlasCountryStatsCache
+  }
+
+  const volumeByCountryPath = path.join(GLOBAL_BUILDING_ATLAS_ROOT, 'make_plots', 'volume_by_country.json')
+  const populationByCountryPath = path.join(GLOBAL_BUILDING_ATLAS_ROOT, 'make_plots', 'global_popuation_building_volume.json')
+
+  const [volumeRaw, populationRaw] = await Promise.all([
+    fs.readFile(volumeByCountryPath, 'utf8'),
+    fs.readFile(populationByCountryPath, 'utf8'),
+  ])
+
+  const volumeByCountry = JSON.parse(volumeRaw)
+  const populationByCountry = JSON.parse(populationRaw)
+  const byIso = new Map()
+  const byName = new Map()
+
+  let globalBuildings = 0
+  let globalPopulation = 0
+
+  for (const [iso, volumeStats] of Object.entries(volumeByCountry)) {
+    const count = Number(volumeStats?.count ?? 0)
+    const population = Number(populationByCountry?.[iso]?.population ?? 0)
+    const name = String(populationByCountry?.[iso]?.name ?? iso).trim()
+    if (!Number.isFinite(count) || count <= 0 || !Number.isFinite(population) || population <= 0) continue
+
+    const buildingsPerPerson = count / population
+    const entry = {
+      iso,
+      name,
+      count,
+      population,
+      buildingsPerPerson,
+    }
+
+    byIso.set(iso, entry)
+    byName.set(normalizeCountryName(name), iso)
+    globalBuildings += count
+    globalPopulation += population
+  }
+
+  for (const [alias, iso] of Object.entries(atlasCountryAliases)) {
+    if (byIso.has(iso)) {
+      byName.set(normalizeCountryName(alias), iso)
+    }
+  }
+
+  atlasCountryStatsCache = {
+    byIso,
+    byName,
+    globalBuildingsPerPerson: globalPopulation > 0 ? globalBuildings / globalPopulation : 0.22,
+  }
+  atlasCountryStatsLoadedAt = now
+
+  return atlasCountryStatsCache
+}
+
+const resolveCountryIsoFromPlace = (place, byName) => {
+  const text = String(place ?? '').trim()
+  if (!text) return null
+
+  const tail = normalizeCountryName(text.split(',').at(-1))
+  if (tail && byName.has(tail)) {
+    return byName.get(tail)
+  }
+
+  for (const [normalizedName, iso] of byName.entries()) {
+    if (normalizedName && normalizeCountryName(text).includes(normalizedName)) {
+      return iso
+    }
+  }
+
+  return null
+}
+
+const estimateAtlasBuildingImpact = async ({ lat, lng, place, radiusKm, populationExposed }) => {
+  const wfsEstimate = await tryCountBuildingsFromAtlasWfs({ lat, lng, radiusKm })
+  if (wfsEstimate) {
+    return wfsEstimate
+  }
+
+  const stats = await loadAtlasCountryStats()
+  const countryIso = resolveCountryIsoFromPlace(place, stats.byName)
+  const country = countryIso ? stats.byIso.get(countryIso) : null
+
+  const buildingsPerPerson = Number(country?.buildingsPerPerson ?? stats.globalBuildingsPerPerson)
+  const estimatedBuildings = Math.max(0, Math.round(Math.max(0, Number(populationExposed) || 0) * buildingsPerPerson))
+
+  return {
+    estimatedBuildings,
+    source: country ? `GlobalBuildingAtlas (${country.name})` : 'GlobalBuildingAtlas (global model)',
+    method: 'Country-level buildings-per-person scaling from atlas statistics',
+    accuracyMode: 'Atlas statistical fallback',
+    confidence: country ? 'Medium' : 'Low',
+    note:
+      country
+        ? `Derived from atlas country totals: ${country.iso}, ${country.count.toLocaleString()} buildings.`
+        : 'Country could not be resolved from place string; used global average scaling.',
+  }
 }
 
 const normalizeWhitespace = (value) => value.replace(/\s+/g, ' ').trim()
@@ -2338,6 +2532,37 @@ app.get('/api/global-earthquakes', async (_req, res) => {
   } catch (error) {
     console.error('Hybrid earthquake fetch error:', error?.message || error)
     res.status(502).json({ error: 'Unable to fetch global earthquake feed from upstream sources.' })
+  }
+})
+
+app.post('/api/earthquake/building-impact', async (req, res) => {
+  try {
+    const lat = Number(req.body?.lat)
+    const lng = Number(req.body?.lng)
+    const place = String(req.body?.place ?? '')
+    const radiusKm = Number(req.body?.radiusKm)
+    const populationExposed = Number(req.body?.populationExposed)
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radiusKm)) {
+      res.status(400).json({
+        error: 'lat, lng and radiusKm are required numeric values.',
+      })
+      return
+    }
+
+    const estimate = await estimateAtlasBuildingImpact({
+      lat,
+      lng,
+      place,
+      radiusKm,
+      populationExposed,
+    })
+
+    res.setHeader('Cache-Control', 'no-store')
+    res.json(estimate)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to estimate atlas-based building impact.'
+    res.status(502).json({ error: message })
   }
 })
 

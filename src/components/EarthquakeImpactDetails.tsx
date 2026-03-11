@@ -15,7 +15,15 @@ export default function EarthquakeImpactDetails({
   onClose,
 }: EarthquakeImpactDetailsProps) {
   const [showLogic, setShowLogic] = useState(false)
-  const { seismicAssessment, primaryZone, secondaryZone, totalInfrastructure, criticalInfraAtRisk, estimatedEconomicLoss } = assessment
+  const {
+    seismicAssessment,
+    primaryZone,
+    secondaryZone,
+    totalInfrastructure,
+    criticalInfraAtRisk,
+    estimatedEconomicLoss,
+    buildingCountSource,
+  } = assessment
 
   const getRiskLevelColor = (riskLevel: string): string => {
     switch (riskLevel) {
@@ -175,6 +183,19 @@ export default function EarthquakeImpactDetails({
               <div className="infra-total">
                 <strong>Total Buildings:</strong> {formatInfrastructureCount(totalInfrastructure.buildings.total, 'building')}
               </div>
+              {buildingCountSource && (
+                <div className="infra-total">
+                  <strong>Building Count Source:</strong> {buildingCountSource.source} ({buildingCountSource.method}, {buildingCountSource.confidence} confidence)
+                  <span
+                    className={`accuracy-mode-badge ${
+                      buildingCountSource.accuracyMode === 'WFS exact' ? 'accuracy-mode-badge-exact' : 'accuracy-mode-badge-fallback'
+                    }`}
+                  >
+                    {buildingCountSource.accuracyMode}
+                  </span>
+                  {buildingCountSource.note ? ` - ${buildingCountSource.note}` : ''}
+                </div>
+              )}
             </div>
 
             <div className="infrastructure-category">

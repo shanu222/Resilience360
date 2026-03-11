@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Globe from 'react-globe.gl'
 import { calculateSeismicImpact } from '../services/seismicImpact'
-import { assessInfrastructureImpact, type InfrastructureImpactAssessment } from '../services/infrastructureAssessment'
+import {
+  applyObservedBuildingCount,
+  assessInfrastructureImpact,
+  type InfrastructureImpactAssessment,
+} from '../services/infrastructureAssessment'
+import { fetchEarthquakeBuildingImpact, type EarthquakeBuildingImpactResponse } from '../services/earthquakeImpactApi'
 import EarthquakeImpactDetails from './EarthquakeImpactDetails'
 import SeismicLogicExplainer from './SeismicLogicExplainer'
 
@@ -68,7 +73,9 @@ export default function GlobalEarthquakeGlobe({
   const [manualAltitude, setManualAltitude] = useState(1.2)
   const [cameraCenter, setCameraCenter] = useState({ lat: 20, lng: 15 })
   const [selectedImpactAssessment, setSelectedImpactAssessment] = useState<InfrastructureImpactAssessment | null>(null)
+  const [isCalculatingImpact, setIsCalculatingImpact] = useState(false)
   const [showLogicExplainer, setShowLogicExplainer] = useState(false)
+  const buildingImpactCacheRef = useRef<Map<string, EarthquakeBuildingImpactResponse>>(new Map())
 
   const selectedEarthquake = useMemo(
     () => earthquakes.find((quake) => quake.id === selectedEarthquakeId) ?? null,
@@ -208,7 +215,7 @@ export default function GlobalEarthquakeGlobe({
     globeRef.current?.pointOfView({ ...nextCenter, altitude: nextAltitude }, 650)
   }
 
-  const handleEarthquakeClick = (pointId: string) => {
+  const handleEarthquakeClick = async (pointId: string) => {
     // Normalize the ID (remove 'selected-' prefix if present)
     const normalizedId = pointId.startsWith('selected-') ? pointId.replace('selected-', '') : pointId
     
@@ -220,6 +227,8 @@ export default function GlobalEarthquakeGlobe({
     if (onSelectEarthquake) {
       onSelectEarthquake(normalizedId)
     }
+
+    setIsCalculatingImpact(true)
     
     // Calculate seismic impact
     const seismicImpact = calculateSeismicImpact(
@@ -230,10 +239,39 @@ export default function GlobalEarthquakeGlobe({
     )
     
     // Assess infrastructure impact
-    const infrastructureImpact = assessInfrastructureImpact(seismicImpact)
-    
-    // Display the assessment
-    setSelectedImpactAssessment(infrastructureImpact)
+    const baselineImpact = assessInfrastructureImpact(seismicImpact)
+    setSelectedImpactAssessment(baselineImpact)
+
+    try {
+      const cachedImpact = buildingImpactCacheRef.current.get(normalizedId)
+      const atlasImpact =
+        cachedImpact ??
+        (await fetchEarthquakeBuildingImpact({
+          lat: earthquake.lat,
+          lng: earthquake.lng,
+          place: earthquake.place,
+          radiusKm: seismicImpact.feltRadiusKm,
+          populationExposed: seismicImpact.estimatedPopulationExposed,
+        }))
+
+      if (!cachedImpact) {
+        buildingImpactCacheRef.current.set(normalizedId, atlasImpact)
+      }
+
+      setSelectedImpactAssessment(
+        applyObservedBuildingCount(baselineImpact, atlasImpact.estimatedBuildings, {
+          source: atlasImpact.source,
+          method: atlasImpact.method,
+          accuracyMode: atlasImpact.accuracyMode,
+          confidence: atlasImpact.confidence,
+          note: atlasImpact.note,
+        }),
+      )
+    } catch {
+      // Keep baseline model if atlas lookup is unavailable.
+    } finally {
+      setIsCalculatingImpact(false)
+    }
   }
 
   const handleCloseImpactAssessment = () => {
@@ -359,6 +397,7 @@ export default function GlobalEarthquakeGlobe({
               })}
               {earthquakes.length === 0 && <p className="earthquake-floating-empty">No global earthquakes available right now.</p>}
             </div>
+            {isCalculatingImpact && <small className="earthquake-impact-loading">Updating Atlas building impact...</small>}
           </aside>
 
           <div className="earthquake-monitor-globe-area">
