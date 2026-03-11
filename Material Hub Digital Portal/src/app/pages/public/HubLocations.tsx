@@ -1,27 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin, Package, TrendingUp, AlertCircle } from "lucide-react";
-import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import L from "leaflet";
 import { useLiveHubData } from "../../hooks/useLiveHubData";
+import type { FeatureCollection, Geometry } from "geojson";
 
-const worldGeoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-const isPakistanFeature = (geo: { properties?: Record<string, unknown> }): boolean => {
-  const props = geo.properties ?? {};
-  const name = String(props.name ?? props.NAME ?? "").toLowerCase();
-  const isoA3 = String(props.iso_a3 ?? props.ISO_A3 ?? props.adm0_a3 ?? props.ADM0_A3 ?? "").toUpperCase();
+const PAKISTAN_GEOJSON_URL = "https://raw.githubusercontent.com/johan/world.geo.json/master/countries/PAK.geo.json";
 
-  if (name === "pakistan" || isoA3 === "PAK") {
-    return true;
-  }
-
-  // Some world datasets split northern territories into separate names.
-  return name.includes("pakistan") || name.includes("gilgit") || name.includes("azad kashmir");
-};
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 export function HubLocations() {
   const { hubs, inventory, isLoading, error } = useLiveHubData();
   const totalCapacity = hubs.reduce((sum, hub) => sum + hub.capacity, 0);
   const [selectedHubId, setSelectedHubId] = useState<string>("");
+  const [pakistanBoundary, setPakistanBoundary] = useState<FeatureCollection<Geometry> | null>(null);
 
   const selectedHub = useMemo(() => {
     if (hubs.length === 0) {
@@ -32,6 +32,31 @@ export function HubLocations() {
     }
     return hubs.find((hub) => hub.id === selectedHubId) ?? hubs[0];
   }, [hubs, selectedHubId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBoundary = async () => {
+      try {
+        const response = await fetch(PAKISTAN_GEOJSON_URL);
+        if (!response.ok) {
+          return;
+        }
+        const geoJson = (await response.json()) as FeatureCollection<Geometry>;
+        if (!cancelled) {
+          setPakistanBoundary(geoJson);
+        }
+      } catch {
+        // Keep map operational even if boundary overlay cannot be fetched.
+      }
+    };
+
+    void loadBoundary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (isLoading) {
     return <div className="max-w-7xl mx-auto px-4 py-10 text-gray-600">Loading hub locations...</div>;
@@ -58,67 +83,54 @@ export function HubLocations() {
         </div>
         <h3 className="text-2xl font-bold text-gray-900 text-center mb-3">Interactive Global Hub Map</h3>
         <p className="text-center text-gray-600 max-w-3xl mx-auto mb-6">
-          Global view with Pakistan highlighted. Click any hub pin to view live location details.
+          Risk-map style geographic base with zoom controls, country highlighting, and clickable hub locations.
         </p>
 
         <div className="relative rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-          <ComposableMap projection="geoMercator" width={980} height={420} style={{ width: "100%", height: "auto" }}>
-            <ZoomableGroup center={[73, 30]} zoom={2.7} minZoom={1.8} maxZoom={6}>
-              <Geographies geography={worldGeoUrl}>
-                {({ geographies }) =>
-                  geographies.map((geo) => {
-                    const highlightPakistan = isPakistanFeature(geo);
+          <MapContainer
+            center={[30.5, 69.3]}
+            zoom={5}
+            minZoom={3}
+            maxZoom={9}
+            scrollWheelZoom
+            className="h-[360px] sm:h-[420px] w-full"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        style={{
-                          default: {
-                            fill: highlightPakistan ? "#16a34a" : "#dbeafe",
-                            stroke: highlightPakistan ? "#166534" : "#94a3b8",
-                            strokeWidth: highlightPakistan ? 0.7 : 0.35,
-                            outline: "none",
-                          },
-                          hover: {
-                            fill: highlightPakistan ? "#15803d" : "#bfdbfe",
-                            stroke: highlightPakistan ? "#14532d" : "#64748b",
-                            strokeWidth: highlightPakistan ? 0.7 : 0.35,
-                            outline: "none",
-                          },
-                          pressed: {
-                            fill: highlightPakistan ? "#166534" : "#93c5fd",
-                            stroke: highlightPakistan ? "#14532d" : "#64748b",
-                            strokeWidth: highlightPakistan ? 0.7 : 0.35,
-                            outline: "none",
-                          },
-                        }}
-                      />
-                    );
-                  })
-                }
-              </Geographies>
+            {pakistanBoundary && (
+              <GeoJSON
+                data={pakistanBoundary}
+                style={{
+                  color: "#14532d",
+                  weight: 2,
+                  fillColor: "#16a34a",
+                  fillOpacity: 0.28,
+                }}
+              />
+            )}
 
-              {hubs.map((hub) => (
-                <Marker key={hub.id} coordinates={[hub.longitude, hub.latitude]}>
-                  <g
-                    onClick={() => setSelectedHubId(hub.id)}
-                    style={{ cursor: "pointer" }}
-                    role="button"
-                    aria-label={`Show details for ${hub.name}`}
-                  >
-                    <circle
-                      r={selectedHub?.id === hub.id ? 9 : 7}
-                      fill={selectedHub?.id === hub.id ? "#ef4444" : "#0f766e"}
-                      stroke="#ffffff"
-                      strokeWidth={2.5}
-                    />
-                    <circle r={selectedHub?.id === hub.id ? 16 : 13} fill="rgba(15,118,110,0.18)" />
-                  </g>
-                </Marker>
-              ))}
-            </ZoomableGroup>
-          </ComposableMap>
+            {hubs.map((hub) => (
+              <Marker
+                key={hub.id}
+                position={[hub.latitude, hub.longitude]}
+                eventHandlers={{
+                  click: () => setSelectedHubId(hub.id),
+                }}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <div className="font-semibold">{hub.name}</div>
+                    <div>{hub.location}, {hub.district}</div>
+                    <div className="text-xs mt-1">{hub.latitude.toFixed(4)}°N, {hub.longitude.toFixed(4)}°E</div>
+                    <div className="text-xs mt-1">Stock: {hub.stockPercentage}% | Damage: {hub.damagePercentage}%</div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
 
           {selectedHub && (
             <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-sm bg-white/95 backdrop-blur-sm rounded-lg border border-emerald-200 shadow-lg p-4">
