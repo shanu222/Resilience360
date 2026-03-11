@@ -1,9 +1,44 @@
+import { useMemo, useState } from "react";
 import { MapPin, Package, TrendingUp, AlertCircle } from "lucide-react";
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { useLiveHubData } from "../../hooks/useLiveHubData";
+
+const worldGeoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const pakistanBounds = {
+  west: 60.9,
+  east: 77.8,
+  south: 23.6,
+  north: 37.2,
+};
+
+const geoCentroidSafe = (geo: { bbox?: number[]; properties?: Record<string, unknown> }): [number, number] => {
+  if (Array.isArray(geo.bbox) && geo.bbox.length === 4) {
+    const [minLon, minLat, maxLon, maxLat] = geo.bbox;
+    return [(minLon + maxLon) / 2, (minLat + maxLat) / 2];
+  }
+
+  const propertyBlob = JSON.stringify(geo.properties ?? {}).toLowerCase();
+  if (propertyBlob.includes("pakistan")) {
+    return [69.3451, 30.3753];
+  }
+
+  return [0, 0];
+};
 
 export function HubLocations() {
   const { hubs, inventory, isLoading, error } = useLiveHubData();
   const totalCapacity = hubs.reduce((sum, hub) => sum + hub.capacity, 0);
+  const [selectedHubId, setSelectedHubId] = useState<string>("");
+
+  const selectedHub = useMemo(() => {
+    if (hubs.length === 0) {
+      return null;
+    }
+    if (!selectedHubId) {
+      return hubs[0];
+    }
+    return hubs.find((hub) => hub.id === selectedHubId) ?? hubs[0];
+  }, [hubs, selectedHubId]);
 
   if (isLoading) {
     return <div className="max-w-7xl mx-auto px-4 py-10 text-gray-600">Loading hub locations...</div>;
@@ -23,40 +58,96 @@ export function HubLocations() {
         </p>
       </div>
 
-      {/* Map Placeholder */}
-      <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-8 mb-12 border-2 border-gray-200 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-1/4 left-1/4 w-16 h-16 bg-emerald-600 rounded-full"></div>
-          <div className="absolute top-1/2 left-1/3 w-16 h-16 bg-blue-600 rounded-full"></div>
-          <div className="absolute bottom-1/4 left-1/2 w-16 h-16 bg-purple-600 rounded-full"></div>
+      {/* Interactive Global Map */}
+      <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-2xl p-5 sm:p-8 mb-12 border-2 border-gray-200">
+        <div className="flex items-center justify-center mb-4">
+          <MapPin className="h-10 w-10 text-emerald-600" />
         </div>
-        
-        <div className="relative z-10">
-          <div className="flex items-center justify-center mb-6">
-            <MapPin className="h-12 w-12 text-emerald-600" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 text-center mb-4">
-            Interactive Map View
-          </h3>
-          <p className="text-center text-gray-600 max-w-2xl mx-auto mb-8">
-            Material hubs are strategically located in Gilgit-Baltistan, Punjab, and Sindh 
-            provinces to ensure comprehensive coverage and rapid response capabilities.
-          </p>
-          
-          {/* Coordinates Display */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {hubs.map((hub) => (
-              <div key={hub.id} className="bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-md">
-                <div className="flex items-center space-x-2 mb-2">
-                  <MapPin className="h-5 w-5 text-emerald-600" />
-                  <h4 className="font-bold text-gray-900">{hub.location}</h4>
-                </div>
-                <p className="text-xs text-gray-600">
-                  Coordinates: {hub.latitude.toFixed(4)}°N, {hub.longitude.toFixed(4)}°E
-                </p>
+        <h3 className="text-2xl font-bold text-gray-900 text-center mb-3">Interactive Global Hub Map</h3>
+        <p className="text-center text-gray-600 max-w-3xl mx-auto mb-6">
+          Global view with Pakistan highlighted. Click any hub pin to view live location details.
+        </p>
+
+        <div className="relative rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+          <ComposableMap projection="geoMercator" width={980} height={420} style={{ width: "100%", height: "auto" }}>
+            <ZoomableGroup center={[73, 30]} zoom={2.7} minZoom={1.8} maxZoom={6}>
+              <Geographies geography={worldGeoUrl}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const [longitude, latitude] = geoCentroidSafe(geo);
+                    const inPakistanBounds =
+                      longitude >= pakistanBounds.west &&
+                      longitude <= pakistanBounds.east &&
+                      latitude >= pakistanBounds.south &&
+                      latitude <= pakistanBounds.north;
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        style={{
+                          default: {
+                            fill: inPakistanBounds ? "#16a34a" : "#dbeafe",
+                            stroke: inPakistanBounds ? "#166534" : "#94a3b8",
+                            strokeWidth: inPakistanBounds ? 0.7 : 0.35,
+                            outline: "none",
+                          },
+                          hover: {
+                            fill: inPakistanBounds ? "#15803d" : "#bfdbfe",
+                            stroke: inPakistanBounds ? "#14532d" : "#64748b",
+                            strokeWidth: inPakistanBounds ? 0.7 : 0.35,
+                            outline: "none",
+                          },
+                          pressed: {
+                            fill: inPakistanBounds ? "#166534" : "#93c5fd",
+                            stroke: inPakistanBounds ? "#14532d" : "#64748b",
+                            strokeWidth: inPakistanBounds ? 0.7 : 0.35,
+                            outline: "none",
+                          },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+
+              {hubs.map((hub) => (
+                <Marker key={hub.id} coordinates={[hub.longitude, hub.latitude]}>
+                  <g
+                    onClick={() => setSelectedHubId(hub.id)}
+                    style={{ cursor: "pointer" }}
+                    role="button"
+                    aria-label={`Show details for ${hub.name}`}
+                  >
+                    <circle
+                      r={selectedHub?.id === hub.id ? 9 : 7}
+                      fill={selectedHub?.id === hub.id ? "#ef4444" : "#0f766e"}
+                      stroke="#ffffff"
+                      strokeWidth={2.5}
+                    />
+                    <circle r={selectedHub?.id === hub.id ? 16 : 13} fill="rgba(15,118,110,0.18)" />
+                  </g>
+                </Marker>
+              ))}
+            </ZoomableGroup>
+          </ComposableMap>
+
+          {selectedHub && (
+            <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-sm bg-white/95 backdrop-blur-sm rounded-lg border border-emerald-200 shadow-lg p-4">
+              <p className="text-xs font-semibold tracking-wide text-emerald-700 uppercase mb-1">Hub Details</p>
+              <h4 className="text-base font-bold text-gray-900">{selectedHub.name}</h4>
+              <p className="text-sm text-gray-600 mb-2">{selectedHub.location}, {selectedHub.district}</p>
+              <p className="text-xs text-gray-700 mb-1">
+                Coordinates: {selectedHub.latitude.toFixed(4)}°N, {selectedHub.longitude.toFixed(4)}°E
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-700">
+                <div className="bg-emerald-50 rounded px-2 py-1">Stock: {selectedHub.stockPercentage}%</div>
+                <div className="bg-amber-50 rounded px-2 py-1">Damage: {selectedHub.damagePercentage}%</div>
+                <div className="bg-blue-50 rounded px-2 py-1">Capacity: {selectedHub.capacity}</div>
+                <div className="bg-slate-100 rounded px-2 py-1">Status: {selectedHub.status}</div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
