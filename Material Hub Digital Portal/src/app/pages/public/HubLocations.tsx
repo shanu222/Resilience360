@@ -4,25 +4,18 @@ import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "re
 import { useLiveHubData } from "../../hooks/useLiveHubData";
 
 const worldGeoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-const pakistanBounds = {
-  west: 60.9,
-  east: 77.8,
-  south: 23.6,
-  north: 37.2,
-};
 
-const geoCentroidSafe = (geo: { bbox?: number[]; properties?: Record<string, unknown> }): [number, number] => {
-  if (Array.isArray(geo.bbox) && geo.bbox.length === 4) {
-    const [minLon, minLat, maxLon, maxLat] = geo.bbox;
-    return [(minLon + maxLon) / 2, (minLat + maxLat) / 2];
+const isPakistanFeature = (geo: { properties?: Record<string, unknown> }): boolean => {
+  const props = geo.properties ?? {};
+  const name = String(props.name ?? props.NAME ?? "").toLowerCase();
+  const isoA3 = String(props.iso_a3 ?? props.ISO_A3 ?? props.adm0_a3 ?? props.ADM0_A3 ?? "").toUpperCase();
+
+  if (name === "pakistan" || isoA3 === "PAK") {
+    return true;
   }
 
-  const propertyBlob = JSON.stringify(geo.properties ?? {}).toLowerCase();
-  if (propertyBlob.includes("pakistan")) {
-    return [69.3451, 30.3753];
-  }
-
-  return [0, 0];
+  // Some world datasets split northern territories into separate names.
+  return name.includes("pakistan") || name.includes("gilgit") || name.includes("azad kashmir");
 };
 
 export function HubLocations() {
@@ -74,12 +67,7 @@ export function HubLocations() {
               <Geographies geography={worldGeoUrl}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
-                    const [longitude, latitude] = geoCentroidSafe(geo);
-                    const inPakistanBounds =
-                      longitude >= pakistanBounds.west &&
-                      longitude <= pakistanBounds.east &&
-                      latitude >= pakistanBounds.south &&
-                      latitude <= pakistanBounds.north;
+                    const highlightPakistan = isPakistanFeature(geo);
 
                     return (
                       <Geography
@@ -87,21 +75,21 @@ export function HubLocations() {
                         geography={geo}
                         style={{
                           default: {
-                            fill: inPakistanBounds ? "#16a34a" : "#dbeafe",
-                            stroke: inPakistanBounds ? "#166534" : "#94a3b8",
-                            strokeWidth: inPakistanBounds ? 0.7 : 0.35,
+                            fill: highlightPakistan ? "#16a34a" : "#dbeafe",
+                            stroke: highlightPakistan ? "#166534" : "#94a3b8",
+                            strokeWidth: highlightPakistan ? 0.7 : 0.35,
                             outline: "none",
                           },
                           hover: {
-                            fill: inPakistanBounds ? "#15803d" : "#bfdbfe",
-                            stroke: inPakistanBounds ? "#14532d" : "#64748b",
-                            strokeWidth: inPakistanBounds ? 0.7 : 0.35,
+                            fill: highlightPakistan ? "#15803d" : "#bfdbfe",
+                            stroke: highlightPakistan ? "#14532d" : "#64748b",
+                            strokeWidth: highlightPakistan ? 0.7 : 0.35,
                             outline: "none",
                           },
                           pressed: {
-                            fill: inPakistanBounds ? "#166534" : "#93c5fd",
-                            stroke: inPakistanBounds ? "#14532d" : "#64748b",
-                            strokeWidth: inPakistanBounds ? 0.7 : 0.35,
+                            fill: highlightPakistan ? "#166534" : "#93c5fd",
+                            stroke: highlightPakistan ? "#14532d" : "#64748b",
+                            strokeWidth: highlightPakistan ? 0.7 : 0.35,
                             outline: "none",
                           },
                         }}

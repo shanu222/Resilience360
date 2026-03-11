@@ -9,6 +9,7 @@ import adm2GeoJsonUrl from '../data/pakistan-adm2.geojson?url'
 
 type MapLayer = 'earthquake' | 'flood' | 'infraRisk'
 type DistrictRiskLookup = Record<string, { earthquake: string; flood: string; infraRisk: string }>
+type ProvinceKey = 'Punjab' | 'Sindh' | 'Balochistan' | 'KP' | 'GB' | 'AJK' | 'ICT'
 type HazardAlertMarker = {
   id: string
   title: string
@@ -70,12 +71,14 @@ type Adm2Props = {
   shapeName?: string
 }
 
-const supportedProvinces = new Set(['Punjab', 'Sindh', 'Balochistan', 'KP', 'GB'])
+const supportedProvinces = new Set<ProvinceKey>(['Punjab', 'Sindh', 'Balochistan', 'KP', 'GB', 'AJK', 'ICT'])
 
-const normalizeProvince = (shapeName: string): string | null => {
+const normalizeProvince = (shapeName: string): ProvinceKey | null => {
   const key = shapeName.trim().toLowerCase()
   if (key === 'khyber pakhtunkhwa') return 'KP'
   if (key === 'gilgit baltistan') return 'GB'
+  if (key === 'azad kashmir') return 'AJK'
+  if (key === 'islamabad capital territory') return 'ICT'
   if (key === 'punjab') return 'Punjab'
   if (key === 'sindh') return 'Sindh'
   if (key === 'balochistan') return 'Balochistan'
@@ -158,11 +161,14 @@ function RiskMap({
 }: RiskMapProps) {
   const [adm1GeoData, setAdm1GeoData] = useState<FeatureCollection<Geometry, Adm1Props> | null>(null)
   const [adm2GeoData, setAdm2GeoData] = useState<FeatureCollection<Geometry, Adm2Props> | null>(null)
-  const [drillProvince, setDrillProvince] = useState<string | null>(null)
+  const [drillProvince, setDrillProvince] = useState<ProvinceKey | null>(null)
 
   useEffect(() => {
     if (!selectedDistrict) return
-    setDrillProvince(selectedProvince)
+    const normalized = normalizeProvince(selectedProvince)
+    if (normalized) {
+      setDrillProvince(normalized)
+    }
   }, [selectedDistrict, selectedProvince])
 
   useEffect(() => {
@@ -202,12 +208,14 @@ function RiskMap({
       return province ? supportedProvinces.has(province) : false
     })
 
-    const districtsByProvince: Record<string, Feature<Geometry, Adm2Props>[]> = {
+    const districtsByProvince: Record<ProvinceKey, Feature<Geometry, Adm2Props>[]> = {
       Punjab: [],
       Sindh: [],
       Balochistan: [],
       KP: [],
       GB: [],
+      AJK: [],
+      ICT: [],
     }
 
     for (const district of adm2GeoData.features) {
