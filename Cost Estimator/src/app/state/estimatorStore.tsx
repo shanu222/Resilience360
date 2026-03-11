@@ -26,6 +26,7 @@ export type TakeoffElement = {
   unit: string;
   confidence: number;
   sourceFileId: string;
+  sourcePage?: number;
 };
 
 export type CostItem = {

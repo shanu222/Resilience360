@@ -75,6 +75,11 @@ const clampToInt = (value: unknown, fallback: number, min: number, max: number) 
 export const analyzeFileRealtime = async (
   file: UploadedDrawing,
   sourceFile: File | null,
+  options?: {
+    pageNumber?: number;
+    totalPages?: number;
+    analysisScope?: "single_page" | "full_document";
+  },
 ): Promise<FileAnalysisResult> => {
   if (!sourceFile) {
     throw new Error("Original file is no longer available in memory. Re-upload the file to run AI analysis.");
@@ -92,6 +97,15 @@ export const analyzeFileRealtime = async (
       form.append("debug", "true");
       form.append("projectType", "Construction Cost Estimation");
       form.append("region", "Pakistan");
+      if (options?.pageNumber !== undefined) {
+        form.append("pageNumber", String(options.pageNumber));
+      }
+      if (options?.totalPages !== undefined) {
+        form.append("totalPages", String(options.totalPages));
+      }
+      if (options?.analysisScope) {
+        form.append("analysisScope", options.analysisScope);
+      }
 
       const response = await fetch(target, {
         method: "POST",
@@ -136,7 +150,7 @@ export const analyzeFileRealtime = async (
       return {
         summary:
           (body?.summary ? String(body.summary) : "") ||
-          `Analyzed ${file.name} using ${String(body?.provider ?? requestedProvider)} model inference.`,
+          `Analyzed ${file.name}${options?.pageNumber ? ` (page ${options.pageNumber})` : ""} using ${String(body?.provider ?? requestedProvider)} model inference.`,
         confidence,
         riskIndex,
         recommendations,

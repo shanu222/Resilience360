@@ -2,11 +2,38 @@ import { Loader2, Play, Image, FileText } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { analyzeFileRealtime, createReport, downloadTextFile } from "../services/realtimeAi";
+import type { TakeoffElement } from "../state/estimatorStore";
 import { getTransientFile, useEstimator } from "../state/estimatorStore";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+type PageAnalysisSnapshot = {
+  elements: TakeoffElement[];
+  confidence: number;
+  summary: string;
+  debug: Record<string, unknown> | null;
+  formula: string;
+  costBreakdown: {
+    materialCost: number;
+    laborCost: number;
+    equipmentCost: number;
+    totalCost: number;
+  } | null;
+  validationIssues: string[];
+  documentHash: string;
+  fromCache: boolean;
+  analyzedAt: string;
+};
+
+const makePageKey = (fileId: string, page: number) => `${fileId}::${page}`;
+
+const dataUrlToFile = async (dataUrl: string, fileName: string): Promise<File> => {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], fileName, { type: "image/jpeg" });
+};
 
 export function AIQuantityTakeoff() {
   const navigate = useNavigate();
@@ -28,6 +55,7 @@ export function AIQuantityTakeoff() {
   const [currentPdfPage, setCurrentPdfPage] = useState(0);
   const [isRenderingPdf, setIsRenderingPdf] = useState(false);
   const [pdfPreviewError, setPdfPreviewError] = useState("");
+  const [pageAnalysisByKey, setPageAnalysisByKey] = useState<Record<string, PageAnalysisSnapshot>>({});
   const pdfPreviewCacheRef = useRef<Map<string, string[]>>(new Map());
 
   const selectedFile =
@@ -35,6 +63,8 @@ export function AIQuantityTakeoff() {
 
   const selectedFileIsPdf =
     Boolean(selectedFile) && (selectedFile?.type.toLowerCase().includes("pdf") || selectedFile?.name.toLowerCase().endsWith(".pdf"));
+
+  const activePageNumber = selectedFileIsPdf ? currentPdfPage + 1 : 1;
 
   useEffect(() => {
     let isCancelled = false;
@@ -118,9 +148,29 @@ export function AIQuantityTakeoff() {
     };
   }, [selectedFile, selectedFileIsPdf]);
 
-  const displayedPreviewImage = selectedFile?.previewDataUrl
-    ? selectedFile.previewDataUrl
-    : (pdfPreviewPages[currentPdfPage] ?? undefined);
+  const displayedPreviewImage = selectedFileIsPdf
+    ? (pdfPreviewPages[currentPdfPage] ?? selectedFile?.previewDataUrl)
+    : selectedFile?.previewDataUrl;
+
+  const activePageKey = selectedFile ? makePageKey(selectedFile.id, activePageNumber) : null;
+  const activePageSnapshot = activePageKey ? pageAnalysisByKey[activePageKey] ?? null : null;
+
+  useEffect(() => {
+    if (!selectedFile || !activePageSnapshot) {
+      setLatestDebugPayload(null);
+      setLatestFormula("");
+      setLatestCostBreakdown(null);
+      setLatestValidationIssues([]);
+      setLatestDocumentHash("");
+      return;
+    }
+
+    setLatestDebugPayload(activePageSnapshot.debug);
+    setLatestFormula(activePageSnapshot.formula);
+    setLatestCostBreakdown(activePageSnapshot.costBreakdown);
+    setLatestValidationIssues(activePageSnapshot.validationIssues);
+    setLatestDocumentHash(activePageSnapshot.documentHash);
+  }, [activePageSnapshot, selectedFile]);
 
   const runTakeoff = async () => {
     if (!selectedFile) {
@@ -135,21 +185,77 @@ export function AIQuantityTakeoff() {
     try {
       setProgress(35);
       const sourceFile = getTransientFile(selectedFile.id);
-      const result = await analyzeFileRealtime(selectedFile, sourceFile);
+      if (!sourceFile) {
+        throw new Error("Original file is no longer available in memory. Re-upload the file to run AI analysis.");
+      }
+
+      const totalPages = selectedFileIsPdf ? Math.max(pdfPreviewPages.length, 1) : 1;
+      let analysisFile = sourceFile;
+
+      if (selectedFileIsPdf) {
+        const pageDataUrl = pdfPreviewPages[currentPdfPage] ?? selectedFile.previewDataUrl;
+        if (!pageDataUrl) {
+          throw new Error("PDF page preview is not ready yet. Wait for rendering to finish and try again.");
+        }
+
+        const baseName = selectedFile.name.replace(/\.pdf$/i, "");
+        analysisFile = await dataUrlToFile(pageDataUrl, `${baseName}-page-${activePageNumber}.jpg`);
+      }
+
+      const result = await analyzeFileRealtime(selectedFile, analysisFile, {
+        pageNumber: activePageNumber,
+        totalPages,
+        analysisScope: "single_page",
+      });
+
+      const pageElements: TakeoffElement[] = result.elements.map((element, index) => ({
+        ...element,
+        id: `${selectedFile.id}-p${activePageNumber}-${index}`,
+        sourceFileId: selectedFile.id,
+        sourcePage: activePageNumber,
+      }));
+
       setProgress(80);
       const merged = [
-        ...state.takeoffElements.filter((element) => element.sourceFileId !== selectedFile.id),
-        ...result.elements,
+        ...state.takeoffElements.filter(
+          (element) =>
+            !(
+              element.sourceFileId === selectedFile.id &&
+              (element.sourcePage ?? 1) === activePageNumber
+            ),
+        ),
+        ...pageElements,
       ];
+
       setTakeoffResult(merged, result.confidence);
+
+      if (activePageKey) {
+        setPageAnalysisByKey((previous) => ({
+          ...previous,
+          [activePageKey]: {
+            elements: pageElements,
+            confidence: result.confidence,
+            summary: result.summary,
+            debug: result.debug ?? null,
+            formula: result.formula ?? "",
+            costBreakdown: result.costBreakdown ?? null,
+            validationIssues: result.validation?.issues ?? [],
+            documentHash: result.documentHash ?? "",
+            fromCache: Boolean(result.fromCache),
+            analyzedAt: new Date().toISOString(),
+          },
+        }));
+      }
+
       setLatestDebugPayload(result.debug ?? null);
       setLatestFormula(result.formula ?? "");
       setLatestCostBreakdown(result.costBreakdown ?? null);
       setLatestValidationIssues(result.validation?.issues ?? []);
       setLatestDocumentHash(result.documentHash ?? "");
       setUploadStatus(selectedFile.id, "Completed");
+      const pageLabel = selectedFileIsPdf ? `page ${activePageNumber}` : "the current drawing";
       setStatusMessage(
-        `${result.summary}${result.fromCache ? " (Loaded from deterministic cache)" : ""}`,
+        `${result.summary} (${pageLabel})${result.fromCache ? " (Loaded from deterministic cache)" : ""}`,
       );
       setProgress(100);
     } catch (error) {
@@ -162,8 +268,65 @@ export function AIQuantityTakeoff() {
     }
   };
 
-  const confidence = state.takeoffConfidence;
-  const elements = state.takeoffElements;
+  const elements = useMemo(() => {
+    if (!selectedFile) {
+      return [] as TakeoffElement[];
+    }
+
+    if (activePageSnapshot?.elements) {
+      return activePageSnapshot.elements;
+    }
+
+    return state.takeoffElements.filter(
+      (element) =>
+        element.sourceFileId === selectedFile.id &&
+        (element.sourcePage ?? 1) === activePageNumber,
+    );
+  }, [activePageNumber, activePageSnapshot, selectedFile, state.takeoffElements]);
+
+  const confidence = activePageSnapshot?.confidence
+    ?? (elements.length > 0
+      ? Math.round(elements.reduce((sum, element) => sum + element.confidence, 0) / elements.length)
+      : 0);
+
+  const extractedPages = useMemo(() => {
+    if (!selectedFile) {
+      return [] as Array<{ page: number; elementCount: number; typeCount: number }>;
+    }
+
+    const grouped = new Map<number, { elementCount: number; types: Set<string> }>();
+
+    Object.entries(pageAnalysisByKey)
+      .filter(([key]) => key.startsWith(`${selectedFile.id}::`))
+      .forEach(([key, snapshot]) => {
+        const page = Number.parseInt(key.split("::")[1] ?? "1", 10);
+        if (!Number.isFinite(page) || page <= 0) {
+          return;
+        }
+        const bucket = grouped.get(page) ?? { elementCount: 0, types: new Set<string>() };
+        bucket.elementCount = Math.max(bucket.elementCount, snapshot.elements.length);
+        snapshot.elements.forEach((element) => bucket.types.add(element.name));
+        grouped.set(page, bucket);
+      });
+
+    state.takeoffElements
+      .filter((element) => element.sourceFileId === selectedFile.id)
+      .forEach((element) => {
+        const page = element.sourcePage ?? 1;
+        const bucket = grouped.get(page) ?? { elementCount: 0, types: new Set<string>() };
+        bucket.elementCount += 1;
+        bucket.types.add(element.name);
+        grouped.set(page, bucket);
+      });
+
+    return Array.from(grouped.entries())
+      .map(([page, value]) => ({
+        page,
+        elementCount: value.elementCount,
+        typeCount: value.types.size,
+      }))
+      .sort((left, right) => left.page - right.page);
+  }, [pageAnalysisByKey, selectedFile, state.takeoffElements]);
 
   const elementsByType = useMemo(() => {
     const grouped = new Map<string, { quantity: number; measurement: number; unit: string; confidence: number; count: number }>();
@@ -202,8 +365,9 @@ export function AIQuantityTakeoff() {
       "Element,Quantity,Measurement,Unit,Confidence",
       ...elementsByType.map((item) => `${item.name},${item.quantity},${item.measurement},${item.unit},${item.confidence}%`),
     ].join("\n");
-    downloadTextFile("ai-quantity-takeoff.csv", csv);
-    setStatusMessage("Quantity takeoff exported as CSV.");
+    const pageSuffix = selectedFileIsPdf ? `-page-${activePageNumber}` : "";
+    downloadTextFile(`ai-quantity-takeoff${pageSuffix}.csv`, csv);
+    setStatusMessage(`Quantity takeoff exported as CSV for page ${activePageNumber}.`);
   };
 
   const saveResults = () => {
@@ -214,6 +378,8 @@ export function AIQuantityTakeoff() {
     const content = [
       "AI Quantity Takeoff Results",
       `Generated: ${new Date().toLocaleString()}`,
+      `Source File: ${selectedFile?.name ?? "N/A"}`,
+      `Page: ${activePageNumber}`,
       `Confidence: ${confidence}%`,
       "",
       ...elementsByType.map((item) => `${item.name}: ${item.quantity} items | ${item.measurement} ${item.unit}`),
@@ -307,7 +473,7 @@ export function AIQuantityTakeoff() {
             <button
               type="button"
               onClick={() => void runTakeoff()}
-              disabled={isAnalyzing}
+              disabled={isAnalyzing || !selectedFile || (selectedFileIsPdf && !displayedPreviewImage)}
               className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <Play className="w-4 h-4" />
@@ -335,11 +501,46 @@ export function AIQuantityTakeoff() {
 
         {/* Right: Detected Elements */}
         <div className="bg-card rounded-xl p-6 border border-border">
-          <h3 className="font-semibold mb-4">Detected Elements</h3>
+          <h3 className="font-semibold mb-2">Detected Elements</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Showing extracted quantities for {selectedFileIsPdf ? `page ${activePageNumber}` : "the current drawing"}.
+          </p>
+
+          {selectedFile && (
+            <div className="mb-4 p-3 bg-muted/40 rounded-lg border border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Page-by-page extracted results</p>
+              {extractedPages.length === 0 && (
+                <p className="text-xs text-muted-foreground">No pages extracted yet.</p>
+              )}
+              {extractedPages.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {extractedPages.map((item) => (
+                    <button
+                      key={item.page}
+                      type="button"
+                      onClick={() => {
+                        if (selectedFileIsPdf) {
+                          setCurrentPdfPage(Math.max(item.page - 1, 0));
+                        }
+                      }}
+                      className={`px-2 py-1 rounded-md text-xs border ${
+                        item.page === activePageNumber
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      Page {item.page}: {item.typeCount} types
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-3">
             {elementsByType.length === 0 && (
               <div className="p-4 bg-muted/50 rounded-lg border border-border text-sm text-muted-foreground">
-                No extracted elements yet. Run AI extraction on an uploaded file.
+                No extracted elements for {selectedFileIsPdf ? `page ${activePageNumber}` : "this drawing"} yet. Run AI extraction.
               </div>
             )}
             {elementsByType.map((element, idx) => (
