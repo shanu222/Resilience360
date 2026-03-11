@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapPin, Package, TrendingUp, AlertCircle } from "lucide-react";
-import { GeoJSON, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useLiveHubData } from "../../hooks/useLiveHubData";
 import type { FeatureCollection, Geometry } from "geojson";
@@ -9,13 +9,34 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-const PAKISTAN_GEOJSON_URL = "https://raw.githubusercontent.com/johan/world.geo.json/master/countries/PAK.geo.json";
+const PAKISTAN_GEOJSON_URL = "https://raw.githubusercontent.com/shanu222/Resilience360/main/src/data/pakistan-adm1.geojson";
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
+
+function PakistanBoundsController({ boundary }: { boundary: FeatureCollection<Geometry> | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!boundary) {
+      return;
+    }
+
+    try {
+      const bounds = L.geoJSON(boundary as never).getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.2), { maxZoom: 6, animate: true, duration: 0.8 });
+      }
+    } catch {
+      // Ignore boundary fit errors and keep default center.
+    }
+  }, [boundary, map]);
+
+  return null;
+}
 
 export function HubLocations() {
   const { hubs, inventory, isLoading, error } = useLiveHubData();
@@ -99,6 +120,8 @@ export function HubLocations() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+
+            <PakistanBoundsController boundary={pakistanBoundary} />
 
             {pakistanBoundary && (
               <GeoJSON

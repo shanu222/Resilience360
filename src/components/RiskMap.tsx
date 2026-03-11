@@ -75,10 +75,10 @@ const supportedProvinces = new Set<ProvinceKey>(['Punjab', 'Sindh', 'Balochistan
 
 const normalizeProvince = (shapeName: string): ProvinceKey | null => {
   const key = shapeName.trim().toLowerCase()
-  if (key === 'khyber pakhtunkhwa') return 'KP'
-  if (key === 'gilgit baltistan') return 'GB'
-  if (key === 'azad kashmir') return 'AJK'
-  if (key === 'islamabad capital territory') return 'ICT'
+  if (key === 'khyber pakhtunkhwa' || key.includes('khyber')) return 'KP'
+  if (key === 'gilgit baltistan' || key.includes('gilgit')) return 'GB'
+  if (key === 'azad kashmir' || key.includes('azad')) return 'AJK'
+  if (key === 'islamabad capital territory' || key.includes('islamabad')) return 'ICT'
   if (key === 'punjab') return 'Punjab'
   if (key === 'sindh') return 'Sindh'
   if (key === 'balochistan') return 'Balochistan'
@@ -203,10 +203,7 @@ function RiskMap({
       }
     }
 
-    const provinceFeatures = adm1GeoData.features.filter((feature) => {
-      const province = normalizeProvince(String(feature.properties?.shapeName ?? ''))
-      return province ? supportedProvinces.has(province) : false
-    })
+    const provinceFeatures = adm1GeoData.features
 
     const districtsByProvince: Record<ProvinceKey, Feature<Geometry, Adm2Props>[]> = {
       Punjab: [],
@@ -222,7 +219,7 @@ function RiskMap({
       const districtCenter = centroid(district as never)
       for (const provinceFeature of provinceFeatures) {
         const provinceName = normalizeProvince(String(provinceFeature.properties?.shapeName ?? ''))
-        if (!provinceName) continue
+        if (!provinceName || !supportedProvinces.has(provinceName)) continue
 
         const isInside = booleanPointInPolygon(
           districtCenter.geometry as never,
