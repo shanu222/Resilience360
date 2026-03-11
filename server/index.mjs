@@ -183,6 +183,13 @@ const earthquakeSentAlertsFile = path.join(earthquakeAlertsDir, 'sent-alerts.jso
 const EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD = Math.max(4, Number(process.env.EARTHQUAKE_ALERT_MAGNITUDE_THRESHOLD ?? 5) || 5)
 const EARTHQUAKE_ALERT_POLL_INTERVAL_MS = Math.max(60_000, Number(process.env.EARTHQUAKE_ALERT_POLL_INTERVAL_MS ?? 120_000) || 120_000)
 const EARTHQUAKE_ALERT_MAX_SENT_IDS = Math.max(200, Number(process.env.EARTHQUAKE_ALERT_MAX_SENT_IDS ?? 5000) || 5000)
+const EARTHQUAKE_ALERT_NOTIFIER_ENABLED =
+  String(
+    process.env.EARTHQUAKE_ALERT_NOTIFIER_ENABLED ??
+      (process.env.NODE_ENV === 'production' ? 'false' : 'true'),
+  )
+    .trim()
+    .toLowerCase() === 'true'
 const repoRootDir = path.resolve(__dirname, '..')
 const sharedInfraModelsGitRelativePath = 'server/data/infra-models/generated-models.json'
 const execFileAsync = promisify(execFile)
@@ -4045,6 +4052,11 @@ app.use((_req, res) => {
 })
 
 app.listen(port, host, () => {
-  startEarthquakeAlertNotifier()
+  if (EARTHQUAKE_ALERT_NOTIFIER_ENABLED) {
+    startEarthquakeAlertNotifier()
+    console.log('Earthquake alert notifier: enabled')
+  } else {
+    console.log('Earthquake alert notifier: disabled')
+  }
   console.log(`Vision API running on http://${host}:${port}`)
 })

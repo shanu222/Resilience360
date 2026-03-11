@@ -4,17 +4,17 @@ services:
     env: node
     plan: free
     branch: main
-    buildCommand: npm install && npm run build
-    startCommand: npm run server
+    buildCommand: npm ci && npm run build
+    startCommand: node server/index.mjs
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: GIT_LFS_SKIP_SMUDGE
         value: "1"
-      - key: PORT
-        value: "10000"
       - key: OPENAI_API_KEY
         sync: false
+      - key: EARTHQUAKE_ALERT_NOTIFIER_ENABLED
+        value: "false"
       - key: RECOVERY_EMAIL_PROVIDER
         sync: false
       - key: RECOVERY_FROM_EMAIL
